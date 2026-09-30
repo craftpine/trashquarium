@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrashQuarium</title>
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <img src="/fish/poecilia_reticulata.png" alt="" />
+        <div>
+          <h1>TrashQuarium</h1>
+          <p>Bể cá của bạn · file của bạn vẫn thuộc về bạn</p>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+    <div id="banners"></div>
+    <nav class="tabs" id="tabs" role="tablist"></nav>
+    <main id="panel"></main>
+    <div id="drop-hint" hidden>Thả file vào đây để xem trước — chưa có file nào bị chuyển</div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="modal"></dialog>
+    <script type="module" src="/src/manager.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+[package]
+name = "trashquarium"
+version = "0.3.0"
+edition = "2021"
+description = "TrashQuarium — cozy desktop aquarium"
+rust-version = "1.89"
+
+[lib]
+name = "trashquarium_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+dirs = "6"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.60", features = [
+  "Win32_Foundation",
+  "Win32_Storage_FileSystem",
+  "Win32_System_SystemInformation",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+tempfile = "3"

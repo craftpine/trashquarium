@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "TrashQuarium",
+  "version": "0.3.0",
+  "identifier": "vn.craftbyte.trashquarium",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "manager",
+        "title": "TrashQuarium",
+        "url": "index.html",
+        "width": 1040,
+        "height": 740,
+        "minWidth": 760,
+        "minHeight": 560,
+        "center": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "app", "dmg"],
+    "category": "Game",
+    "shortDescription": "Bể cá desktop: dọn file an toàn, nuôi cá thật",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "windows": {
+      "webviewInstallMode": { "type": "offlineInstaller" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Vietnamese", "English"]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "tank_capacity": 12,
+  "starter_species": "poecilia_reticulata",
+  "max_preview_files": 50,
+  "max_file_bytes": 4294967296,
+  "fingerprint_bytes": 1048576,
+  "stage_exp": { "juvenile": 20, "adult": 60 },
+  "economy": {
+    "welcome_shells": 40,
+    "base_shells": 2,
+    "base_exp": 10,
+    "daily_shell_cap": 100,
+    "daily_exp_cap": 2000,
+    "diminish_step": 0.02,
+    "diminish_min": 0.2,
+    "category_multiplier": { "doc": 1.0, "media": 1.5, "tech": 1.2 },
+    "size_log_divisor": 3.0,
+    "size_min": 0.2,
+    "size_max": 2.0,
+    "age_recent_days": 7,
+    "age_old_days": 30,
+    "age_recent_mult": 0.1,
+    "age_middle_mult": 0.5,
+    "age_old_mult": 1.0,
+    "max_fingerprints": 50000
+  }
+}
