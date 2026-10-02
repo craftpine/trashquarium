@@ -10,8 +10,8 @@ pub const TANK: &str = "tank";
 /// Opens the tank. Attachment finishes asynchronously on the main thread;
 /// `on_fail` receives the reason if it does not work.
 pub fn show_tank(app: &AppHandle, on_fail: impl FnOnce(String) + Send + 'static) -> Result<(), String> {
-    if let Some(w) = app.get_webview_window(TANK) {
-        return w.show().map_err(|e| e.to_string());
+    if app.get_webview_window(TANK).is_some() {
+        return Ok(()); // already attached (or attaching); see the note on show() below
     }
     let monitor = app
         .primary_monitor()
@@ -38,6 +38,9 @@ pub fn show_tank(app: &AppHandle, on_fail: impl FnOnce(String) + Send + 'static)
     let w = window.clone();
     app.run_on_main_thread(move || match attach(&w) {
         Ok(()) => {
+            // On Windows attach() shows the window itself: tao's show() rewrites
+            // the window styles, dropping WS_CHILD and lifting the ocean over the icons.
+            #[cfg(not(windows))]
             let _ = w.show();
         }
         Err(reason) => {
@@ -129,11 +132,11 @@ fn attach(window: &WebviewWindow) -> Result<(), String> {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
         ShowWindow(hwnd, SW_HIDE);
         SetWindowLongPtrW(hwnd, GWL_STYLE, (style | WS_CHILD as isize) & !(WS_POPUP as isize));
-        if !icons.is_null() {
-            let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | WS_EX_LAYERED as isize);
-            SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
-        }
+        // Always layered: tao already marks the window layered for click-through,
+        // and a layered window draws nothing until its attributes are set.
+        let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | WS_EX_LAYERED as isize);
+        SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
         SetParent(hwnd, worker);
         if GetParent(hwnd) != worker {
             return Err("attach_failed".into());

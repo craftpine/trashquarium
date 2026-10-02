@@ -188,9 +188,10 @@ mod imp {
     use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
     use std::os::windows::io::AsRawHandle;
     use windows_sys::Win32::Storage::FileSystem::{
-        GetFileInformationByHandle, MoveFileExW, BY_HANDLE_FILE_INFORMATION, FILE_ATTRIBUTE_HIDDEN,
+        GetFileInformationByHandle, MoveFileExW, BY_HANDLE_FILE_INFORMATION, DELETE, FILE_ATTRIBUTE_HIDDEN,
         FILE_ATTRIBUTE_OFFLINE, FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS, FILE_ATTRIBUTE_RECALL_ON_OPEN,
-        FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_SYSTEM, FILE_FLAG_BACKUP_SEMANTICS,
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_SYSTEM, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_DELETE,
+        FILE_SHARE_READ, FILE_SHARE_WRITE,
     };
 
     const ERROR_SHARING_VIOLATION: i32 = 32;
@@ -241,11 +242,26 @@ mod imp {
     }
 
     pub fn is_locked(path: &Path) -> io::Result<bool> {
-        match OpenOptions::new().read(true).share_mode(0).open(path) {
-            Ok(_) => Ok(false),
-            Err(e) if matches!(e.raw_os_error(), Some(ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)) => Ok(true),
-            Err(e) => Err(e),
+        // Probe what the rename needs: DELETE access while sharing everything, so
+        // only handles that would actually block the move count. Explorer and
+        // media handlers hold videos open briefly (thumbnail, duration), so a
+        // sharing violation is retried for a moment before calling it locked.
+        for attempt in 0..5 {
+            let probe = OpenOptions::new()
+                .access_mode(DELETE)
+                .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+                .open(path);
+            match probe {
+                Ok(_) => return Ok(false),
+                Err(e) if matches!(e.raw_os_error(), Some(ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)) => {
+                    if attempt < 4 {
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                    }
+                }
+                Err(e) => return Err(e),
+            }
         }
+        Ok(true)
     }
 }
 
