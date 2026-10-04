@@ -2,6 +2,15 @@
 import type { Category, Stage } from "./api";
 
 const reasons: Record<string, string> = {
+  hunt_waiting: "Chưa có sò mới; bạn có thể quay lại sau.",
+  hunt_cap: "Đã nhặt đủ Vỏ sò hôm nay. Sò chưa nhặt được giữ lại.",
+  hunt_meeting: "Tắt Chế độ họp để gọi thuyền.",
+  hunt_stale: "Lượt thuyền đã kết thúc; hãy gọi thuyền lại.",
+  hunt_busy: "Móc đang hoạt động; chờ kéo về thuyền.",
+  hunt_window: "Không mở được cửa sổ thuyền.",
+  autostart_failed: "Không thay đổi được tùy chọn mở cùng hệ thống.",
+  autostart_dev: "Chỉ bật mở cùng hệ thống từ bản game đã cài, không dùng bản dev.",
+  dock_failed: "Không mở được nút nhanh desktop.",
   ok: "Sẵn sàng cho cá ăn",
   not_absolute: "Đường dẫn không đầy đủ",
   device_path: "Đường dẫn mạng hoặc thiết bị không được hỗ trợ",

@@ -12,7 +12,7 @@ use super::catalog::{Catalog, Species};
 use super::save::{self, Loaded};
 use super::Failure;
 
-pub const SCHEMA_VERSION: u64 = 1;
+pub const SCHEMA_VERSION: u64 = 2;
 pub const RULES_VERSION: u32 = 1;
 pub const RENDERER_VERSION: u32 = 1;
 const BACKUPS: usize = 3;
@@ -86,13 +86,17 @@ pub struct DexEntry {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Settings {
+    #[serde(default = "dock_default")]
+    pub quick_dock_enabled: bool,
     pub tank_enabled: bool,
     pub meeting_mode: bool,
     pub onboarding_done: bool,
 }
+fn dock_default() -> bool { true }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GameState {
+    pub shell_hunt: super::hunt::HuntState,
     pub schema_version: u64,
     pub rules_version: u32,
     pub created_at: i64,
@@ -108,6 +112,7 @@ pub struct GameState {
 impl GameState {
     fn blank(now: i64) -> Self {
         GameState {
+            shell_hunt: super::hunt::HuntState::default(),
             schema_version: SCHEMA_VERSION,
             rules_version: RULES_VERSION,
             created_at: now,
@@ -117,11 +122,12 @@ impl GameState {
             ledger: RewardLedger::default(),
             daily: Daily::default(),
             dex: BTreeMap::new(),
-            settings: Settings { tank_enabled: false, meeting_mode: false, onboarding_done: false },
+            settings: Settings { tank_enabled: false, meeting_mode: false, onboarding_done: false, quick_dock_enabled: true },
         }
     }
 
     fn validate(&self) -> Result<(), String> {
+        self.shell_hunt.validate()?;
         let mut ids = BTreeSet::new();
         for f in &self.fish {
             if f.id.is_empty() || !ids.insert(f.id.as_str()) {
@@ -149,6 +155,8 @@ pub struct RewardSummary {
 }
 
 pub struct GameStore {
+    pub hunt_session: Option<super::hunt::HuntSession>,
+    hunt_checkpoint_ms: u64,
     path: PathBuf,
     pub state: GameState,
     /// Set when the save must not be written (newer version or unreadable).
@@ -160,13 +168,21 @@ pub struct GameStore {
 impl GameStore {
     pub fn open(path: &Path, catalog: Catalog, now: i64) -> Self {
         let mut store = GameStore {
+            hunt_session: None,
+            hunt_checkpoint_ms: 0,
             path: path.to_path_buf(),
             state: GameState::blank(now),
             read_only: None,
             recovered_from_backup: false,
             catalog,
         };
-        let loaded = save::load_with_backups(path, BACKUPS, SCHEMA_VERSION, |v| {
+        let loaded = save::load_with_backups(path, BACKUPS, SCHEMA_VERSION, |mut v| {
+            let version = v.get("schema_version").and_then(serde_json::Value::as_u64).unwrap_or(0);
+            if version == 1 {
+                v["shell_hunt"] = serde_json::to_value(super::hunt::HuntState::default()).map_err(|e| e.to_string())?;
+                v["settings"]["quick_dock_enabled"] = serde_json::Value::Bool(true);
+                v["schema_version"] = serde_json::Value::from(SCHEMA_VERSION);
+            } else if version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
             let s: GameState = serde_json::from_value(v).map_err(|e| e.to_string())?;
             s.validate()?;
             Ok(s)
@@ -341,6 +357,98 @@ impl GameStore {
         change(&mut next.settings);
         self.commit(next)
     }
+
+    pub fn hunt_view(&self) -> super::hunt::HuntView {
+        let h = &self.state.shell_hunt;
+        super::hunt::HuntView { batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
+    }
+
+    pub fn start_hunt(&mut self, today: &str) -> Result<super::hunt::HuntView, Failure> {
+        if let Some(e) = &self.read_only { return Err(e.clone()); }
+        if self.state.settings.meeting_mode { return Err(Failure::new("hunt_meeting", "meeting mode")); }
+        let mut next = self.state.clone();
+        next.shell_hunt.roll_day(today);
+        let room = self.catalog.balance.shell_hunt.daily_cap.saturating_sub(next.shell_hunt.earned);
+        if room == 0 { return Err(Failure::new("hunt_cap", "daily shell hunt limit")); }
+        if !next.shell_hunt.tutorial_granted {
+            next.shell_hunt.tutorial_granted = true;
+            if next.shell_hunt.batch.is_none() { next.shell_hunt.batch = Some(super::hunt::Batch::generate(room.min(3) as usize)); }
+        }
+        if next.shell_hunt.batch.is_none() { return Err(Failure::new("hunt_waiting", "no shells yet")); }
+        self.commit(next)?;
+        if self.hunt_session.is_none() {
+            self.hunt_session = Some(super::hunt::HuntSession::new(self.state.shell_hunt.batch.as_ref().unwrap()));
+        }
+        Ok(self.hunt_view())
+    }
+
+    pub fn hunt_action(&mut self, session_id: &str, seq: u64, action: &str) -> Result<super::hunt::HuntView, Failure> {
+        if action == "leave" {
+            if self.hunt_session.as_ref().is_some_and(|s| s.id == session_id) { self.hunt_session = None; }
+            return Ok(self.hunt_view());
+        }
+        if self.state.settings.meeting_mode && action != "pause" { return Err(Failure::new("hunt_meeting", "meeting mode")); }
+        self.hunt_session.as_mut().ok_or_else(|| Failure::new("hunt_stale", "no session"))?.action(session_id, seq, action)?;
+        Ok(self.hunt_view())
+    }
+
+    /// Called by a native monotonic timer, never by a client-supplied elapsed time.
+    /// Returns true when a durable change should refresh the other windows.
+    pub fn tick_hunt(&mut self, elapsed_ms: u64, today: &str) -> Result<bool, Failure> {
+        if self.read_only.is_some() || self.state.settings.meeting_mode { return Ok(false); }
+        let cfg = self.catalog.balance.shell_hunt.clone();
+        let mut next = self.state.clone();
+        next.shell_hunt.roll_day(today);
+        let mut changed = next.shell_hunt.date != self.state.shell_hunt.date;
+        let room = cfg.daily_cap.saturating_sub(next.shell_hunt.earned);
+        if next.shell_hunt.batch.is_none() && room > 0 {
+            next.shell_hunt.remaining_wait_ms = next.shell_hunt.remaining_wait_ms.saturating_sub(elapsed_ms);
+            if next.shell_hunt.remaining_wait_ms == 0 {
+                let random_count = loop {
+                    let byte = uuid::Uuid::new_v4().as_bytes()[0];
+                    if byte < 250 { break byte as usize % 10 + 1; }
+                };
+                next.shell_hunt.batch = Some(super::hunt::Batch::generate(random_count.min(room as usize)));
+                changed = true;
+            }
+        }
+        if let Some(s) = &mut self.hunt_session {
+            if let Some(b) = &next.shell_hunt.batch {
+                if s.batch_id == b.id && room > 0 {
+                    s.step(elapsed_ms as f64 / 1000.0, b);
+                    if s.phase == "settling" {
+                        if let Some(shell) = b.shells.iter().find(|sh| Some(&sh.id) == s.caught_id.as_ref() && !sh.collected) {
+                            let id = shell.id.clone();
+                            next.shell_hunt.batch.as_mut().unwrap().shells.iter_mut().find(|sh| sh.id == id).unwrap().collected = true;
+                            next.shell_hunt.earned += 1;
+                            next.wallet.shells = next.wallet.shells.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", ""))?;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        let finished = next.shell_hunt.batch.as_ref().is_some_and(|b| b.remaining() == 0);
+        if finished { next.shell_hunt.batch = None; next.shell_hunt.remaining_wait_ms = cfg.next_wait(); changed = true; }
+        self.hunt_checkpoint_ms += elapsed_ms;
+        if changed || self.hunt_checkpoint_ms >= 60_000 {
+            if let Err(e) = self.commit(next) {
+                if let Some(s) = &mut self.hunt_session { s.paused = true; s.error = Some(e.code.clone()); }
+                return Err(e);
+            }
+            self.hunt_checkpoint_ms = 0;
+            if finished { self.hunt_session = None; }
+            else if let Some(s) = &mut self.hunt_session {
+                if s.phase == "settling" && changed { s.phase = "swinging".into(); s.caught_id = None; s.error = None; }
+            }
+        } else {
+            // Countdown is in memory until checkpoint; wallet/collected change only via commit.
+            self.state.shell_hunt.remaining_wait_ms = next.shell_hunt.remaining_wait_ms;
+        }
+        Ok(changed)
+    }
+
+    pub fn checkpoint_hunt(&mut self) -> Result<(), Failure> { self.commit(self.state.clone()) }
 }
 
 fn mark_owned(state: &mut GameState, species_id: &str) {
@@ -524,5 +632,60 @@ mod tests {
         let s = store(dir.path());
         assert_eq!(s.read_only.as_ref().unwrap().code, "save_corrupt");
         assert!(s.state.fish.is_empty(), "no starter fish is invented over an unreadable save");
+    }
+
+    #[test]
+    fn migration_preserves_wallet_fish_and_receipts_without_welcome_regrant() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = store(dir.path());
+        s.purchase("danio_rerio", 20, NOW).unwrap();
+        s.state.ledger.receipts.insert("paid".into());
+        let id = s.state.fish[0].id.clone();
+        let mut old = serde_json::to_value(&s.state).unwrap();
+        old["schema_version"] = serde_json::json!(1);
+        old.as_object_mut().unwrap().remove("shell_hunt");
+        old["settings"].as_object_mut().unwrap().remove("quick_dock_enabled");
+        fs::write(&s.path, serde_json::to_vec(&old).unwrap()).unwrap();
+        drop(s);
+        let s = store(dir.path());
+        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, 2);
+        assert_eq!(s.state.wallet.shells, 20); assert_eq!(s.state.fish.len(), 2);
+        assert_eq!(s.state.fish[0].id, id); assert!(s.state.ledger.receipts.contains("paid"));
+        assert!(s.state.settings.quick_dock_enabled);
+    }
+
+    #[test]
+    fn hunt_reward_is_atomic_replay_safe_and_separate_from_feeding_cap() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let view = s.start_hunt("2026-10-03").unwrap();
+        let b = view.batch.unwrap(); let id = b.shells[0].id.clone();
+        let session = s.hunt_session.as_mut().unwrap();
+        session.phase = "settling".into(); session.caught_id = Some(id.clone());
+        let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
+        assert!(s.tick_hunt(100, "2026-10-03").is_err());
+        assert_eq!(s.state.wallet.shells, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+        s.path = good;
+        assert!(s.tick_hunt(100, "2026-10-03").unwrap());
+        assert_eq!(s.state.wallet.shells, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
+        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.shells, 41);
+        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.shells, 41);
+        assert_eq!(loaded.state.shell_hunt.batch.as_ref().unwrap().remaining(), 2);
+        assert!(loaded.hunt_session.is_none());
+    }
+
+    #[test]
+    fn random_batches_persist_and_tutorial_is_not_repeated() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        s.state.shell_hunt.remaining_wait_ms = 1;
+        s.tick_hunt(100, "2026-10-03").unwrap();
+        let batch = s.state.shell_hunt.batch.as_ref().unwrap().id.clone();
+        assert!((1..=10).contains(&s.state.shell_hunt.batch.as_ref().unwrap().shells.len()));
+        drop(s); let mut s = store(dir.path());
+        assert_eq!(s.state.shell_hunt.batch.as_ref().unwrap().id, batch);
+        s.start_hunt("2026-10-03").unwrap();
+        assert_eq!(s.state.shell_hunt.batch.as_ref().unwrap().id, batch);
+        s.state.shell_hunt.earned = 60;
+        assert_eq!(s.start_hunt("2026-10-02").unwrap_err().code, "hunt_cap");
     }
 }

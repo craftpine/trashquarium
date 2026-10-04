@@ -12,6 +12,8 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         tank: resolve(import.meta.dirname, "tank.html"),
+        hud: resolve(import.meta.dirname, "hud.html"),
+        hunt: resolve(import.meta.dirname, "hunt.html"),
       },
     },
   },

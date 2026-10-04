@@ -170,6 +170,18 @@ function drawFallbackFish(len: number) {
 
 function draw() {
   ctx.drawImage(background, 0, 0, width, height);
+  // Persistent batch, not a new random field on every render/restart.
+  for (const shell of state?.hunt.batch?.shells ?? []) {
+    if (shell.collected) continue;
+    const x = shell.x * width;
+    const y = height * (0.82 + (shell.y - 0.65) * 0.38);
+    const r = 10 + shell.size * 2;
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
+    for (let n = -2; n <= 2; n++) { ctx.beginPath(); ctx.moveTo(0, r * .4); ctx.lineTo(n * r * .3, -r * .7); ctx.stroke(); }
+    ctx.restore();
+  }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {
     ctx.beginPath();

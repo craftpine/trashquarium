@@ -69,12 +69,45 @@ remove it.
   size + first 1 MiB, not a full checksum; the list keeps the newest 50 000).
 - Daily caps reset only when the local date moves forward.
 
-## Not done yet
+## Shell hunt, quick dock and startup
+
+- Open **Trục vớt Vỏ sò** in the manager, or **Gọi thuyền** from the Windows
+  quick dock. The first visit provides three tutorial shells once. Later batches
+  contain 1–10 shells after a random 8–22 minutes of running time. Sleep, shutdown
+  and Meeting Mode do not advance the clock. Uncollected shells never expire.
+- Click the play area or press Space while the hunt window has focus to drop
+  the swinging claw. One shell per catch; pulling it to the boat credits one
+  game shell. Misses cost nothing. Focus loss pauses the session. Resume with
+  **Tiếp tục**; closing returns an unpaid catch to the same batch.
+- Hunt rewards have a separate 60-shell daily cap, without fish EXP. Rust owns
+  the simulation and commits wallet, daily count and collected flag together.
+  Reopening the app neither rerolls the batch nor grants the tutorial again.
+- **Mở khi đăng nhập Windows** in Settings registers opt-in autostart. It is
+  off by default; startup launches to the tray with the saved tank preference.
+  Changing autostart is disabled in development builds to avoid registering
+  a temporary executable. The toggle reads the OS registration, not a save flag.
+- The quick dock is a small, separately sized input window on Windows. The
+  full-screen tank remains click-through. Expand the boat button for feeding,
+  shopping, shell hunting and settings/Belly. The dock hides outside the desktop
+  and in Meeting Mode; Settings can disable it. Position is currently fixed to
+  the monitor's lower-right corner. Dock visibility needs Windows GUI QA.
+- Tauri save schema 1 is read and migrated to 2 with existing fish, wallet,
+  receipts and Belly preserved. Older app builds will open the new save read-only.
+
+### Validation / release limits
+
+The frontend is type-checked and built locally. Rust tests cover reachability,
+pause, catches/retraction, replay-safe payout, failed saves and migration; the
+Windows workflow runs them on PRs. Windows GUI checks for autostart, dock
+focus/Explorer and installer behaviour remain required before release. This
+change does not apply a Windows theme or alter file intake safety.
+
+## Still not done
 
 - Milestones C–E: breeding, ancestry, eggs, trait layers, birth cards, full
   Fishdex, Ancient/Mythic lines, Museum/events.
 - Taskbar-overlay mode and Windows themes (wallpaper/cursor/colours).
-- Fish rename, sounds, English localisation, in-game non-file shell source.
+- Fish rename, sounds, English localisation.
 - Windows GUI QA: desktop attachment, DPI, multi-monitor and the installer
   were type-checked from macOS but never run on Windows.
 - Species facts are `draft`, pending editorial and scientific review.

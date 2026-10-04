@@ -72,6 +72,8 @@ impl Economy {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Balance {
+    #[serde(default)]
+    pub shell_hunt: super::hunt::HuntBalance,
     pub tank_capacity: usize,
     pub starter_species: String,
     pub max_preview_files: usize,
@@ -121,6 +123,7 @@ impl Catalog {
             }
         }
         let b = &self.balance;
+        b.shell_hunt.validate()?;
         if self.species(&b.starter_species).is_none() {
             return Err(format!("starter species {:?} not in roster", b.starter_species));
         }

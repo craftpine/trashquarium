@@ -38,6 +38,7 @@ export interface Fish {
 }
 
 export interface Settings {
+  quick_dock_enabled: boolean;
   tank_enabled: boolean;
   meeting_mode: boolean;
   onboarding_done: boolean;
@@ -53,6 +54,7 @@ export interface Attention {
 }
 
 export interface StateView {
+  hunt: HuntView;
   shells: number;
   capacity: number;
   fish: Fish[];
@@ -98,6 +100,16 @@ export interface BellyEntry {
   fish_id: string;
 }
 
+export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean }
+export interface HuntSession {
+  id: string; batch_id: string; phase: string; angle: number; length: number;
+  caught_id: string | null; paused: boolean; error: string | null;
+}
+export interface HuntView {
+  batch: { id: string; shells: HuntShell[] } | null;
+  earned: number; daily_cap: number; session: HuntSession | null; waiting: boolean;
+}
+
 export const api = {
   state: () => invoke<StateView>("get_state"),
   preview: (paths: string[]) => invoke<Inspection[]>("preview_files", { paths }),
@@ -112,6 +124,15 @@ export const api = {
   createSample: () => invoke<string>("create_sample_file"),
   idleSeconds: () => invoke<number>("system_idle_seconds"),
   quit: () => invoke<void>("quit_app"),
+  huntStatus: () => invoke<HuntView>("hunt_status"),
+  startHunt: () => invoke<HuntView>("start_hunt"),
+  huntAction: (sessionId: string, seq: number, action: "drop" | "pause" | "resume" | "leave") => invoke<HuntView>("hunt_action", { sessionId, seq, action }),
+  openTab: (tab: string) => invoke<void>("open_manager_tab", { tab }),
+  takeRoute: () => invoke<string | null>("take_manager_route"),
+  setDock: (enabled: boolean) => invoke<StateView>("set_quick_dock", { enabled }),
+  resizeDock: (expanded: boolean) => invoke<void>("resize_quick_dock", { expanded }),
+  autostartStatus: () => invoke<boolean>("autostart_status"),
+  setAutostart: (enabled: boolean) => invoke<boolean>("set_autostart", { enabled }),
 };
 
 export function asFailure(e: unknown): Failure {
