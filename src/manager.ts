@@ -6,7 +6,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { api, asFailure, type BellyEntry, type FeedReport, type Inspection, type Species, type StateView } from "./api";
 import { attentionNote, categoryName, formatDate, formatSize, reason, stageName } from "./i18n";
 
-type Tab = "shop" | "feed" | "belly" | "tank" | "settings";
+type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
 
 let state: StateView;
@@ -16,6 +16,7 @@ let feedReport: FeedReport | null = null;
 let bellyEntries: BellyEntry[] = [];
 let selectedFish = "";
 let working = false;
+let autostart: boolean | null = null;
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -143,6 +144,7 @@ function render() {
     belly: renderBelly,
     tank: renderTank,
     settings: renderSettings,
+    hunt: renderHunt,
   };
   panel.replaceChildren(views[tab]());
 }
@@ -199,6 +201,7 @@ function renderTabs() {
     ["feed", "Cho cá ăn"],
     ["belly", "Bụng cá", state.held_count],
     ["tank", "Bể của tôi"],
+    ["hunt", "Trục vớt Vỏ sò"],
     ["settings", "Cài đặt"],
   ];
   $("tabs").replaceChildren(
@@ -468,6 +471,21 @@ function renderTank(): Node {
   );
 }
 
+function renderHunt(): Node {
+  const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
+  return h("section", { class: "settings" },
+    h("h2", {}, "Trục vớt Vỏ sò"),
+    h("p", { class: "lead" }, "Gọi thuyền, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận Vỏ sò."),
+    h("div", { class: "setting" }, h("div", {},
+      h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
+      h("p", {}, "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.")),
+      h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
+        onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
+    h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
+    h("p", { class: "fine" }, "Click vùng chơi hoặc Space để thả móc. Trượt không mất điểm. Chế độ họp tạm dừng; rời thuyền giữ sò chưa nhặt."),
+  );
+}
+
 function renderSettings(): Node {
   const toggle = (checked: boolean, label: string, onFlip: (v: boolean) => Promise<unknown>) =>
     h("button", {
@@ -488,6 +506,12 @@ function renderSettings(): Node {
   return h("section", { class: "settings" },
     h("h2", {}, "Cài đặt"),
     h("div", { class: "setting" },
+      h("div", {}, h("h3", {}, "Mở khi đăng nhập Windows"), h("p", {}, "Khởi động xuống khay hệ thống, dùng lựa chọn bể lần trước. Mặc định tắt. Chỉ bật từ bản đã cài.")),
+      autostart === null ? h("span", { class: "fine" }, "Không đọc được trạng thái") : toggle(autostart, "Mở cùng hệ thống", async (v) => { autostart = await api.setAutostart(v); })),
+    h("div", { class: "setting" },
+      h("div", {}, h("h3", {}, "Nút nhanh trên desktop"), h("p", {}, "Cho ăn, gọi thuyền, mua cá và các thao tác khác. Windows: chỉ hiện khi bể bật và desktop đang dùng.")),
+      toggle(state.settings.quick_dock_enabled, "Nút nhanh", (v) => api.setDock(v))),
+    h("div", { class: "setting" },
       h("div", {},
         h("h3", {}, "Bể cá desktop"),
         h("p", {}, "Đại dương nằm dưới biểu tượng desktop, không che ứng dụng đang dùng và không nhận chuột. Tắt lúc nào cũng được. Không đổi hình nền hay theme hệ thống."),
@@ -504,7 +528,7 @@ function renderSettings(): Node {
     h("div", { class: "setting" },
       h("div", {},
         h("h3", {}, "Dữ liệu trên máy"),
-        h("p", {}, "Save, Bụng cá và sổ giao dịch nằm tại ", h("code", {}, state.data_dir), ". Gỡ cài đặt không xóa thư mục này. Không mạng, không tài khoản, không telemetry. Không tự khởi động cùng hệ thống."),
+        h("p", {}, "Save, Bụng cá và sổ giao dịch nằm tại ", h("code", {}, state.data_dir), ". Gỡ cài đặt không xóa thư mục này. Không mạng, không tài khoản, không telemetry."),
       ),
     ),
     h("div", { class: "setting" },
@@ -556,9 +580,22 @@ function askClose() {
 }
 
 async function main() {
+  autostart = await api.autostartStatus().catch(() => null);
   await refresh();
   if (!state) return;
   await listen("state-changed", refresh);
+  const route = async () => {
+    const next = await api.takeRoute();
+    if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {
+      if (working || preview.length > 0) { toast("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn."); return; }
+      switchTab(next as Tab);
+    }
+  };
+  await listen("manager-route", route);
+  await route();
+  await getCurrentWindow().onFocusChanged(async ({ payload }) => {
+    if (payload) { autostart = await api.autostartStatus().catch(() => null); render(); }
+  });
   await listen<string>("tank-error", (e) =>
     toast(`Không gắn được bể vào desktop (${reason(e.payload)}). Bể đã tắt; game không chuyển sang cửa sổ phủ toàn màn hình.`, true),
   );

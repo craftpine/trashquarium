@@ -7,6 +7,57 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder}
 
 pub const TANK: &str = "tank";
 
+/// A small input window, separate from the full-screen click-through ocean.
+pub fn ensure_hud(app: &AppHandle) -> Result<(), String> {
+    if app.get_webview_window("hud").is_some() { return Ok(()); }
+    let monitor = app.primary_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
+    let size = monitor.size().to_logical::<f64>(monitor.scale_factor());
+    let pos = monitor.position().to_logical::<f64>(monitor.scale_factor());
+    let w = WebviewWindowBuilder::new(app, "hud", WebviewUrl::App("hud.html".into()))
+        .title("TrashQuarium Quick Dock").decorations(false).resizable(false)
+        .skip_taskbar(true).focused(false).visible(false).shadow(false)
+        .position(pos.x + size.width - 80.0, pos.y + size.height - 120.0)
+        .inner_size(56.0, 56.0).build().map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::*;
+        let hwnd = w.hwnd().map_err(|e| e.to_string())?.0 as windows_sys::Win32::Foundation::HWND;
+        let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | WS_EX_TOOLWINDOW as isize | WS_EX_NOACTIVATE as isize);
+    }
+    let _ = w;
+    Ok(())
+}
+
+pub fn resize_hud(app: &AppHandle, expanded: bool) -> Result<(), String> {
+    let w = app.get_webview_window("hud").ok_or("dock closed")?;
+    let monitor = w.current_monitor().map_err(|e| e.to_string())?.ok_or("no monitor")?;
+    let area = monitor.size().to_logical::<f64>(monitor.scale_factor());
+    let origin = monitor.position().to_logical::<f64>(monitor.scale_factor());
+    let (width, height) = if expanded { (250.0, 254.0) } else { (56.0, 56.0) };
+    w.set_size(tauri::LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
+    w.set_position(tauri::LogicalPosition::new(origin.x + area.width - width - 24.0, origin.y + area.height - height - 64.0)).map_err(|e| e.to_string())
+}
+
+/// Show the dock only on the desktop (or while using the dock itself).
+pub fn desktop_foreground(app: &AppHandle) -> bool {
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::*;
+        let foreground = GetForegroundWindow();
+        if foreground.is_null() { return false; }
+        if let Some(w) = app.get_webview_window("hud") {
+            if w.hwnd().ok().is_some_and(|h| h.0 as windows_sys::Win32::Foundation::HWND == foreground) { return true; }
+        }
+        let mut name = [0u16; 128];
+        let n = GetClassNameW(foreground, name.as_mut_ptr(), name.len() as i32);
+        let class = String::from_utf16_lossy(&name[..n.max(0) as usize]);
+        return matches!(class.as_str(), "Progman" | "WorkerW");
+    }
+    #[cfg(not(windows))]
+    { let _ = app; false }
+}
+
 /// Opens the tank. Attachment finishes asynchronously on the main thread;
 /// `on_fail` receives the reason if it does not work.
 pub fn show_tank(app: &AppHandle, on_fail: impl FnOnce(String) + Send + 'static) -> Result<(), String> {

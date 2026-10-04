@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod fsops;
 pub mod game;
 pub mod guard;
+pub mod hunt;
 pub mod save;
 
 /// Error returned to the UI. `code` is stable and localised by the front end.

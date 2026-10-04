@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, State, Wry};
+use tauri_plugin_autostart::ManagerExt as AutostartExt;
 
 use crate::engine::app::{AppCore, FeedReport, StateView};
 use crate::engine::belly::{BellyEntry, RestoreOutcome};
@@ -67,6 +68,105 @@ fn show_manager(app: &AppHandle) {
         let _ = w.unminimize();
         let _ = w.set_focus();
     }
+}
+
+#[derive(Default)]
+struct PendingRoute(Mutex<Option<String>>);
+
+#[tauri::command]
+fn take_manager_route(route: State<'_, PendingRoute>) -> Option<String> {
+    route.0.lock().unwrap_or_else(|p| p.into_inner()).take()
+}
+
+#[tauri::command]
+fn open_manager_tab(app: AppHandle, tab: String) -> Result<(), Failure> {
+    if !["shop", "feed", "belly", "tank", "settings", "hunt"].contains(&tab.as_str()) { return Err(Failure::new("bad_tab", "")); }
+    *app.state::<PendingRoute>().0.lock().unwrap_or_else(|p| p.into_inner()) = Some(tab);
+    show_manager(&app);
+    let _ = app.emit("manager-route", ());
+    Ok(())
+}
+
+#[tauri::command]
+async fn hunt_status(core: State<'_, Core>) -> Result<engine::hunt::HuntView, Failure> { Ok(with_core(&core, |c| c.game.hunt_view()).await) }
+
+#[tauri::command]
+async fn start_hunt(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>) -> Result<engine::hunt::HuntView, Failure> {
+    let _guard = busy.enter()?;
+    let view = with_core(&core, |c| c.game.start_hunt(&engine::local_today())).await?;
+    if let Some(w) = app.get_webview_window("hunt") { let _ = w.show(); let _ = w.set_focus(); }
+    else {
+        if let Err(e) = tauri::WebviewWindowBuilder::new(&app, "hunt", tauri::WebviewUrl::App("hunt.html".into()))
+            .title("TrashQuarium — Trục vớt Vỏ sò").inner_size(960.0, 600.0).min_inner_size(720.0, 480.0).center().build() {
+            with_core(&core, |c| c.game.hunt_session = None).await;
+            return Err(Failure::new("hunt_window", e));
+        }
+    }
+    notify(&app);
+    Ok(view)
+}
+
+#[tauri::command]
+async fn hunt_action(core: State<'_, Core>, session_id: String, seq: u64, action: String) -> Result<engine::hunt::HuntView, Failure> {
+    with_core(&core, move |c| c.game.hunt_action(&session_id, seq, &action)).await
+}
+
+#[tauri::command]
+async fn set_quick_dock(app: AppHandle, core: State<'_, Core>, enabled: bool) -> Result<StateView, Failure> {
+    let view = with_core(&core, move |c| c.game.update_settings(|s| s.quick_dock_enabled = enabled).map(|_| c.view())).await?;
+    if !enabled { if let Some(w) = app.get_webview_window("hud") { let _ = w.hide(); } }
+    notify(&app); Ok(view)
+}
+
+#[tauri::command]
+fn resize_quick_dock(app: AppHandle, expanded: bool) -> Result<(), Failure> { desktop::resize_hud(&app, expanded).map_err(|e| Failure::new("dock_failed", e)) }
+
+#[tauri::command]
+fn autostart_status(app: AppHandle) -> Result<bool, Failure> { app.autolaunch().is_enabled().map_err(|e| Failure::new("autostart_failed", e)) }
+
+#[tauri::command]
+fn set_autostart(app: AppHandle, window: tauri::WebviewWindow, enabled: bool) -> Result<bool, Failure> {
+    if window.label() != "manager" { return Err(Failure::new("not_allowed", "")); }
+    if cfg!(debug_assertions) { return Err(Failure::new("autostart_dev", "use installed release")); }
+    if enabled { app.autolaunch().enable() } else { app.autolaunch().disable() }.map_err(|e| Failure::new("autostart_failed", e))?;
+    autostart_status(app)
+}
+
+fn start_hunt_clock(app: AppHandle, core: Core) {
+    std::thread::spawn(move || {
+        let mut previous = std::time::Instant::now();
+        let mut dock_visible = false;
+        let mut dock_tick = 0;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            let now = std::time::Instant::now();
+            let elapsed = now.duration_since(previous).as_millis() as u64; previous = now;
+            let hunt_focused = app.get_webview_window("hunt").is_some_and(|w| w.is_focused().unwrap_or(false));
+            let mut changed = false;
+            let mut desired_dock = None;
+            if let Ok(mut c) = core.try_lock() {
+                if !hunt_focused || elapsed > 2000 {
+                    if let Some(s) = &mut c.game.hunt_session { s.paused = true; }
+                }
+                changed = c.game.tick_hunt(if elapsed > 2000 { 0 } else { elapsed }, &engine::local_today()).unwrap_or(false);
+                dock_tick += 1;
+                if dock_tick >= 5 {
+                    dock_tick = 0;
+                    desired_dock = Some(c.game.state.settings.tank_enabled && c.game.state.settings.quick_dock_enabled
+                        && !c.game.state.settings.meeting_mode && desktop::desktop_foreground(&app));
+                }
+            }
+            // Native window operations may dispatch to the main thread. Never
+            // hold the core lock while doing them (especially during app exit).
+            if changed { notify(&app); }
+            if let Some(visible) = desired_dock {
+                if visible != dock_visible {
+                    if let Some(w) = app.get_webview_window("hud") { if visible { let _ = w.show(); } else { let _ = w.hide(); } }
+                    dock_visible = visible;
+                }
+            }
+        }
+    });
 }
 
 #[tauri::command]
@@ -275,8 +375,9 @@ fn build_tray(app: &AppHandle, core: &Core) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_manager(app)))
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| { if !args.iter().any(|a| a == "--autostart") { show_manager(app); } }))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
         .setup(|app| {
             let catalog = Catalog::bundled().map_err(|e| format!("bundled catalog invalid: {e}"))?;
             let root = data_root();
@@ -285,7 +386,12 @@ pub fn run() {
             let tank_on = core.lock().unwrap_or_else(|p| p.into_inner()).game.state.settings.tank_enabled;
             app.manage(core.clone());
             app.manage(Busy::default());
+            app.manage(PendingRoute::default());
             build_tray(app.handle(), &core)?;
+            #[cfg(windows)]
+            desktop::ensure_hud(app.handle()).map_err(std::io::Error::other)?;
+            start_hunt_clock(app.handle().clone(), core.clone());
+            if !std::env::args().any(|a| a == "--autostart") { show_manager(app.handle()); }
             if tank_on {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
@@ -308,10 +414,24 @@ pub fn run() {
             create_sample_file,
             system_idle_seconds,
             quit_app,
+            hunt_status, start_hunt, hunt_action,
+            open_manager_tab, take_manager_route,
+            set_quick_dock, resize_quick_dock,
+            autostart_status, set_autostart,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build TrashQuarium");
     app.run(|app, event| {
+        if let tauri::RunEvent::Exit = &event {
+            let core = app.state::<Core>();
+            if let Ok(mut c) = core.lock() { let _ = c.game.checkpoint_hunt(); };
+        }
+        if let tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } = &event {
+            if label == "hunt" {
+                let core = app.state::<Core>();
+                if let Ok(mut c) = core.lock() { c.game.hunt_session = None; };
+            }
+        }
         #[cfg(target_os = "macos")]
         if let tauri::RunEvent::Reopen { .. } = event {
             show_manager(app);

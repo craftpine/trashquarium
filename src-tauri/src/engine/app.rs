@@ -45,6 +45,7 @@ pub struct DailyView {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct StateView {
+    pub hunt: super::hunt::HuntView,
     pub shells: u64,
     pub capacity: usize,
     pub fish: Vec<Fish>,
@@ -150,6 +151,7 @@ impl AppCore {
         let c = self.game.catalog();
         let s = &self.game.state;
         StateView {
+            hunt: self.game.hunt_view(),
             shells: s.wallet.shells,
             capacity: c.balance.tank_capacity,
             fish: s.fish.clone(),

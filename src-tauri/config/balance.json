@@ -1,4 +1,5 @@
 {
+  "shell_hunt": { "wait_min_ms": 480000, "wait_max_ms": 1320000, "daily_cap": 60 },
   "tank_capacity": 12,
   "starter_species": "poecilia_reticulata",
   "max_preview_files": 50,
