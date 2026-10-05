@@ -1,5 +1,6 @@
 import type { HuntView, ShellKind } from "./api";
 import "./shell-collection.css";
+import { coinText } from "./coin";
 
 export const SHELL_CARDS = [
   { id: "great", sprite: 0, name: "Sò điệp lớn", taxon: "Pecten maximus", fact: "Sò điệp lớn có nhiều mắt nhỏ dọc mép áo. Nó có thể khép vỏ hoặc bơi để phản ứng với chuyển động và bóng tối.", habitat: "Sống ở biển, trên nền cát hoặc sỏi.", source: "https://www.marlin.ac.uk/species/detail/1398" },
@@ -9,7 +10,7 @@ export const SHELL_CARDS = [
 export function shellSprite(kind: ShellKind): number { return SHELL_CARDS.find(card => card.id === kind)?.sprite ?? 0; }
 
 function node(tag: string, text = "", className = ""): HTMLElement {
-  const el = document.createElement(tag); el.textContent = text; el.className = className; return el;
+  const el = document.createElement(tag); el.append(...coinText(text)); el.className = className; return el;
 }
 export function collectionPanel(view: HuntView): HTMLElement {
   const panel = node("section", "", "shell-collection");

@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
 import { reason } from "./i18n";
 import { closureStep, drawClaw } from "./hunt-motion";
+import { COIN_SRC } from "./coin";
 
 const VISIBLE_FPS = 30;
 const QUIET_FPS = 10;
@@ -61,6 +62,7 @@ let clock = 0;
 let hunt: HuntView | null = null;
 let huntBlend = 0; // 0 = idle ocean, 1 = hunt scene fully shown
 const huntArt: Record<string, HTMLImageElement | null> = {};
+let coinArt: HTMLImageElement | null = null;
 const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
 const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
 const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
@@ -301,12 +303,33 @@ function drawHunt(e: number) {
   ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
   ctx.fillText(text, width / 2, 36);
   if (performance.now() < notice.until) {
-    const nw = ctx.measureText(notice.text).width + 36;
+    const nw = richWidth(notice.text) + 36;
     ctx.fillStyle = "rgba(22, 70, 76, 0.9)";
     ctx.beginPath(); ctx.roundRect(width / 2 - nw / 2, 60, nw, 34, 17); ctx.fill();
-    ctx.fillStyle = "#ffe5a4"; ctx.fillText(notice.text, width / 2, 78);
+    ctx.fillStyle = "#ffe5a4"; drawRich(notice.text, width / 2, 78);
   }
   ctx.restore();
+}
+
+const COIN_PX = 22;
+/** Width of text where the word "CBCoin" is drawn as the CB logo. */
+function richWidth(text: string): number {
+  const parts = text.split("CBCoin");
+  return parts.reduce((w, part) => w + ctx.measureText(part).width, 0) + (parts.length - 1) * (COIN_PX + 4);
+}
+function drawRich(text: string, cx: number, cy: number) {
+  const parts = text.split("CBCoin");
+  let x = cx - richWidth(text) / 2;
+  const align = ctx.textAlign; ctx.textAlign = "left";
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      if (coinArt) ctx.drawImage(coinArt, x + 2, cy - COIN_PX / 2, COIN_PX, COIN_PX);
+      else ctx.fillText("CBCoin", x, cy);
+      x += COIN_PX + 4;
+    }
+    ctx.fillText(part, x, cy); x += ctx.measureText(part).width;
+  });
+  ctx.textAlign = align;
 }
 
 /** Closing animation, catch notice and receipt tracking; runs once per frame. */
@@ -418,6 +441,7 @@ async function pollIdle() {
 async function main() {
   oceanImage = await loadImage("/art/ocean.jpg");
   for (const name of ["boat", "claw", "shell_0", "shell_1", "shell_2"]) huntArt[name] = await loadImage(`/art/hunt/${name}.png`);
+  coinArt = await loadImage(COIN_SRC);
   resize();
   window.addEventListener("resize", resize);
   await refresh();

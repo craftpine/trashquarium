@@ -6,6 +6,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
 import { attentionNote, categoryName, formatDate, formatSize, reason, stageName } from "./i18n";
 import { collectionPanel } from "./shell-collection";
+import { coinText } from "./coin";
 
 type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
@@ -40,7 +41,10 @@ function h<K extends keyof HTMLElementTagNameMap>(
       el.setAttribute(key, value === true ? "" : String(value));
     }
   }
-  for (const c of children) if (c !== null && c !== undefined && c !== false) el.append(c);
+  for (const c of children) {
+    if (c === null || c === undefined || c === false) continue;
+    if (typeof c === "string") el.append(...coinText(c)); else el.append(c);
+  }
   return el;
 }
 
@@ -49,7 +53,7 @@ function h<K extends keyof HTMLElementTagNameMap>(
 let toastTimer = 0;
 function toast(text: string, error = false) {
   const t = $("toast");
-  t.textContent = text;
+  t.replaceChildren(...coinText(text));
   t.className = `show${error ? " error" : ""}`;
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => (t.className = ""), error ? 7000 : 4500);
@@ -202,7 +206,7 @@ function renderTabs() {
     ["feed", "Cho cá ăn"],
     ["belly", "Bụng cá", state.held_count],
     ["tank", "Bể của tôi"],
-    ["hunt", "Trục vớt CBCoin"],
+    ["hunt", "Trục vớt Vỏ sò"],
     ["settings", "Cài đặt"],
   ];
   $("tabs").replaceChildren(
@@ -501,7 +505,7 @@ function renderTank(): Node {
 function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
   return h("section", { class: "settings" },
-    h("h2", {}, "Trục vớt vỏ sò"),
+    h("h2", {}, "Trục vớt Vỏ sò"),
     h("p", { class: "lead" }, "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100)."),
     h("div", { class: "setting" }, h("div", {},
       h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
