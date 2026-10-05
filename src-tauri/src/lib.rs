@@ -2,7 +2,7 @@ mod engine;
 mod desktop;
 
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
@@ -93,10 +93,18 @@ async fn hunt_status(core: State<'_, Core>) -> Result<engine::hunt::HuntView, Fa
 
 /// One key for the whole hunt: resumes when paused, drops the claw while it swings.
 const HUNT_KEY: &str = "ctrl+alt+space";
+/// Plain Space does the same, but it is only claimed (Windows only) while a hunt
+/// is running and the desktop is in front, so typing in other apps is never affected.
+const SPACE_KEY: &str = "space";
 
 /// True while the hunt hotkey is registered (it is only held during a session).
 #[derive(Default)]
 struct HuntKey(AtomicBool);
+/// True while plain Space is registered for the hunt.
+#[derive(Default)]
+struct SpaceKey(AtomicBool);
+/// Debounce: a held key repeats, which would resume and drop in one press.
+static LAST_HOTKEY_MS: AtomicU64 = AtomicU64::new(0);
 
 fn register_hunt_key(app: &AppHandle) {
     let flag = app.state::<HuntKey>();
@@ -112,7 +120,22 @@ fn unregister_hunt_key(app: &AppHandle) {
     if app.state::<HuntKey>().0.swap(false, Ordering::AcqRel) { let _ = app.global_shortcut().unregister(HUNT_KEY); }
 }
 
+fn register_space_key(app: &AppHandle) {
+    let flag = app.state::<SpaceKey>();
+    if flag.0.swap(true, Ordering::AcqRel) { return; }
+    let result = app.global_shortcut().on_shortcut(SPACE_KEY, |app, _shortcut, event| {
+        if event.state() == ShortcutState::Pressed { hunt_hotkey(app); }
+    });
+    if result.is_err() { flag.0.store(false, Ordering::Release); }
+}
+
+fn unregister_space_key(app: &AppHandle) {
+    if app.state::<SpaceKey>().0.swap(false, Ordering::AcqRel) { let _ = app.global_shortcut().unregister(SPACE_KEY); }
+}
+
 fn hunt_hotkey(app: &AppHandle) {
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+    if stamp.saturating_sub(LAST_HOTKEY_MS.swap(stamp, Ordering::AcqRel)) < 300 { return; }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let core: Core = app.state::<Core>().inner().clone();
@@ -147,7 +170,7 @@ async fn start_hunt(app: AppHandle, window: tauri::WebviewWindow, core: State<'_
 async fn hunt_action(app: AppHandle, core: State<'_, Core>, session_id: String, seq: u64, action: String) -> Result<engine::hunt::HuntView, Failure> {
     let leaving = action == "leave";
     let view = with_core(&core, move |c| c.game.hunt_action(&session_id, seq, &action)).await;
-    if leaving { unregister_hunt_key(&app); notify(&app); }
+    if leaving { unregister_hunt_key(&app); unregister_space_key(&app); notify(&app); }
     view
 }
 
@@ -179,6 +202,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
         let mut dock_tick = 0;
         let mut hunting = false;
         let mut was_hunting = false;
+        let mut space_on = false;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(100));
             let now = std::time::Instant::now();
@@ -205,6 +229,12 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
             if hunting != was_hunting {
                 if hunting { register_hunt_key(&app); } else { unregister_hunt_key(&app); }
                 was_hunting = hunting;
+            }
+            // Plain Space only while the desktop is in front (Windows has the auto-pause).
+            let space_wanted = cfg!(windows) && hunting && !away;
+            if space_wanted != space_on {
+                if space_wanted { register_space_key(&app); } else { unregister_space_key(&app); }
+                space_on = space_wanted;
             }
             if changed { notify(&app); }
             if let Some(visible) = desired_dock {
@@ -445,6 +475,7 @@ pub fn run() {
             app.manage(Busy::default());
             app.manage(PendingRoute::default());
             app.manage(HuntKey::default());
+            app.manage(SpaceKey::default());
             build_tray(app.handle(), &core)?;
             #[cfg(windows)]
             desktop::ensure_hud(app.handle()).map_err(std::io::Error::other)?;
@@ -491,4 +522,16 @@ pub fn run() {
         }
         let _ = (app, event);
     });
+}
+
+#[cfg(test)]
+mod hotkey_tests {
+    use super::*;
+
+    #[test]
+    fn hunt_hotkeys_parse() {
+        for key in [HUNT_KEY, SPACE_KEY] {
+            key.parse::<tauri_plugin_global_shortcut::Shortcut>().unwrap_or_else(|e| panic!("{key}: {e}"));
+        }
+    }
 }

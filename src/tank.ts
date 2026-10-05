@@ -61,7 +61,7 @@ let clock = 0;
 let hunt: HuntView | null = null;
 let huntBlend = 0; // 0 = idle ocean, 1 = hunt scene fully shown
 const huntArt: Record<string, HTMLImageElement | null> = {};
-const HUNT_KEY = "Ctrl+Alt+Space";
+const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
 const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
 const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
 const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top

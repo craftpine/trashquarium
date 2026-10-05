@@ -2,6 +2,7 @@ import "./hud.css";
 import { listen } from "@tauri-apps/api/event";
 import { api, asFailure, type HuntView } from "./api";
 import { reason } from "./i18n";
+import { setSound, soundCues, soundEnabled, unlockSound } from "./hunt-sound";
 const dock = document.getElementById("dock")!;
 let expanded = false;
 let remaining = 0;
@@ -10,6 +11,7 @@ let working = false;
 let message = "";
 let hunt: HuntView | null = null;
 let seq = Date.now();
+const HOTKEYS = navigator.userAgent.includes("Windows") ? "Phím tắt: Space (hoặc Ctrl+Alt+Space)" : "Phím tắt: Ctrl+Alt+Space";
 function button(label: string, run: () => Promise<unknown>) {
   const b = document.createElement("button"); b.textContent = label; b.disabled = working;
   b.onclick = async () => { if (working) return; working = true; message = ""; render();
@@ -33,14 +35,18 @@ function huntStatus(v: HuntView): string {
 }
 function renderHunt(v: HuntView) {
   const s = v.session!;
-  const header = document.createElement("header"); header.textContent = "ĐANG ĐÀO SÒ"; dock.append(header);
+  const header = document.createElement("header"); header.textContent = "ĐANG ĐÀO SÒ";
+  const sound = button(soundEnabled() ? "🔊" : "🔇", () => setSound(!soundEnabled()));
+  sound.title = `Âm thanh đào sò: ${soundEnabled() ? "Bật" : "Tắt"} (bấm để ${soundEnabled() ? "tắt" : "bật"})`;
+  sound.setAttribute("aria-label", sound.title); sound.setAttribute("aria-pressed", String(soundEnabled()));
+  header.append(sound); dock.append(header);
   const status = document.createElement("p"); status.textContent = huntStatus(v); status.setAttribute("role", "status"); dock.append(status);
   const canDrop = s.phase === "swinging" && !s.paused && v.earned < v.daily_cap;
   const main = s.paused ? button("▶  Tiếp tục", huntAction("resume")) : button("⚓  Thả móc", huntAction("drop"));
   main.className = "primary"; if (!s.paused) main.disabled = working || !canDrop; dock.append(main);
   if (!s.paused) dock.append(button("⏸  Tạm dừng", huntAction("pause")));
   dock.append(button("Rời thuyền", huntAction("leave")));
-  const tip = document.createElement("p"); tip.textContent = "Phím tắt: Ctrl+Alt+Space"; dock.append(tip);
+  const tip = document.createElement("p"); tip.textContent = HOTKEYS; dock.append(tip);
 }
 function render() {
   dock.replaceChildren();
@@ -63,11 +69,14 @@ function render() {
 async function refresh() {
   const view = await api.huntStatus();
   const started = !!view.session && !hunt?.session;
+  soundCues(hunt, view);
   hunt = view; remaining = view.batch?.shells.filter((s) => !s.collected).length ?? 0;
   // A new session opens the dock so the hunt controls are right there.
   if (started && !expanded) { await api.resizeDock(true); expanded = true; more = false; }
   render();
 }
+// Browsers only allow audio after a gesture: any click on the dock unlocks it.
+document.addEventListener("pointerdown", () => { void unlockSound(); });
 void listen("state-changed", () => refresh().catch(() => {}));
 // While hunting, follow the claw so the Drop button is only live when it can be used.
 window.setInterval(() => { if (hunt?.session && !working) refresh().catch(() => {}); }, 200);

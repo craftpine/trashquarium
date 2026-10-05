@@ -78,8 +78,9 @@ remove it.
   three tutorial shells once. Later batches contain 1–10 shells after a random
   8–22 minutes of running time. Sleep, shutdown and Meeting Mode do not advance
   the clock. Uncollected shells never expire.
-- The tank is click-through, so controls are the global hotkey **Ctrl+Alt+Space**
-  (registered only during a hunt) and the dock's **Thả móc / Tạm dừng / Rời thuyền**
+- The tank is click-through, so controls are the global hotkeys **Space** (Windows
+  only, claimed only while a hunt runs and the desktop is in front) and
+  **Ctrl+Alt+Space** (registered only during a hunt), and the dock's **Thả móc / Tạm dừng / Rời thuyền**
   buttons. One shell per catch; pulling it to the boat credits CBCoin by colour
   (white 1, red 10, purple 100). About 8 % of shells are rare (gold glow) and a
   rare shell may hold a pearl; each shell type opens a collection card the first
@@ -88,7 +89,9 @@ remove it.
   desktop is covered by other windows (use Win+D to show it); resume with
   **Tiếp tục**. Leaving returns an unpaid catch to the same batch. macOS has no
   dock yet, so only the hotkey is available there and there is no auto-pause.
-  If another program owns the hotkey it is ignored and the dock still works.
+  If another program owns a hotkey it is ignored and the dock still works.
+  The dock's speaker button toggles optional synthesized hunt sounds (off by
+  default, remembered); sounds play from the dock window, so macOS has none.
 - Hunt rewards have a separate 60-shell daily cap (counts shells, not CBCoin),
   without fish EXP. Rust owns the simulation and commits wallet, collection,
   daily count and collected flag together.
