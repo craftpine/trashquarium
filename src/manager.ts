@@ -7,8 +7,9 @@ import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspe
 import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangChange, LANGS, locale, reason, setLang, speciesFact, speciesName, stageName, t, type Lang } from "./i18n";
 import { collectionPanel } from "./shell-collection";
 import { coinText } from "./coin";
+import { formatCountdown } from "./egg-den";
 
-type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
+type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
 
 let state: StateView;
@@ -96,6 +97,7 @@ async function refresh() {
     return;
   }
   if (!state.fish.some((f) => f.id === selectedFish)) selectedFish = state.fish[0]?.id ?? "";
+  announceHatches();
   if (tab === "belly") bellyEntries = await api.bellyList().catch(() => []);
   render();
 }
@@ -148,6 +150,7 @@ function render() {
     feed: renderFeed,
     belly: renderBelly,
     tank: renderTank,
+    den: renderDen,
     settings: renderSettings,
     hunt: renderHunt,
   };
@@ -164,8 +167,8 @@ function showGuide() {
       item("🗑️", t("Cho cá ăn rác (an toàn!)"), t("Thả file bạn không cần nữa vào game. File chui vào Bụng cá — không bị xóa, nhả ra lúc nào cũng được — còn cá thì nhận EXP. Lỡ cho ăn nhầm? Cá chỉ hơi tiếc thôi.")),
       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
-      item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.")),
-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+      item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
+      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
     ),
     [{ label: t("Đã hiểu!"), kind: "primary" }],
@@ -175,7 +178,7 @@ function showGuide() {
 function renderStats() {
   $("stats").replaceChildren(
     h("span", { class: "pill shells", title: t("CBCoin là điểm trong game, không phải tiền thật") }, h("b", {}, String(state.cbcoins)), "CBCoin"),
-    h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), t("cá trong bể")),
+    h("span", { class: "pill", title: t("Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.") }, h("b", {}, `${state.used_slots}/${state.capacity}`), t("chỗ · {n} cá", { n: state.fish.length })),
     h("span", { class: "pill" }, t("EXP hôm nay"), h("b", {}, String(state.daily.exp))),
     h("label", { class: "pill lang", title: t("Ngôn ngữ") },
       "🌐",
@@ -229,6 +232,7 @@ function renderTabs() {
     ["feed", t("Cho cá ăn")],
     ["belly", t("Bụng cá"), state.held_count],
     ["tank", t("Bể của tôi")],
+    ["den", t("Hang trứng"), state.eggs.length],
     ["hunt", t("Trục vớt Vỏ sò")],
     ["settings", t("Cài đặt")],
   ];
@@ -254,13 +258,14 @@ function fishArt(species: Species | undefined) {
 }
 
 function renderShop(): Node {
-  const full = state.fish.length >= state.capacity;
   const cards = state.species.map((s) => {
+    const need = slotsOf(s.price);
+    const full = need > freeSlots();
     const short = s.price - state.cbcoins;
     const buy = h("button", {
       class: "primary small",
       disabled: working || full || short > 0 || !!state.read_only,
-      title: full ? t("Bể đã đầy") : short > 0 ? t("Còn thiếu {n} CBCoin", { n: short }) : undefined,
+      title: full ? t("Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ", { need, free: freeSlots() }) : short > 0 ? t("Còn thiếu {n} CBCoin", { n: short }) : undefined,
       onclick: () => confirmBuy(s),
     }, full ? t("Bể đầy") : short > 0 ? t("Thiếu {n}", { n: short }) : t("Đổi"));
     return h("article", { class: "card" },
@@ -271,6 +276,7 @@ function renderShop(): Node {
         h("div", { class: "tags" },
           h("span", { class: "tag" }, t("Có thật")),
           h("span", { class: "tag" }, s.reproduction === "live_birth" ? t("Đẻ con") : t("Đẻ trứng")),
+          h("span", { class: `tag${need > 1 ? " big" : ""}` }, t("Chiếm {n} chỗ", { n: need })),
           state.dex[s.id]?.owned ? h("span", { class: "tag" }, t("Đã có")) : null,
         ),
         h("div", { class: "actions" },
@@ -315,7 +321,7 @@ function confirmBuy(s: Species) {
   modal(
     h("div", {},
       h("h2", {}, t("Đổi {price} CBCoin lấy {name}?", { price: s.price, name: speciesName(s) })),
-      h("p", { style: "margin-top:8px" }, t("Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.", { left: state.cbcoins - s.price, count: state.fish.length + 1, cap: state.capacity })),
+      h("p", { style: "margin-top:8px" }, t("Sau khi đổi còn {left} CBCoin · bể dùng {count}/{cap} chỗ.", { left: state.cbcoins - s.price, count: state.used_slots + slotsOf(s.price), cap: state.capacity })),
       h("p", { class: "fine" }, t("CBCoin là điểm trong game, không dùng tiền thật.")),
     ),
     [
@@ -342,6 +348,10 @@ function confirmBuy(s: Species) {
 }
 
 /** Lv.100 is `stage_exp.adult` EXP (10 EXP per level since save schema 5). */
+/** Tank slots a species takes: 1 below medium_price, 2 below large_price, else 3 (same rule as the engine). */
+const slotsOf = (price: number) => (price >= state.slots.large_price ? 3 : price >= state.slots.medium_price ? 2 : 1);
+const freeSlots = () => Math.max(0, state.capacity - state.used_slots);
+
 const levelOf = (f: Fish) => Math.floor((f.exp * 100) / state.stage_exp.adult);
 
 const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
@@ -362,10 +372,12 @@ function confirmBreed(fish: Fish) {
   }
   let partner = partners[0];
   let eggs = 1;
-  const free = Math.max(0, state.capacity - state.fish.length);
+  const kidSlots = slotsOf(sp?.price ?? fish.purchase_price);
+  const denRoom = Math.max(0, state.breeding.den_capacity - state.eggs.length);
+  const hours = (sec: number) => (sec / 3600).toLocaleString(locale(), { maximumFractionDigits: 1 });
   const b = state.breeding;
   const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
-  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
+  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used, denRoom));
   const summary = h("p", { class: "fine", role: "status" });
   const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": t("Số trứng") }) as HTMLInputElement;
   const refreshSummary = () => {
@@ -376,7 +388,8 @@ function confirmBreed(fish: Fish) {
       t("Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ", { rate: (r * 100).toFixed(1), kids: (eggs * r).toFixed(1) }),
       t("Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ", { cost: fish.purchase_price * eggs, before: saleValue(fish), after: fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs) }),
       t("(mỗi trứng −{price}, tối thiểu {price}). ", { price: fish.purchase_price }),
-      free === 0 ? t("Bể đang đầy — cần chỗ trống để cá con nở.") : t("Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.", { free }),
+      t("Trứng vào Hang trứng và ấp {min}–{max} tiếng mới nở. Hang còn {room} chỗ. ", { min: hours(state.breeding.incubate_min_s), max: hours(state.breeding.incubate_max_s), room: denRoom }),
+      t("Khi nở, mỗi cá con cần {kid} chỗ trong bể; bể đầy thì trứng chờ trong hang.", { kid: kidSlots }),
     ].join("")));
   };
   const select = h("select", { "aria-label": t("Chọn cá ghép cặp"), onchange: (ev: Event) => {
@@ -396,10 +409,8 @@ function confirmBreed(fish: Fish) {
     working = true; render();
     try {
       const out = await api.breed(fish.id, partner.id, eggs);
-      const n = out.hatched.length;
-      toast(n > 0
-        ? t("🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!", { charged: out.charged, n }) + (out.refunded ? t(" · giữ lại {n} trứng vì bể đầy", { n: out.refunded }) : "")
-        : t("🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!", { charged: out.charged, rate: (out.hatch_rate * 100).toFixed(1) }));
+      toast(t("🥚 Đã đẻ {n} trứng vào Hang trứng! Mỗi trứng nở sau 2–3 tiếng (tỷ lệ {rate}%).", { n: out.laid, rate: (out.hatch_rate * 100).toFixed(1) }));
+      tab = "den";
     } catch (e) { fail(e); }
     finally { working = false; await refresh(); }
   }}]);
@@ -595,6 +606,72 @@ function renderTank(): Node {
   );
 }
 
+// ---------- egg den ----------
+
+function renderDen(): Node {
+  const now = Date.now() / 1000;
+  const full = freeSlots() < 1;
+  const eggs = [...state.eggs].sort((a, b) => a.hatch_at - b.hatch_at);
+  const card = (e: (typeof eggs)[number]) => {
+    const sp = speciesOf(e.species_id);
+    const timer = h("span", { class: "egg-timer", "data-hatch": String(e.hatch_at), "data-full": full ? "1" : "" }, "");
+    paintTimer(timer);
+    return h("article", { class: `egg-card${e.hatch_at - now < 600 ? " soon" : ""}` },
+      h("div", { class: "egg-wrap" }, h("div", { class: "egg", style: `--spot:${eggHue(e.species_id)}` }), timer),
+      h("strong", {}, sp ? speciesName(sp) : e.species_id),
+      h("span", { class: "fine" }, t("Đời {n} · nở lúc {time}", { n: e.generation, time: formatDate(e.hatch_at) })),
+    );
+  };
+  const log = state.hatch_log.slice(0, 12).map((r) => {
+    const sp = speciesOf(r.species_id);
+    const name = sp ? speciesName(sp) : r.species_id;
+    return h("div", { class: `row-item ${r.hatched ? "ok" : "bad"}` },
+      h("span", { class: "mark" }, r.hatched ? "🐣" : "💨"),
+      h("div", {}, h("div", { class: "name" }, r.hatched ? t("{name} đã nở!", { name }) : t("Một trứng {name} không nở", { name }))),
+      h("div", { class: "meta" }, formatDate(r.at)),
+    );
+  });
+  return h("section", {},
+    h("div", { class: "section-head" },
+      h("h2", {}, t("Hang trứng")),
+      h("span", { class: "fine" }, t("{n}/{cap} trứng", { n: eggs.length, cap: state.breeding.den_capacity })),
+    ),
+    h("p", { class: "lead" }, t("Mọi trứng từ sinh sản đều nằm ở đây. Mỗi trứng ấp 2–3 tiếng rồi mới nở thành cá con Lv.0 (game tắt vẫn tính giờ). Bể đầy thì trứng đến giờ sẽ chờ trong hang đến khi có chỗ.")),
+    full && eggs.length ? h("div", { class: "banner warn" }, t("Bể đã đầy — trứng đến giờ sẽ chờ trong hang. Bán bớt cá để trứng nở.")) : null,
+    eggs.length ? h("div", { class: "egg-grid" }, ...eggs.map(card)) : h("div", { class: "empty" }, t("Hang trứng đang trống. Cho hai cá cùng loài Lv.100 sinh sản để có trứng.")),
+    log.length ? h("div", { class: "list" }, h("h3", {}, t("Vừa nở gần đây")), ...log) : null,
+  );
+}
+
+/** Same egg, different speckle colour per species. */
+function eggHue(id: string) {
+  let n = 0;
+  for (const c of id) n = (n * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${n} 45% 45%)`;
+}
+
+function paintTimer(el: HTMLElement) {
+  const left = Number(el.dataset.hatch) - Date.now() / 1000;
+  el.textContent = left > 0 ? formatCountdown(left) : el.dataset.full ? t("chờ chỗ") : t("sắp nở!");
+  el.classList.toggle("due", left <= 0);
+}
+
+// Egg timers tick every second without re-rendering the page.
+setInterval(() => document.querySelectorAll<HTMLElement>(".egg-timer").forEach(paintTimer), 1000);
+
+let seenHatch: string | null | undefined;
+function announceHatches() {
+  const latest = state.hatch_log[0]?.egg_id ?? null;
+  if (seenHatch === undefined) { seenHatch = latest; return; }
+  if (latest === seenHatch) return;
+  const fresh = [];
+  for (const r of state.hatch_log) { if (r.egg_id === seenHatch) break; fresh.push(r); }
+  seenHatch = latest;
+  const born = fresh.filter((r) => r.hatched).length;
+  if (born) toast(t("🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.", { n: born }));
+  else if (fresh.length) toast(t("💨 {n} trứng đã đến giờ nhưng không nở.", { n: fresh.length }));
+}
+
 function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
   return h("section", { class: "settings" },
@@ -751,7 +828,7 @@ async function main() {
   setInterval(() => { if (!working && preview.length === 0) void refresh(); }, 15000);
   const route = async () => {
     const next = await api.takeRoute();
-    if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {
+    if (next && ["shop", "feed", "belly", "tank", "den", "settings", "hunt"].includes(next)) {
       if (working || preview.length > 0) { toast(t("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn.")); return; }
       switchTab(next as Tab);
     }

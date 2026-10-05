@@ -6,6 +6,8 @@ import { api, type Fish, type HuntShell, type HuntView, type StateView } from ".
 import { reason, t } from "./i18n";
 import { closureStep, drawClaw } from "./hunt-motion";
 import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
+import { drawDen } from "./egg-den";
+import { drawSky, waveAmp, waveY } from "./hunt-sky";
 import { COIN_SRC } from "./coin";
 
 const VISIBLE_FPS = 60;
@@ -66,6 +68,7 @@ let coinArt: HTMLImageElement | null = null;
 const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
 const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
 const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
+const BOAT_WATERLINE = 0.72; // fraction of the boat sprite height that sits at the water surface
 const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
 const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
 const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
@@ -334,9 +337,15 @@ function drawHunt(e: number) {
   const { side, ox, oy } = huntFrame();
   const at = (x: number, y: number): [number, number] => [ox + x * side, oy + y * side];
   const [px, py0] = at(HUNT_PIVOT.x, HUNT_PIVOT.y);
-  const bob = Math.sin(clock * 1.6) * side * 0.003;
+  // The boat floats on the surface: sky above the waterline, the hull dips into the water.
+  const bw = side * 0.27;
+  const bh = bw * 0.75;
+  const waterY0 = py0 - bh * (BOAT_HATCH.y - BOAT_WATERLINE);
+  // Ride the same wave the sky's waterline draws.
+  const bob = reducedMotion.matches ? 0 : waveY(px, 0, clock, waveAmp(waterY0));
   const dive = (1 - e) * side * 0.3; // the boat sails in from above
   const py = py0 + bob - dive;
+  drawSky(ctx, width, waterY0, clock, e, reducedMotion.matches);
   ctx.save();
   ctx.globalAlpha = e;
 
@@ -364,7 +373,7 @@ function drawHunt(e: number) {
 
   // Water-entry ripple when the claw dives below the surface.
   if (!s.paused && !reducedMotion.matches) {
-    if (prevLength < 0.12 && s.length >= 0.12 && s.phase === "extending") ripples.push({ x: tx, y: py0 + side * 0.12, age: 0 });
+    if (prevLength === 0 && s.length > 0 && s.phase === "extending") ripples.push({ x: px, y: waterY0, age: 0 });
     for (const r of ripples) {
       r.age += 1 / 30;
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - r.age / 0.6) * 0.8;
@@ -377,8 +386,6 @@ function drawHunt(e: number) {
 
   // Boat on top.
   const boat = huntArt.boat;
-  const bw = side * 0.27;
-  const bh = bw * 0.75;
   ctx.save();
   ctx.translate(px, py); ctx.rotate(Math.sin(clock * 1.1) * 0.02);
   ctx.shadowColor = "rgba(0, 20, 25, 0.35)"; ctx.shadowBlur = bw * 0.05;
@@ -452,6 +459,12 @@ function draw() {
     const idle = { x: shell.x * width, y: height * (0.82 + (shell.y - 0.65) * 0.38), size: 30 + shell.size * 5 };
     const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
     drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
+  }
+  // The egg den sits on the seabed, in front of the shells, behind the fish.
+  if (state) {
+    const eggs = state.eggs ?? [];
+    const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
+    drawDen(ctx, width * 0.16, height * 0.93, Math.min(320, Math.min(width, height) * 0.27), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
   }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {

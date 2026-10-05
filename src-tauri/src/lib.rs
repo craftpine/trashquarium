@@ -228,6 +228,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
         let mut hunting = false;
         let mut was_hunting = false;
         let mut space_on = false;
+        let mut hatch_tick = 0;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(100));
             let now = std::time::Instant::now();
@@ -241,6 +242,12 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
                     if let Some(s) = &mut c.game.hunt_session { s.paused = true; }
                 }
                 changed = c.game.tick_hunt(if elapsed > 2000 { 0 } else { elapsed }, &engine::local_today()).unwrap_or(false);
+                // Eggs in the den hatch on their own, even while no window is open.
+                hatch_tick += 1;
+                if hatch_tick >= 10 {
+                    hatch_tick = 0;
+                    changed |= c.game.hatch_due(engine::now_unix()).unwrap_or(false);
+                }
                 hunting = c.game.hunt_session.is_some();
                 dock_tick += 1;
                 if dock_tick >= 5 {
@@ -274,7 +281,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
 
 #[tauri::command]
 async fn get_state(core: State<'_, Core>) -> Result<StateView, Failure> {
-    with_core(&core, |c| { c.game.digest(engine::now_unix())?; Ok(c.view()) }).await
+    with_core(&core, |c| { c.game.digest(engine::now_unix())?; c.game.hatch_due(engine::now_unix())?; Ok(c.view()) }).await
 }
 
 #[tauri::command]

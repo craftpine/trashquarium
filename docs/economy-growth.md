@@ -15,17 +15,20 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch�
 - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
 - Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
 - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
-- Giữ quà khởi đầu 40 CBCoin, giá shop hiện có, sức chứa bể và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
+- **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
+- Giữ quà khởi đầu 40 CBCoin, giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
 
 ## Sinh sản (bản dùng thử)
 
-Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng.
+Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng; trứng vào Hang trứng và nở sau 2–3 tiếng.
 
 - **Giá trị bán:** mỗi trứng trừ của *từng* cá bố mẹ đúng một lần giá mua gốc. Giá bán hiện tại = giá mua × (100 − số trứng đã đẻ). Số trứng cộng dồn theo từng cá (`eggs_used`) và tối đa 99, tức giá bán không bao giờ thấp hơn giá mua gốc. Khi một trong hai cá hết hạn mức, chỉ còn đẻ được số trứng còn lại của cá ít hạn mức hơn.
 - **Tỷ lệ nở mỗi trứng:** giảm tuyến tính theo giá của loài, từ 20% (giá ≤ 20 CBCoin) xuống 5% (giá ≥ 300 CBCoin). Cấu hình trong `balance.json` mục `breeding`. Trứng không nở vẫn bị trừ giá trị.
 - **Cá con:** nở ra là cá bột Lv.0, `origin = hatched`, có `parent_ids` của hai cá bố mẹ và `generation` = đời lớn nhất của bố mẹ + 1. Giá mua ghi nhận bằng giá catalog của loài, nên cá con nuôi lên Lv.100 bán được như cá mua mới.
-- **Bể đầy:** trứng được xử lý lần lượt; khi bể đầy, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
-- Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
+- **Hang trứng và thời gian ấp:** mọi trứng vừa đẻ đều vào Hang trứng (`GameState.eggs`), mỗi trứng có giờ nở riêng ngẫu nhiên 2–3 tiếng (`incubate_min_s`/`incubate_max_s`). Hang chứa tối đa 100 trứng (`den_capacity`); đẻ quá chỗ trống bị từ chối. Đồng hồ chạy theo giờ hệ thống nên game tắt vẫn tính; khi mở lại, trứng quá giờ được xử lý ngay.
+- **Nở:** đồng hồ native kiểm tra mỗi giây. Trứng đến giờ mới tung tỷ lệ nở: nở thì thành cá con trong bể, không nở thì mất. Kết quả 30 lần gần nhất lưu ở `hatch_log` để giao diện báo.
+- **Bể đầy:** sinh sản không cần chỗ trong bể (trứng nằm trong hang). Trứng đến giờ mà bể không đủ chỗ cho loài đó thì nằm chờ trong hang, chưa tung tỷ lệ, cho tới khi bể có chỗ.
+- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang đá với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
 
 ## Code quà tặng (Cài đặt → Nhập code)
 

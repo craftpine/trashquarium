@@ -37,7 +37,7 @@ Mỗi file cho EXP theo dung lượng: file nhỏ 20 EXP, cứ thêm 20 MB thì 
 
 ## 🛒 Shopping cho bể
 
-Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300) to gần gấp 4 lần cá bảy màu (20). Cá mua về luôn bắt đầu ở Lv.0. Bể chứa tối đa **12 cá**, mua nhiều quá là cá chen chúc đó.
+Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300) to gần gấp 4 lần cá bảy màu (20). Cá mua về luôn bắt đầu ở Lv.0. Bể có **20 chỗ**: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 (6 con cá mập voi đã chiếm 18 chỗ). Cá mập to thì phải nhường chỗ chứ!
 
 ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
 
@@ -47,7 +47,8 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
 
 - Mỗi trứng trừ giá bán của **cả hai** bố mẹ một lần giá mua gốc. Đẻ càng nhiều bán càng rẻ, nhưng không bao giờ rẻ hơn giá mua gốc.
 - Mỗi trứng nở với tỷ lệ **5–20%**: cá rẻ dễ nở (20%), cá đắt khó nở (5%). Trứng không nở vẫn bị tính.
-- Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Bể đầy thì trứng chưa dùng được giữ lại.
+- Mọi trứng vào **Hang trứng** (có tab riêng, và một hang đá nhỏ trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
+- Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Trứng đến giờ mà bể đầy thì nằm chờ trong hang đến khi có chỗ.
 
 ## 😌 Yên tâm
 

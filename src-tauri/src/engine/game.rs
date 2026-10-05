@@ -84,14 +84,35 @@ pub struct RedeemOutcome {
     pub fish: u32,
 }
 
-/// Result of one breeding: `charged` eggs were spent, `refunded` were kept
-/// because the tank filled up first.
+/// An egg in the egg den. It hatches (or not) once `hatch_at` has passed and the tank
+/// has room for the young fish.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Egg {
+    pub id: String,
+    pub species_id: String,
+    pub parent_ids: Vec<String>,
+    pub generation: u32,
+    pub laid_at: i64,
+    pub hatch_at: i64,
+}
+
+/// What became of one egg, newest first in `GameState::hatch_log`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct HatchResult {
+    pub egg_id: String,
+    pub species_id: String,
+    pub hatched: bool,
+    pub fish_id: Option<String>,
+    pub at: i64,
+}
+const HATCH_LOG: usize = 30;
+
+/// Result of one breeding: all eggs go into the egg den.
 #[derive(Serialize, Clone, Debug)]
 pub struct BreedOutcome {
-    pub charged: u32,
-    pub refunded: u32,
+    pub laid: u32,
     pub hatch_rate: f64,
-    pub hatched: Vec<Fish>,
+    pub eggs: Vec<Egg>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -145,6 +166,9 @@ pub struct GameState {
     pub daily: Daily,
     pub dex: BTreeMap<String, DexEntry>,
     pub settings: Settings,
+    /// The egg den: eggs waiting to hatch.
+    #[serde(default)] pub eggs: Vec<Egg>,
+    #[serde(default)] pub hatch_log: VecDeque<HatchResult>,
 }
 
 impl GameState {
@@ -161,6 +185,8 @@ impl GameState {
             daily: Daily::default(),
             dex: BTreeMap::new(),
             settings: Settings { tank_enabled: false, meeting_mode: false, onboarding_done: false, quick_dock_enabled: true },
+            eggs: Vec::new(),
+            hatch_log: VecDeque::new(),
         }
     }
 
@@ -179,6 +205,12 @@ impl GameState {
             }
             if f.exp > MAX_EXP || f.pending_exp > MAX_EXP - f.exp || f.resting_until < 0 {
                 return Err(format!("invalid growth state {}", f.id));
+            }
+        }
+        let mut egg_ids = BTreeSet::new();
+        for e in &self.eggs {
+            if e.id.is_empty() || !egg_ids.insert(e.id.as_str()) || e.species_id.is_empty() || e.hatch_at < e.laid_at {
+                return Err(format!("invalid egg {:?}", e.id));
             }
         }
         if !self.daily.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.daily.date, "%Y-%m-%d").is_err() {
@@ -337,7 +369,7 @@ impl GameStore {
         if species.price != expected_price {
             return Err(Failure::new("price_changed", species.price));
         }
-        if self.state.fish.len() >= self.catalog.balance.tank_capacity {
+        if self.used_slots() + self.catalog.balance.slots.for_price(species.price) > self.catalog.balance.tank_capacity {
             return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity));
         }
         if self.state.wallet.cbcoins < species.price {
@@ -350,6 +382,17 @@ impl GameStore {
         mark_owned(&mut next, &species.id);
         self.commit(next)?;
         Ok(fish)
+    }
+
+    /// Tank slots a fish of this species takes (1–3, by catalog price).
+    pub fn slots_for(&self, species_id: &str) -> usize {
+        self.catalog.species(species_id).map(|s| self.catalog.balance.slots.for_price(s.price)).unwrap_or(1)
+    }
+
+    /// Slots used by every fish now in the tank. Old saves may exceed the capacity; they keep
+    /// their fish but can't add more until there is room.
+    pub fn used_slots(&self) -> usize {
+        self.state.fish.iter().map(|f| self.slots_for(&f.species_id)).sum()
     }
 
     pub fn can_feed(&self, fish_id: &str, now: i64) -> Result<(), Failure> {
@@ -371,10 +414,9 @@ impl GameStore {
         Ok(price)
     }
 
-    /// Breeds two adult fish of the same species. Each egg costs both parents one
-    /// purchase price of sale value (never below one purchase price) and hatches
-    /// with the species' hatch rate. Offspring start as Lv.0 fry. If the tank fills
-    /// up, the remaining eggs are not spent. Randomness comes from `roll` (0..1).
+    /// Breeds two adult fish of the same species. Each egg costs both parents one purchase
+    /// price of sale value (never below one purchase price) and goes into the egg den, where it
+    /// incubates for 2–3 hours. `roll` (0..1) picks each egg's incubation time.
     pub fn breed_with(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64, roll: &mut dyn FnMut() -> f64) -> Result<BreedOutcome, Failure> {
         if a_id == b_id { return Err(Failure::new("breed_same_fish", a_id)); }
         let find = |id: &str| self.state.fish.iter().position(|f| f.id == id).ok_or_else(|| Failure::new("fish_not_found", id.to_string()));
@@ -385,37 +427,74 @@ impl GameStore {
         let room = (MAX_EGGS_PER_FISH - a.eggs_used.min(MAX_EGGS_PER_FISH)).min(MAX_EGGS_PER_FISH - b.eggs_used.min(MAX_EGGS_PER_FISH));
         if room == 0 { return Err(Failure::new("breed_exhausted", "sale value is back to the purchase price")); }
         if eggs == 0 || eggs > room { return Err(Failure::new("breed_eggs_invalid", room)); }
+        let cfg = self.catalog.balance.breeding.clone();
+        let den_room = cfg.den_capacity.saturating_sub(self.state.eggs.len());
+        if den_room == 0 { return Err(Failure::new("den_full", cfg.den_capacity)); }
+        if eggs as usize > den_room { return Err(Failure::new("breed_eggs_invalid", den_room)); }
         let species = self.catalog.species(&a.species_id).cloned().ok_or_else(|| Failure::new("unknown_species", a.species_id.clone()))?;
-        let free = self.catalog.balance.tank_capacity.saturating_sub(self.state.fish.len());
-        if free == 0 { return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity)); }
-        let rate = self.catalog.balance.breeding.hatch_rate(species.price);
         let generation = a.generation.max(b.generation) + 1;
         let parents = vec![a.id.clone(), b.id.clone()];
-        let mut hatched = Vec::new();
-        let mut charged = 0u32;
-        while charged < eggs && hatched.len() < free {
-            charged += 1;
-            if roll() < rate {
-                let mut kid = self.new_fish(&species, Origin::Hatched, now);
-                kid.parent_ids = parents.clone();
-                kid.generation = generation;
-                hatched.push(kid);
-            }
-        }
+        let span = (cfg.incubate_max_s - cfg.incubate_min_s) as f64;
+        let laid: Vec<Egg> = (0..eggs).map(|_| Egg {
+            id: uuid::Uuid::new_v4().to_string(),
+            species_id: species.id.clone(),
+            parent_ids: parents.clone(),
+            generation,
+            laid_at: now,
+            hatch_at: now + cfg.incubate_min_s + (roll().clamp(0.0, 1.0) * span).round() as i64,
+        }).collect();
         let mut next = self.state.clone();
-        next.fish[ai].eggs_used += charged;
-        next.fish[bi].eggs_used += charged;
-        next.fish.extend(hatched.iter().cloned());
-        if !hatched.is_empty() { mark_owned(&mut next, &species.id); }
+        next.fish[ai].eggs_used += eggs;
+        next.fish[bi].eggs_used += eggs;
+        next.eggs.extend(laid.iter().cloned());
         self.commit(next)?;
-        Ok(BreedOutcome { charged, refunded: eggs - charged, hatch_rate: rate, hatched })
+        Ok(BreedOutcome { laid: eggs, hatch_rate: cfg.hatch_rate(species.price), eggs: laid })
     }
 
     pub fn breed(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64) -> Result<BreedOutcome, Failure> {
-        self.breed_with(a_id, b_id, eggs, now, &mut || {
-            let bytes = *uuid::Uuid::new_v4().as_bytes();
-            u64::from_le_bytes(bytes[..8].try_into().unwrap()) as f64 / (u64::MAX as f64 + 1.0)
-        })
+        self.breed_with(a_id, b_id, eggs, now, &mut random01)
+    }
+
+    /// Settles every egg whose time is up: it hatches into a Lv.0 fry with the species' hatch
+    /// chance, otherwise it is gone. An egg whose fry would not fit in the tank waits in the
+    /// den (unrolled) until there is room. Returns true when something changed.
+    pub fn hatch_due_with(&mut self, now: i64, roll: &mut dyn FnMut() -> f64) -> Result<bool, Failure> {
+        if self.read_only.is_some() || !self.state.eggs.iter().any(|e| e.hatch_at <= now) { return Ok(false); }
+        let mut next = self.state.clone();
+        let mut due: Vec<Egg> = next.eggs.iter().filter(|e| e.hatch_at <= now).cloned().collect();
+        due.sort_by_key(|e| e.hatch_at);
+        let cap = self.catalog.balance.tank_capacity;
+        let mut used: usize = next.fish.iter().map(|f| self.slots_for(&f.species_id)).sum();
+        let mut changed = false;
+        for egg in due {
+            let Some(species) = self.catalog.species(&egg.species_id).cloned() else {
+                next.eggs.retain(|e| e.id != egg.id); changed = true; continue;
+            };
+            let slots = self.catalog.balance.slots.for_price(species.price);
+            if used + slots > cap { continue; } // wait in the den until the tank has room
+            next.eggs.retain(|e| e.id != egg.id);
+            changed = true;
+            let hatched = roll() < self.catalog.balance.breeding.hatch_rate(species.price);
+            let mut fish_id = None;
+            if hatched {
+                let mut kid = self.new_fish(&species, Origin::Hatched, now);
+                kid.parent_ids = egg.parent_ids.clone();
+                kid.generation = egg.generation;
+                fish_id = Some(kid.id.clone());
+                next.fish.push(kid);
+                mark_owned(&mut next, &species.id);
+                used += slots;
+            }
+            next.hatch_log.push_front(HatchResult { egg_id: egg.id.clone(), species_id: species.id.clone(), hatched, fish_id, at: now });
+            next.hatch_log.truncate(HATCH_LOG);
+        }
+        if !changed { return Ok(false); }
+        self.commit(next)?;
+        Ok(true)
+    }
+
+    pub fn hatch_due(&mut self, now: i64) -> Result<bool, Failure> {
+        self.hatch_due_with(now, &mut random01)
     }
 
     /// Redeems a gift code. The two admin test codes can be used again and again.
@@ -609,6 +688,11 @@ fn digest_fish(f: &mut Fish, now: i64) {
     if f.exp == MAX_EXP { f.pending_exp = 0; f.resting_until = 0; }
 }
 
+fn random01() -> f64 {
+    let bytes = *uuid::Uuid::new_v4().as_bytes();
+    u64::from_le_bytes(bytes[..8].try_into().unwrap()) as f64 / (u64::MAX as f64 + 1.0)
+}
+
 fn stage_for(exp: u64) -> Stage {
     if exp >= MAX_EXP { Stage::Adult } else if exp >= JUVENILE_EXP { Stage::Juvenile } else { Stage::Fry }
 }
@@ -740,27 +824,45 @@ mod tests {
     }
 
     #[test]
-    fn breeding_costs_each_parent_one_price_per_egg_and_hatches_fry() {
+    fn breeding_lays_eggs_in_the_den_and_charges_both_parents() {
         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
         let (a, b) = adult_pair(&mut s);
-        let mut rolls = [0.01, 0.99, 0.19, 0.20, 0.5].into_iter();
+        let mut rolls = [0.0, 1.0, 0.5, 0.25, 0.75].into_iter();
         let out = s.breed_with(&a, &b, 5, NOW, &mut || rolls.next().unwrap()).unwrap();
-        assert_eq!((out.charged, out.refunded, out.hatched.len()), (5, 0, 2)); // 0.01 and 0.19 < 0.20
-        for kid in &out.hatched {
-            assert_eq!((kid.stage, kid.exp, kid.generation, kid.origin.clone()), (Stage::Fry, 0, 1, Origin::Hatched));
-            assert_eq!(kid.parent_ids, vec![a.clone(), b.clone()]);
-            assert_eq!(kid.purchase_price, 20);
-        }
-        assert_eq!(s.state.fish.len(), 4);
+        assert_eq!(out.laid, 5);
+        assert!((out.hatch_rate - 0.20).abs() < 1e-9);
+        assert_eq!(s.state.fish.len(), 2, "nothing hatches straight away");
+        let times: Vec<i64> = s.state.eggs.iter().map(|e| e.hatch_at - NOW).collect();
+        assert_eq!(times, vec![7200, 10800, 9000, 8100, 9900]); // 2–3 hours
+        for e in &s.state.eggs { assert_eq!((e.generation, e.parent_ids.clone(), e.laid_at), (1, vec![a.clone(), b.clone()], NOW)); }
         for id in [&a, &b] {
             let f = s.state.fish.iter().find(|f| &f.id == id).unwrap();
             assert_eq!(f.eggs_used, 5);
             assert_eq!(f.sale_value(), Some(20 * 95)); // 2000 - 5 x 20
         }
-        // Persisted atomically.
-        let again = store(dir.path());
-        assert_eq!(again.state.fish.len(), 4);
-        assert_eq!(again.state.fish[0].eggs_used, 5);
+        let again = store(dir.path()); // persisted atomically
+        assert_eq!((again.state.eggs.len(), again.state.fish[0].eggs_used), (5, 5));
+    }
+
+    #[test]
+    fn eggs_hatch_only_when_their_time_is_up_with_the_species_chance() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let (a, b) = adult_pair(&mut s);
+        s.breed_with(&a, &b, 5, NOW, &mut || 0.0).unwrap(); // all due at NOW + 2h
+        assert!(!s.hatch_due_with(NOW + 7199, &mut || 0.0).unwrap());
+        assert_eq!(s.state.eggs.len(), 5);
+        let mut rolls = [0.01, 0.99, 0.19, 0.20, 0.5].into_iter();
+        assert!(s.hatch_due_with(NOW + 7200, &mut || rolls.next().unwrap()).unwrap());
+        assert!(s.state.eggs.is_empty());
+        let kids: Vec<&Fish> = s.state.fish.iter().filter(|f| f.origin == Origin::Hatched).collect();
+        assert_eq!(kids.len(), 2); // 0.01 and 0.19 < 20 %
+        for kid in kids {
+            assert_eq!((kid.stage, kid.exp, kid.generation, kid.purchase_price), (Stage::Fry, 0, 1, 20));
+            assert_eq!(kid.parent_ids, vec![a.clone(), b.clone()]);
+        }
+        assert_eq!(s.state.hatch_log.len(), 5);
+        assert_eq!(s.state.hatch_log.iter().filter(|r| r.hatched).count(), 2);
+        assert_eq!(store(dir.path()).state.fish.len(), 4);
     }
 
     #[test]
@@ -769,7 +871,7 @@ mod tests {
         let (a, b) = adult_pair(&mut s);
         assert_eq!(s.breed_with(&a, &b, 100, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
         assert_eq!(s.breed_with(&a, &b, 0, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
-        assert_eq!(s.breed_with(&a, &b, 99, NOW, &mut || 0.99).unwrap().hatched.len(), 0);
+        assert_eq!(s.breed_with(&a, &b, 99, NOW, &mut || 0.99).unwrap().laid, 99);
         assert_eq!(s.state.fish[0].sale_value(), Some(20)); // back to the purchase price
         assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_exhausted");
         assert_eq!(s.sell(&a).unwrap(), 20);
@@ -783,7 +885,7 @@ mod tests {
         s.state.fish[1].eggs_used = 90; // b is nearly exhausted
         assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
         s.breed_with(&a, &b, 9, NOW, &mut || 0.99).unwrap();
-        assert_eq!((s.state.fish[0].eggs_used, s.state.fish[1].eggs_used), (49, 99));
+        assert_eq!((s.state.fish[0].eggs_used, s.state.fish[1].eggs_used, s.state.eggs.len()), (49, 99, 49));
     }
 
     #[test]
@@ -799,12 +901,22 @@ mod tests {
         s.state.fish[1].species_id = s.state.fish[0].species_id.clone();
         let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
         assert!(s.breed_with(&a, &b, 3, NOW, &mut || 0.0).is_err());
-        assert_eq!((s.state.fish.len(), s.state.fish[0].eggs_used), (2, 0));
+        assert_eq!((s.state.fish.len(), s.state.fish[0].eggs_used, s.state.eggs.len()), (2, 0, 0));
         s.path = good;
     }
 
     #[test]
-    fn full_tank_stops_hatching_and_keeps_unspent_eggs() {
+    fn the_den_has_a_capacity() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let (a, b) = adult_pair(&mut s);
+        s.catalog.balance.breeding.den_capacity = 5;
+        assert_eq!(s.breed_with(&a, &b, 6, NOW, &mut || 0.0).unwrap_err().code, "breed_eggs_invalid");
+        s.breed_with(&a, &b, 5, NOW, &mut || 0.0).unwrap();
+        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "den_full");
+    }
+
+    #[test]
+    fn full_tank_keeps_due_eggs_waiting_in_the_den() {
         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
         let (a, b) = adult_pair(&mut s);
         let cap = s.catalog.balance.tank_capacity;
@@ -812,26 +924,30 @@ mod tests {
         let mut next = s.state.clone();
         while next.fish.len() < cap - 1 { next.fish.push(s.new_fish(&sp, Origin::Shop, NOW)); }
         s.commit(next).unwrap(); // one free slot
-        let out = s.breed_with(&a, &b, 10, NOW, &mut || 0.0).unwrap(); // every egg would hatch
-        assert_eq!((out.charged, out.refunded, out.hatched.len()), (1, 9, 1));
-        assert_eq!(s.state.fish.len(), cap);
-        assert_eq!(s.state.fish[0].eggs_used, 1);
-        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "tank_full");
+        s.breed_with(&a, &b, 3, NOW, &mut || 0.0).unwrap(); // breeding itself needs no tank room
+        assert!(s.hatch_due_with(NOW + 7200, &mut || 0.0).unwrap());
+        assert_eq!((s.state.fish.len(), s.state.eggs.len()), (cap, 2)); // two eggs wait, unrolled
+        assert!(!s.hatch_due_with(NOW + 9000, &mut || 0.0).unwrap());
+        let mut next = s.state.clone(); next.fish.pop(); s.commit(next).unwrap(); // a slot frees up
+        assert!(s.hatch_due_with(NOW + 9000, &mut || 0.0).unwrap());
+        assert_eq!((s.state.fish.len(), s.state.eggs.len()), (cap, 1));
     }
 
     #[test]
     fn real_randomness_stays_within_expected_hatch_band() {
         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
         let (a, b) = adult_pair(&mut s);
-        s.catalog.balance.tank_capacity = 500;
-        let mut hatched = 0u32;
-        let mut spent = 0u32;
-        for _ in 0..3 { // 99 eggs from a fresh pair each time is not possible; reset the counters
+        s.catalog.balance.tank_capacity = 1000;
+        let (mut hatched, mut laid) = (0usize, 0u32);
+        for _ in 0..3 {
             for f in &mut s.state.fish { f.eggs_used = 0; }
-            let out = s.breed(&a, &b, 99, NOW).unwrap();
-            hatched += out.hatched.len() as u32; spent += out.charged;
+            laid += s.breed(&a, &b, 99, NOW).unwrap().laid;
+            let before = s.state.fish.len();
+            s.hatch_due(NOW + 10800).unwrap();
+            assert!(s.state.eggs.is_empty());
+            hatched += s.state.fish.len() - before;
         }
-        let rate = hatched as f64 / spent as f64;
+        let rate = hatched as f64 / laid as f64;
         assert!((0.08..=0.33).contains(&rate), "rate {rate}");
     }
 
@@ -872,6 +988,33 @@ mod tests {
         let again = store(dir.path()); assert_eq!(again.state.wallet.cbcoins, start + 2 * ADMIN_COINS);
         s.state.wallet.cbcoins = u64::MAX - 1;
         assert_eq!(s.redeem("TQ-ADMIN-1TY-CB-2610").unwrap_err().code, "wallet_overflow");
+    }
+
+    #[test]
+    fn big_fish_take_more_slots() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        assert_eq!((s.slots_for("poecilia_reticulata"), s.slots_for("thunnus_alalunga"), s.slots_for("rhincodon_typus")), (1, 2, 3));
+        s.state.wallet.cbcoins = 100_000;
+        // 1 starter slot + 6 whale sharks × 3 = 19 slots: a 7th whale shark (3) no longer fits, a guppy (1) does.
+        for _ in 0..6 { s.purchase("rhincodon_typus", 300, NOW).unwrap(); }
+        assert_eq!(s.used_slots(), 19);
+        assert_eq!(s.purchase("rhincodon_typus", 300, NOW).unwrap_err().code, "tank_full");
+        s.purchase("poecilia_reticulata", 20, NOW).unwrap();
+        assert_eq!(s.used_slots(), 20);
+    }
+
+    #[test]
+    fn hatching_big_fish_needs_room_for_their_slots() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let sp = s.catalog.species("rhincodon_typus").cloned().unwrap();
+        let mut next = s.state.clone();
+        next.fish.clear();
+        for _ in 0..2 { let mut f = s.new_fish(&sp, Origin::Shop, NOW); f.exp = MAX_EXP; f.stage = Stage::Adult; next.fish.push(f); }
+        s.commit(next).unwrap(); // 6 of 20 slots used: room for 4 whale shark pups
+        let (a, b) = (s.state.fish[0].id.clone(), s.state.fish[1].id.clone());
+        assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 1.0).unwrap().laid, 10);
+        s.hatch_due_with(NOW + 10800, &mut || 0.0).unwrap();
+        assert_eq!((s.used_slots(), s.state.eggs.len()), (18, 6)); // 2 free < 3: the rest wait
     }
 
     fn store(dir: &Path) -> GameStore {
@@ -932,9 +1075,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
         s.state.wallet.cbcoins = 10_000;
-        while s.state.fish.len() < 12 {
+        while s.used_slots() < s.catalog.balance.tank_capacity {
             s.purchase("danio_rerio", 20, NOW).unwrap();
         }
+        assert_eq!(s.state.fish.len(), 20); // 20 small fish, 1 slot each
         let before = s.state.wallet.cbcoins;
         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "tank_full");
         assert_eq!(s.state.wallet.cbcoins, before);
