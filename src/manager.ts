@@ -3,8 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
-import { api, asFailure, type BellyEntry, type FeedReport, type Inspection, type Species, type StateView } from "./api";
+import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
 import { attentionNote, categoryName, formatDate, formatSize, reason, stageName } from "./i18n";
+import { collectionPanel } from "./shell-collection";
 
 type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
@@ -151,9 +152,9 @@ function render() {
 
 function renderStats() {
   $("stats").replaceChildren(
-    h("span", { class: "pill shells", title: "Vỏ sò là điểm trong game, không phải tiền thật" }, h("b", {}, String(state.shells)), "Vỏ sò"),
+    h("span", { class: "pill shells", title: "CBCoin là điểm trong game, không phải tiền thật" }, h("b", {}, String(state.cbcoins)), "CBCoin"),
     h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), "cá trong bể"),
-    h("span", { class: "pill", title: "Hạn mức Vỏ sò nhận từ cho cá ăn mỗi ngày" }, "Hôm nay", h("b", {}, `${state.daily.shells}/${state.daily.shell_cap}`)),
+    h("span", { class: "pill" }, "EXP hôm nay", h("b", {}, String(state.daily.exp))),
   );
 }
 
@@ -201,7 +202,7 @@ function renderTabs() {
     ["feed", "Cho cá ăn"],
     ["belly", "Bụng cá", state.held_count],
     ["tank", "Bể của tôi"],
-    ["hunt", "Trục vớt Vỏ sò"],
+    ["hunt", "Trục vớt CBCoin"],
     ["settings", "Cài đặt"],
   ];
   $("tabs").replaceChildren(
@@ -225,11 +226,11 @@ function fishArt(species: Species | undefined) {
 function renderShop(): Node {
   const full = state.fish.length >= state.capacity;
   const cards = state.species.map((s) => {
-    const short = s.price - state.shells;
+    const short = s.price - state.cbcoins;
     const buy = h("button", {
       class: "primary small",
       disabled: working || full || short > 0 || !!state.read_only,
-      title: full ? "Bể đã đầy" : short > 0 ? `Còn thiếu ${short} Vỏ sò` : undefined,
+      title: full ? "Bể đã đầy" : short > 0 ? `Còn thiếu ${short} CBCoin` : undefined,
       onclick: () => confirmBuy(s),
     }, full ? "Bể đầy" : short > 0 ? `Thiếu ${short}` : "Đổi");
     return h("article", { class: "card" },
@@ -243,7 +244,7 @@ function renderShop(): Node {
           state.dex[s.id]?.owned ? h("span", { class: "tag" }, "Đã có") : null,
         ),
         h("div", { class: "actions" },
-          h("span", { class: "price" }, `${s.price} Vỏ sò`),
+          h("span", { class: "price" }, `${s.price} CBCoin`),
           h("span", {},
             h("button", { class: "ghost small", onclick: () => showSpecies(s) }, "Chi tiết"), " ",
             buy,
@@ -253,8 +254,8 @@ function renderShop(): Node {
     );
   });
   return h("section", {},
-    h("div", { class: "section-head" }, h("h2", {}, "Cửa hàng · 10 loài cá thật")),
-    h("p", { class: "lead" }, "Dọn file an toàn → nhận Vỏ sò → chọn cá. Vỏ sò là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời."),
+    h("div", { class: "section-head" }, h("h2", {}, `Cửa hàng · ${state.species.length} loài cá thật`)),
+    h("p", { class: "lead" }, "Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời."),
     h("div", { class: "grid" }, ...cards),
     h("p", { class: "fine", style: "margin-top:16px" }, state.disclaimer),
   );
@@ -271,7 +272,7 @@ function showSpecies(s: Species) {
       h("dl", { class: "kv" },
         h("dt", {}, "Nhãn"), h("dd", {}, "Có thật"),
         h("dt", {}, "Sinh sản"), h("dd", {}, s.reproduction === "live_birth" ? "Đẻ con (không có trứng ngoài bụng)" : "Đẻ trứng"),
-        h("dt", {}, "Khi mua"), h("dd", {}, stageName[s.stage_on_purchase]),
+        h("dt", {}, "Khi mua"), h("dd", {}, stageName.fry),
         h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài — tính năng gia đình cá sẽ có ở bản sau"),
         h("dt", {}, "Nguồn"), h("dd", {}, h("code", {}, s.source)),
       ),
@@ -283,9 +284,9 @@ function showSpecies(s: Species) {
 function confirmBuy(s: Species) {
   modal(
     h("div", {},
-      h("h2", {}, `Đổi ${s.price} Vỏ sò lấy ${s.name}?`),
-      h("p", { style: "margin-top:8px" }, `Sau khi đổi còn ${state.shells - s.price} Vỏ sò · bể ${state.fish.length + 1}/${state.capacity}.`),
-      h("p", { class: "fine" }, "Vỏ sò là điểm trong game, không dùng tiền thật."),
+      h("h2", {}, `Đổi ${s.price} CBCoin lấy ${s.name}?`),
+      h("p", { style: "margin-top:8px" }, `Sau khi đổi còn ${state.cbcoins - s.price} CBCoin · bể ${state.fish.length + 1}/${state.capacity}.`),
+      h("p", { class: "fine" }, "CBCoin là điểm trong game, không dùng tiền thật."),
     ),
     [
       { label: "Để sau", kind: "ghost" },
@@ -308,6 +309,30 @@ function confirmBuy(s: Species) {
       },
     ],
   );
+}
+
+function confirmSell(fish: Fish) {
+  modal(h("div", {},
+    h("h2", {}, `Gọi thuyền bán ${fish.name}?`),
+    h("p", {}, `Level 100 · Giá bán: ${fish.purchase_price * 100} CBCoin (giá mua ×100).`),
+    h("p", { class: "fine" }, "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.")
+  ), [{ label: "Để sau", kind: "ghost" }, { label: "Gọi thuyền", kind: "primary", run: async () => {
+    if (working) return;
+    working = true; render();
+    const boat = h("div", { class: "sale-boat", role: "status" },
+      h("img", { src: "/art/hunt/boat.png", alt: "Thuyền đến đón cá trưởng thành" }),
+      h("p", {}, `Thuyền đang đến đón ${fish.name}…`)
+    );
+    document.body.append(boat);
+    try {
+      await boat.animate([{ transform: "translateX(-100vw)", opacity: 0 }, { transform: "translateX(0)", opacity: 1 }], {
+        duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200, fill: "forwards"
+      }).finished;
+      const coins = await api.sell(fish.id);
+      toast(`⛵ Thuyền đã đón ${fish.name}! +${coins} CBCoin`);
+    } catch (e) { fail(e); }
+    finally { boat.remove(); working = false; await refresh(); }
+  }}]);
 }
 
 function renderFeed(): Node {
@@ -337,8 +362,8 @@ function renderFeed(): Node {
   );
   const fishSelect = h("select", {
     "aria-label": "Cá được cho ăn",
-    onchange: (e: Event) => (selectedFish = (e.target as HTMLSelectElement).value),
-  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${f.name} · ${stageName[f.stage]} · ${f.exp} EXP`)));
+    onchange: (e: Event) => { selectedFish = (e.target as HTMLSelectElement).value; render(); },
+  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${f.name} · Lv.${Math.floor(f.exp / 100)} · ${stageName[f.stage]}${f.resting_until > Date.now()/1000 ? " · Đang no" : ""}`)));
   return h("section", {},
     h("div", { class: "section-head" }, h("h2", {}, "Cho cá ăn")),
     h("p", { class: "lead" }, "Chọn file bạn không cần nữa. File được chuyển vào Bụng cá và có thể nhả lại bất cứ lúc nào — game không bao giờ xóa file. Chuyển trong cùng ổ đĩa không làm tăng dung lượng trống."),
@@ -361,14 +386,14 @@ function renderFeed(): Node {
         fishSelect,
         h("button", {
           class: "primary",
-          disabled: working || okCount === 0 || !selectedFish || !!state.read_only || !!state.belly_error,
+          disabled: working || okCount === 0 || !selectedFish || !!state.read_only || !!state.belly_error || !!state.fish.find(f => f.id === selectedFish && (f.exp >= 10000 || f.resting_until > Date.now()/1000)),
           onclick: feed,
         }, working ? "Đang xử lý…" : okCount ? `Cho cá ăn ${okCount} file` : "Chưa có file hợp lệ"),
         h("ul", {},
           h("li", {}, "Mỗi file được kiểm tra lại ngay trước khi chuyển."),
           h("li", {}, "Chỉ nhận file cùng ổ đĩa với Bụng cá; không bao giờ sao chép rồi xóa."),
-          h("li", {}, "Chống thưởng trùng bằng dấu vân tay đọc tối đa 1 MiB đầu + kích thước, xử lý trên máy. Đây không phải checksum toàn file: hai file khác nhau đôi khi bị coi là trùng."),
-          h("li", {}, "Nhả file ra không thu hồi Vỏ sò đã nhận; cho ăn lại cùng file không được thưởng thêm."),
+          h("li", {}, "File mới được so toàn bộ nội dung bằng SHA-256 trên máy. Copy hoặc đổi tên không được EXP lần nữa. Lịch sử cũ dùng dấu vân tay đầu file để chặn thưởng lặp."),
+          h("li", {}, "Nhả file ra không thu hồi EXP đã nhận. Mỗi 20 MB là một bậc 20 EXP; 100 EXP = 1 level. Mỗi 5 level nghỉ 2 tiếng, EXP dư được giữ để tiêu hóa sau."),
         ),
       ),
     ),
@@ -382,8 +407,8 @@ function renderFeedReport(r: FeedReport): Node {
     h("strong", {}, `Đã đưa ${moved} file vào Bụng cá.`),
     r.reward
       ? h("div", {},
-          `+${r.reward.shells} Vỏ sò · +${r.reward.exp} EXP`,
-          r.reward.duplicates ? ` · ${r.reward.duplicates} file trùng không tính thưởng` : "",
+          `+${r.reward.exp} EXP · ${r.reward.duplicates} file trùng không ghi nhận`,
+
           r.reward.capped ? " · đã chạm hạn mức hôm nay" : "",
         )
       : null,
@@ -450,14 +475,16 @@ function renderTank(): Node {
     return h("article", { class: "card fish-card" },
       fishArt(s),
       h("div", { class: "body" },
-        h("h3", {}, f.name),
+        h("h3", {}, `${f.name} · Lv.${Math.floor(f.exp / 100)}`),
         h("span", { class: "sci" }, s ? s.scientific_name : f.species_id),
         h("div", { class: "tags" },
           h("span", { class: "tag" }, stageName[f.stage]),
           h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : "Từ cửa hàng"),
         ),
         h("div", { class: "bar", role: "progressbar", "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` })),
-        h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP tới ${stageName[f.stage === "fry" ? "juvenile" : "adult"]}` : `${f.exp} EXP · đã trưởng thành`),
+        h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP · ${f.pending_exp} EXP đang tiêu hóa` : "Level 100 · đã trưởng thành"),
+        f.resting_until > Date.now()/1000 ? h("p", {}, `🫧 Bụng em thành bóng rồi! Nghỉ tới ${formatDate(f.resting_until)} nhé.`) : null,
+        f.stage === "adult" ? h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${f.purchase_price * 100} CBCoin`) : null,
       ),
     );
   });
@@ -466,7 +493,7 @@ function renderTank(): Node {
       h("h2", {}, "Bể của tôi"),
       h("span", { class: "fine" }, `Fishdex: đã sở hữu ${owned}/${state.species.length} loài`),
     ),
-    h("p", { class: "lead" }, "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá bột → cá non → trưởng thành."),
+    h("p", { class: "lead" }, "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100)."),
     h("div", { class: "grid" }, ...cards),
   );
 }
@@ -474,8 +501,8 @@ function renderTank(): Node {
 function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
   return h("section", { class: "settings" },
-    h("h2", {}, "Trục vớt Vỏ sò"),
-    h("p", { class: "lead" }, "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận Vỏ sò."),
+    h("h2", {}, "Trục vớt vỏ sò"),
+    h("p", { class: "lead" }, "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100)."),
     h("div", { class: "setting" }, h("div", {},
       h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
       h("p", {}, "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.")),
@@ -485,6 +512,7 @@ function renderHunt(): Node {
             onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
     h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
     h("p", { class: "fine" }, "Thả móc bằng Ctrl+Alt+Space hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt."),
+    collectionPanel(state.hunt),
   );
 }
 
@@ -547,7 +575,7 @@ function onboarding() {
   modal(
     h("div", {},
       h("h2", {}, "Chào mừng tới TrashQuarium"),
-      h("p", { style: "margin-top:8px" }, `Bạn được tặng ${starter ? starter.name : "một chú cá"} và ${state.shells} Vỏ sò để mở cửa hàng.`),
+      h("p", { style: "margin-top:8px" }, `Bạn được tặng ${starter ? starter.name : "một chú cá"} và ${state.cbcoins} CBCoin để mở cửa hàng.`),
       h("p", {}, "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt."),
       h("p", {}, "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa."),
       h("p", { class: "fine" }, "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng."),
@@ -586,6 +614,7 @@ async function main() {
   await refresh();
   if (!state) return;
   await listen("state-changed", refresh);
+  setInterval(() => { if (!working && preview.length === 0) void refresh(); }, 15000);
   const route = async () => {
     const next = await api.takeRoute();
     if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {

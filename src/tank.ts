@@ -3,6 +3,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
 import { reason } from "./i18n";
+import { closureStep, drawClaw } from "./hunt-motion";
 
 const VISIBLE_FPS = 30;
 const QUIET_FPS = 10;
@@ -64,6 +65,15 @@ const HUNT_KEY = "Ctrl+Alt+Space";
 const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
 const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
 const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
+const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
+const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
+const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let closure = 0; // 0 = claw open, 1 = closed on a catch
+let prevLength = 0;
+let ripples: { x: number; y: number; age: number }[] = [];
+let notice = { text: "", until: 0 };
+let seenReceipt: string | null | undefined;
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -196,13 +206,13 @@ function drawFallbackFish(len: number) {
 }
 
 function drawShell(shell: HuntShell, x: number, y: number, size: number) {
-  const img = huntArt[`shell_${shell.size}`];
+  const img = huntArt[`shell_${SHELL_SPRITE[shell.kind] ?? shell.size}`];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(Math.sin(shell.x * 3) * 0.12 + Math.sin(clock * 0.9 + shell.x * 9) * 0.05);
   if (img) {
-    ctx.shadowColor = "rgba(0, 20, 25, 0.4)";
-    ctx.shadowBlur = size * 0.1;
+    ctx.shadowColor = shell.rare ? "#ffe5a4" : "rgba(0, 20, 25, 0.4)";
+    ctx.shadowBlur = shell.rare ? size * 0.22 + (reducedMotion.matches ? 0 : Math.sin(clock * 2.4) * size * 0.04) : size * 0.1;
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
   } else {
     const r = size * 0.4;
@@ -251,11 +261,24 @@ function drawHunt(e: number) {
   const cw = ch * 128 / 176;
   ctx.save();
   ctx.translate(tx, ty); ctx.rotate(-angle);
-  if (clawImg) ctx.drawImage(clawImg, -cw / 2, -ch * CLAW_GRAB, cw, ch);
+  if (clawImg) drawClaw(ctx, clawImg, { x: -cw / 2, y: -ch * CLAW_GRAB, width: cw, height: ch }, closure);
   else { ctx.strokeStyle = "#e3aa45"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-cw * .4, -ch * .3); ctx.lineTo(-cw * .25, ch * .2); ctx.lineTo(0, ch * .3); ctx.lineTo(cw * .25, ch * .2); ctx.lineTo(cw * .4, -ch * .3); ctx.stroke(); }
   ctx.restore();
   const caught = hunt.batch?.shells.find((sh) => sh.id === s.caught_id);
   if (caught) drawShell(caught, tx, ty + ch * 0.02, side * (0.06 + caught.size * 0.005));
+
+  // Water-entry ripple when the claw dives below the surface.
+  if (!s.paused && !reducedMotion.matches) {
+    if (prevLength < 0.12 && s.length >= 0.12 && s.phase === "extending") ripples.push({ x: tx, y: py0 + side * 0.12, age: 0 });
+    for (const r of ripples) {
+      r.age += 1 / 30;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - r.age / 0.6) * 0.8;
+      ctx.strokeStyle = "#c6fff4"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(r.x, r.y, 8 + r.age * 60, 3 + r.age * 18, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    ripples = ripples.filter((r) => r.age < 0.6);
+  } else ripples = [];
+  prevLength = s.length;
 
   // Boat on top.
   const boat = huntArt.boat;
@@ -277,7 +300,28 @@ function drawHunt(e: number) {
   ctx.beginPath(); ctx.roundRect(x, 18, w, 34, 17); ctx.fill();
   ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
   ctx.fillText(text, width / 2, 36);
+  if (performance.now() < notice.until) {
+    const nw = ctx.measureText(notice.text).width + 36;
+    ctx.fillStyle = "rgba(22, 70, 76, 0.9)";
+    ctx.beginPath(); ctx.roundRect(width / 2 - nw / 2, 60, nw, 34, 17); ctx.fill();
+    ctx.fillStyle = "#ffe5a4"; ctx.fillText(notice.text, width / 2, 78);
+  }
   ctx.restore();
+}
+
+/** Closing animation, catch notice and receipt tracking; runs once per frame. */
+function huntTick(dt: number) {
+  const s = hunt?.session;
+  closure = closureStep(closure, s?.phase, dt, !!s?.paused, reducedMotion.matches);
+  const receipt = hunt?.last_catch ?? null;
+  if (seenReceipt === undefined) { if (hunt) seenReceipt = receipt?.shell_id ?? null; return; }
+  if (receipt && receipt.shell_id !== seenReceipt) {
+    seenReceipt = receipt.shell_id;
+    notice = {
+      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${SHELL_NAME[receipt.kind]}${receipt.rare ? " · Sò hiếm!" : ""}${receipt.pearl ? " · +1 Ngọc trai!" : ""}${receipt.first_of_kind ? " · Thẻ mới trong Bộ sưu tập" : ""}`,
+      until: performance.now() + 7000,
+    };
+  }
 }
 
 function draw() {
@@ -319,6 +363,17 @@ function draw() {
       drawFallbackFish(len);
     }
     ctx.restore();
+    if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+      // Fed to the next 5-level mark: the fish naps and says so.
+      const jokes = ["No căng vảy! Cho em ngủ tí", "Bụng em thành bóng rồi!", "Đừng thêm buffet… em xin thua!", "Đang tiêu hóa, đừng gọi em đi gym!"];
+      const text = jokes[Math.floor(s.fish.exp / 500) % jokes.length];
+      ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      const bubbleWidth = ctx.measureText(text).width + 20;
+      const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
+      const by = Math.max(4, s.y - len * 0.55 - 28);
+      ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
+      ctx.fillStyle = "#17434b"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
+    }
   }
   drawHunt(e);
 }
@@ -329,7 +384,9 @@ function frame(now: number) {
   const elapsed = now - lastFrame;
   if (elapsed < 1000 / fps - 1) return;
   lastFrame = now;
-  step(Math.min(elapsed, 250) / 1000);
+  const dt = Math.min(elapsed, 250) / 1000;
+  step(dt);
+  huntTick(dt);
   draw();
 }
 
@@ -368,6 +425,7 @@ async function main() {
   await pollIdle();
   setInterval(pollIdle, 5000);
   setInterval(pollHunt, 50);
+  setInterval(refresh, 15000); // rest timers expire without a state-changed event
   requestAnimationFrame(frame);
 }
 

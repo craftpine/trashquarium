@@ -219,7 +219,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
 
 #[tauri::command]
 async fn get_state(core: State<'_, Core>) -> Result<StateView, Failure> {
-    Ok(with_core(&core, |c| c.view()).await)
+    with_core(&core, |c| { c.game.digest(engine::now_unix())?; Ok(c.view()) }).await
 }
 
 #[tauri::command]
@@ -258,6 +258,14 @@ async fn buy(
 #[tauri::command]
 async fn belly_list(core: State<'_, Core>) -> Result<Vec<BellyEntry>, Failure> {
     Ok(with_core(&core, |c| c.held_entries()).await)
+}
+
+#[tauri::command]
+async fn sell_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, fish_id: String) -> Result<u64, Failure> {
+    let _guard = busy.enter()?;
+    let result = with_core(&core, move |c| c.game.sell(&fish_id)).await;
+    notify(&app);
+    result
 }
 
 #[tauri::command]
@@ -455,6 +463,7 @@ pub fn run() {
             preview_files,
             feed,
             buy,
+            sell_fish,
             belly_list,
             belly_restore,
             belly_recover,

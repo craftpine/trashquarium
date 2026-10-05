@@ -74,6 +74,8 @@ pub fn sync_dir(dir: &Path) {
 /// default macOS volumes are case-insensitive, so compare case-insensitively there.
 pub fn path_key(path: &Path) -> String {
     let s = path.to_string_lossy().replace('\\', "/");
+    #[cfg(windows)]
+    let s = if s.starts_with("//?/") && s.as_bytes().get(5) == Some(&b':') { s[4..].to_string() } else { s };
     let s = s.trim_end_matches('/').to_string();
     if cfg!(any(windows, target_os = "macos")) {
         s.to_lowercase()

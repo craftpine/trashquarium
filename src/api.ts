@@ -34,6 +34,9 @@ export interface Fish {
   generation: number;
   stage: Stage;
   exp: number;
+  pending_exp: number;
+  resting_until: number;
+  purchase_price: number;
   acquired_at: number;
 }
 
@@ -55,7 +58,7 @@ export interface Attention {
 
 export interface StateView {
   hunt: HuntView;
-  shells: number;
+  cbcoins: number;
   capacity: number;
   fish: Fish[];
   daily: { shells: number; exp: number; shell_cap: number; exp_cap: number };
@@ -100,12 +103,18 @@ export interface BellyEntry {
   fish_id: string;
 }
 
-export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean }
+export type ShellKind = "great" | "queen" | "variegated";
+export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean; kind: ShellKind; rare: boolean; pearl: boolean }
+export interface ShellEntry { count: number; rare_count: number; first_found: string }
+export interface CatchReceipt { shell_id: string; kind: ShellKind; rare: boolean; pearl: boolean; first_of_kind: boolean }
 export interface HuntSession {
   id: string; batch_id: string; phase: string; angle: number; length: number;
   caught_id: string | null; paused: boolean; error: string | null;
 }
 export interface HuntView {
+  pearls: number;
+  collection: Partial<Record<ShellKind, ShellEntry>>;
+  last_catch: CatchReceipt | null;
   batch: { id: string; shells: HuntShell[] } | null;
   earned: number; daily_cap: number; session: HuntSession | null; waiting: boolean;
 }
@@ -115,6 +124,7 @@ export const api = {
   preview: (paths: string[]) => invoke<Inspection[]>("preview_files", { paths }),
   feed: (items: Inspection[], fishId: string) => invoke<FeedReport>("feed", { items, fishId }),
   buy: (speciesId: string, price: number) => invoke<Fish>("buy", { speciesId, price }),
+  sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
   bellyList: () => invoke<BellyEntry[]>("belly_list"),
   restore: (entryId: string) => invoke<{ path: string; renamed: boolean }>("belly_restore", { entryId }),
   recover: () => invoke<StateView>("belly_recover"),

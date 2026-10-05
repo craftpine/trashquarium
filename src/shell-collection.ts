@@ -1,0 +1,34 @@
+import type { HuntView, ShellKind } from "./api";
+import "./shell-collection.css";
+
+export const SHELL_CARDS = [
+  { id: "great", sprite: 0, name: "Sò điệp lớn", taxon: "Pecten maximus", fact: "Sò điệp lớn có nhiều mắt nhỏ dọc mép áo. Nó có thể khép vỏ hoặc bơi để phản ứng với chuyển động và bóng tối.", habitat: "Sống ở biển, trên nền cát hoặc sỏi.", source: "https://www.marlin.ac.uk/species/detail/1398" },
+  { id: "queen", sprite: 1, name: "Sò điệp queen", taxon: "Aequipecten opercularis", fact: "Cá thể non có thể bám nền bằng sợi tơ chân. Khi lớn, chúng có thể rời điểm bám và bơi tự do.", habitat: "Gặp trên nền cát hoặc sỏi, tới độ sâu khoảng 100 m.", source: "https://www.marlin.ac.uk/species/detail/1997/1000" },
+  { id: "variegated", sprite: 2, name: "Sò điệp đa sắc", taxon: "Mimachlamys varia", fact: "Vỏ loài này có nhiều màu tự nhiên, từ trắng, hồng tới tím. Nó có thể sống tự do hoặc bám nền bằng sợi tơ chân.", habitat: "Thường gặp trên nền đá, kể cả trong phần bám của tảo.", source: "https://www.marlin.ac.uk/species/detail/2086" },
+] as const;
+export function shellSprite(kind: ShellKind): number { return SHELL_CARDS.find(card => card.id === kind)?.sprite ?? 0; }
+
+function node(tag: string, text = "", className = ""): HTMLElement {
+  const el = document.createElement(tag); el.textContent = text; el.className = className; return el;
+}
+export function collectionPanel(view: HuntView): HTMLElement {
+  const panel = node("section", "", "shell-collection");
+  const unlocked = SHELL_CARDS.filter(card => (view.collection[card.id]?.count ?? 0) > 0).length;
+  panel.append(node("h2", `Bộ sưu tập vỏ sò · ${unlocked}/3`));
+  panel.append(node("p", `${view.pearls} ngọc trai · Nhặt loại sò lần đầu để mở thẻ tìm hiểu.`));
+  const grid = node("div", "", "shell-grid");
+  for (const card of SHELL_CARDS) {
+    const entry = view.collection[card.id];
+    const article = node("article", "", `shell-card${entry ? "" : " locked"}`);
+    const img = document.createElement("img"); img.src = `/art/hunt/shell_${card.sprite}.png`; img.alt = entry ? `Minh họa stylized: ${card.name}` : "Loại sò chưa khám phá";
+    article.append(img, node("h3", entry ? card.name : "Chưa khám phá"));
+    article.append(node("p", `${["Trắng", "Đỏ", "Tím"][card.sprite]} · ${[1,10,100][card.sprite]} CBCoin khi kéo về thuyền`, "shell-meta"));
+    if (entry) {
+      article.append(node("i", card.taxon), node("p", card.fact), node("p", card.habitat), node("p", `Đã nhặt ${entry.count} · Hiếm ${entry.rare_count} · Lần đầu ${entry.first_found}`, "shell-meta"));
+      const source = document.createElement("a"); source.href = card.source; source.target = "_blank"; source.rel = "noopener noreferrer"; source.textContent = "Nguồn: MarLIN / Marine Biological Association"; article.append(source);
+    } else article.append(node("p", "Kéo sò về thuyền để mở thẻ kiến thức."));
+    grid.append(article);
+  }
+  panel.append(grid, node("p", "Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc.", "shell-note"));
+  return panel;
+}

@@ -5,7 +5,7 @@
   "max_preview_files": 50,
   "max_file_bytes": 4294967296,
   "fingerprint_bytes": 1048576,
-  "stage_exp": { "juvenile": 20, "adult": 60 },
+  "stage_exp": { "juvenile": 5000, "adult": 10000 },
   "economy": {
     "welcome_shells": 40,
     "base_shells": 2,

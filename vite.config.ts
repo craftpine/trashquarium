@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 // Pages: the manager window, the desktop tank window and the quick dock.
 export default defineConfig({
   clearScreen: false,
-  server: { port: 1420, strictPort: true },
+  // Rust build outputs are watched by Tauri, not Vite. Windows locks live EXEs/PDBs.
+  server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/target/**"] } },
   envPrefix: ["VITE_", "TAURI_"],
   build: {
     target: "es2021",
