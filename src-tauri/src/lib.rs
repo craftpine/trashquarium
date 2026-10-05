@@ -299,6 +299,14 @@ async fn sell_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>,
 }
 
 #[tauri::command]
+async fn breed_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, first_id: String, second_id: String, eggs: u32) -> Result<engine::game::BreedOutcome, Failure> {
+    let _guard = busy.enter()?;
+    let result = with_core(&core, move |c| c.game.breed(&first_id, &second_id, eggs, engine::now_unix())).await;
+    notify(&app);
+    result
+}
+
+#[tauri::command]
 async fn belly_restore(
     app: AppHandle,
     core: State<'_, Core>,
@@ -495,6 +503,7 @@ pub fn run() {
             feed,
             buy,
             sell_fish,
+            breed_fish,
             belly_list,
             belly_restore,
             belly_recover,

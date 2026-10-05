@@ -1,28 +1,24 @@
-// Desktop ocean. Renders only while visible: 30 FPS normally, 10 FPS when the
-// computer is idle or Meeting Mode is on, nothing when the window is hidden.
+// Desktop ocean. Renders only while visible: at the display rate (up to 60 FPS)
+// normally, 20 FPS when the computer is idle or Meeting Mode is on, nothing when
+// the window is hidden.
 import { listen } from "@tauri-apps/api/event";
 import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
 import { reason } from "./i18n";
 import { closureStep, drawClaw } from "./hunt-motion";
 import { COIN_SRC } from "./coin";
 
-const VISIBLE_FPS = 30;
-const QUIET_FPS = 10;
+const VISIBLE_FPS = 60;
+const QUIET_FPS = 20;
 const IDLE_AFTER_SECONDS = 60;
 
-// Relative on-screen length per species (renderer detail, not biology data).
-const SPECIES_SCALE: Record<string, number> = {
-  cyprinus_carpio: 1.15,
-  carassius_auratus: 0.85,
-  poecilia_reticulata: 0.55,
-  betta_splendens: 0.75,
-  paracheirodon_innesi: 0.5,
-  pterophyllum_scalare: 0.85,
-  danio_rerio: 0.55,
-  xiphophorus_hellerii: 0.7,
-  trichopodus_leerii: 0.8,
-  symphysodon_aequifasciatus: 0.9,
-};
+// On-screen length follows the purchase price (renderer detail, not biology data):
+// 20 CBCoin, the cheapest fish, is the baseline and size grows with sqrt(price),
+// so a 300 CBCoin whale shark is ~3.9x the length of a 20 CBCoin guppy.
+const BASE_PRICE = 20;
+const BASE_SCALE = 0.5; // fraction of 22% of the screen's short side for a 20 CBCoin adult
+const MAX_LENGTH_RATIO = 0.32; // never wider than this fraction of the screen
+const prices = new Map<string, number>();
+const priceScale = (price: number) => BASE_SCALE * Math.sqrt(Math.max(BASE_PRICE, price) / BASE_PRICE);
 const STAGE_SCALE = { fry: 0.55, juvenile: 0.78, adult: 1 } as const;
 
 interface Swimmer {
@@ -35,6 +31,7 @@ interface Swimmer {
   ty: number;
   facing: number; // -1 left … 1 right, eased for smooth turns
   phase: number;
+  tail: number; // tail-beat phase, faster when the fish swims faster
   speed: number;
 }
 
@@ -93,6 +90,7 @@ function resize() {
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  baked.clear();
   background.width = canvas.width;
   background.height = canvas.height;
   const bg = background.getContext("2d")!;
@@ -137,6 +135,7 @@ function syncSwimmers(fish: Fish[]) {
       ty: 0,
       facing: 1,
       phase: Math.random() * Math.PI * 2,
+      tail: Math.random() * Math.PI * 2,
       speed: 0.9 + Math.random() * 0.3,
     };
     pickTarget(s);
@@ -145,7 +144,8 @@ function syncSwimmers(fish: Fish[]) {
 }
 
 function fishLength(f: Fish) {
-  return Math.min(width, height) * 0.22 * (SPECIES_SCALE[f.species_id] ?? 0.8) * STAGE_SCALE[f.stage];
+  const len = Math.min(width, height) * 0.22 * priceScale(prices.get(f.species_id) ?? BASE_PRICE) * STAGE_SCALE[f.stage];
+  return Math.min(len, width * MAX_LENGTH_RATIO);
 }
 
 const huntActive = () => !!hunt?.session && !state?.settings.meeting_mode;
@@ -180,8 +180,10 @@ function step(dt: number) {
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.phase += dt * (2 + Math.abs(s.vx) / 40);
-    const want = s.vx >= 0 ? 1 : -1;
-    s.facing += (want - s.facing) * Math.min(1, dt * 3);
+    s.tail += dt * (3.2 + Math.hypot(s.vx, s.vy) / 22);
+    // Dead zone: a fish that is nearly still keeps its heading instead of flip-flopping.
+    const want = s.vx > 4 ? 1 : s.vx < -4 ? -1 : Math.sign(s.facing) || 1;
+    s.facing += (want - s.facing) * Math.min(1, dt * 4);
   }
   if (!state?.settings.meeting_mode) {
     if (bubbles.length < 18 && Math.random() < dt * 1.5) {
@@ -194,6 +196,76 @@ function step(dt: number) {
     bubbles = bubbles.filter((b) => b.y > height * 0.05);
   } else {
     bubbles = [];
+  }
+}
+
+// Fish art is a still PNG, so the body is drawn as thin vertical slices whose
+// vertical offset follows a travelling wave: calm at the head, wide at the tail.
+// The shadow is baked once per size (shadowBlur every frame is slow on big screens).
+const SLICES = 18;
+const baked = new Map<string, { canvas: HTMLCanvasElement; pad: number; w: number; h: number }>();
+
+// Sprites have uneven transparent margins, so size each fish by its visible body.
+const bounds = new Map<string, { x: number; y: number; w: number; h: number }>();
+function visibleBounds(id: string, img: HTMLImageElement) {
+  let b = bounds.get(id);
+  if (b) return b;
+  b = { x: 0, y: 0, w: img.width, h: img.height };
+  try {
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext("2d")!;
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+      if (d[(y * c.width + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 >= x0 && y1 >= y0) b = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  } catch { /* keep the full image */ }
+  bounds.set(id, b);
+  return b;
+}
+
+/** Drawn size of the visible body: `len` wide, but never taller than 0.8 * len. */
+function bodySize(id: string, img: HTMLImageElement, len: number) {
+  const b = visibleBounds(id, img);
+  let w = len, h = len * (b.h / b.w);
+  if (h > len * 0.8) { w *= (len * 0.8) / h; h = len * 0.8; }
+  return { w, h, b };
+}
+
+function bakeFish(id: string, img: HTMLImageElement, len: number) {
+  const dpr = window.devicePixelRatio || 1;
+  const key = `${id}|${Math.round(len * dpr)}`;
+  let hit = baked.get(key);
+  if (hit) return hit;
+  if (baked.size > 160) baked.clear();
+  const { w, h, b } = bodySize(id, img, len);
+  const pad = Math.ceil(len * 0.12);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil((w + pad * 2) * dpr);
+  canvas.height = Math.ceil((h + pad * 2) * dpr);
+  const g = canvas.getContext("2d")!;
+  g.shadowColor = "rgba(0, 20, 25, 0.35)";
+  g.shadowBlur = len * 0.08 * dpr;
+  g.shadowOffsetY = len * 0.05 * dpr;
+  g.drawImage(img, b.x, b.y, b.w, b.h, pad * dpr, pad * dpr, w * dpr, h * dpr);
+  hit = { canvas, pad, w, h };
+  baked.set(key, hit);
+  return hit;
+}
+
+function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
+  const { canvas: src, pad, w, h } = bakeFish(s.fish.species_id, img, len);
+  const totalW = w + pad * 2, totalH = h + pad * 2;
+  const sliceW = src.width / SLICES, destW = totalW / SLICES;
+  const amp = reducedMotion.matches ? 0 : w * 0.04;
+  for (let i = 0; i < SLICES; i++) {
+    const cx = -totalW / 2 + (i + 0.5) * destW;
+    const u = Math.min(1, Math.max(0, (cx + w / 2) / w)); // 0 = tail, 1 = head (sprites face right)
+    const dy = Math.sin(s.tail - (1 - u) * 3.4) * amp * Math.pow(1 - u, 1.5);
+    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, -totalW / 2 + i * destW, -totalH / 2 + dy, destW + 0.8, totalH);
   }
 }
 
@@ -371,17 +443,12 @@ function draw() {
     const len = fishLength(s.fish);
     const img = sprites.get(s.fish.species_id);
     const bob = Math.sin(s.phase * 0.7) * len * 0.02;
-    const wiggle = 1 + Math.sin(s.phase * 2.2) * 0.025;
     ctx.save();
     ctx.translate(s.x, s.y + bob);
     ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
-    ctx.scale(s.facing * wiggle, 1);
-    ctx.shadowColor = "rgba(0, 20, 25, 0.35)";
-    ctx.shadowBlur = len * 0.08;
-    ctx.shadowOffsetY = len * 0.05;
+    ctx.scale(s.facing, 1);
     if (img) {
-      const h = len * (img.height / img.width);
-      ctx.drawImage(img, -len / 2, -h / 2, len, h);
+      drawUndulating(s, img, len);
     } else {
       drawFallbackFish(len);
     }
@@ -405,7 +472,9 @@ function frame(now: number) {
   requestAnimationFrame(frame); // browsers stop rAF while the window is hidden
   const fps = !huntActive() && (quiet || state?.settings.meeting_mode) ? QUIET_FPS : VISIBLE_FPS;
   const elapsed = now - lastFrame;
-  if (elapsed < 1000 / fps - 1) return;
+  const interval = 1000 / fps;
+  // At 60 FPS follow the display's own refresh; lower caps keep an even cadence.
+  if (fps < 60 && elapsed < interval - 2) return;
   lastFrame = now;
   const dt = Math.min(elapsed, 250) / 1000;
   step(dt);
@@ -427,6 +496,7 @@ async function refresh() {
         if (img) sprites.set(sp.id, img);
       }),
   );
+  for (const sp of state.species) prices.set(sp.id, sp.price);
   syncSwimmers(state.fish);
 }
 
