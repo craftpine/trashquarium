@@ -71,14 +71,20 @@ remove it.
 
 ## Shell hunt, quick dock and startup
 
-- Open **Trục vớt Vỏ sò** in the manager, or **Gọi thuyền** from the Windows
-  quick dock. The first visit provides three tutorial shells once. Later batches
-  contain 1–10 shells after a random 8–22 minutes of running time. Sleep, shutdown
-  and Meeting Mode do not advance the clock. Uncollected shells never expire.
-- Click the play area or press Space while the hunt window has focus to drop
-  the swinging claw. One shell per catch; pulling it to the boat credits one
-  game shell. Misses cost nothing. Focus loss pauses the session. Resume with
-  **Tiếp tục**; closing returns an unpaid catch to the same batch.
+- Press **Gọi thuyền** in the manager or the Windows quick dock. The hunt is
+  played directly on the desktop tank (no separate window): the boat appears at
+  the top of the sea and the shells lie on the seabed. The first visit provides
+  three tutorial shells once. Later batches contain 1–10 shells after a random
+  8–22 minutes of running time. Sleep, shutdown and Meeting Mode do not advance
+  the clock. Uncollected shells never expire.
+- The tank is click-through, so controls are the global hotkey **Ctrl+Alt+Space**
+  (registered only during a hunt) and the dock's **Thả móc / Tạm dừng / Rời thuyền**
+  buttons. One shell per catch; pulling it to the boat credits one game shell.
+  Misses cost nothing. On Windows the session pauses automatically when the
+  desktop is covered by other windows (use Win+D to show it); resume with
+  **Tiếp tục**. Leaving returns an unpaid catch to the same batch. macOS has no
+  dock yet, so only the hotkey is available there and there is no auto-pause.
+  If another program owns the hotkey it is ignored and the dock still works.
 - Hunt rewards have a separate 60-shell daily cap, without fish EXP. Rust owns
   the simulation and commits wallet, daily count and collected flag together.
   Reopening the app neither rerolls the batch nor grants the tutorial again.
@@ -97,9 +103,9 @@ remove it.
 ### Validation / release limits
 
 The frontend is type-checked and built locally. Rust tests cover reachability,
-pause, catches/retraction, replay-safe payout, failed saves and migration; the
-Windows workflow runs them on PRs. Windows GUI checks for autostart, dock
-focus/Explorer and installer behaviour remain required before release. This
+pause, catches/retraction, replay-safe payout, failed saves and migration.
+Hunt sprites are regenerated with `python3 scripts/hunt-art/build.py`. Windows GUI checks for autostart, dock,
+hotkey, on-desktop hunt and focus/Explorer and installer behaviour remain required before release. This
 change does not apply a Windows theme or alter file intake safety.
 
 ## Still not done

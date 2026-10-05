@@ -9,6 +9,7 @@ use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, State, Wry};
 use tauri_plugin_autostart::ManagerExt as AutostartExt;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 use crate::engine::app::{AppCore, FeedReport, StateView};
 use crate::engine::belly::{BellyEntry, RestoreOutcome};
@@ -90,25 +91,64 @@ fn open_manager_tab(app: AppHandle, tab: String) -> Result<(), Failure> {
 #[tauri::command]
 async fn hunt_status(core: State<'_, Core>) -> Result<engine::hunt::HuntView, Failure> { Ok(with_core(&core, |c| c.game.hunt_view()).await) }
 
+/// One key for the whole hunt: resumes when paused, drops the claw while it swings.
+const HUNT_KEY: &str = "ctrl+alt+space";
+
+/// True while the hunt hotkey is registered (it is only held during a session).
+#[derive(Default)]
+struct HuntKey(AtomicBool);
+
+fn register_hunt_key(app: &AppHandle) {
+    let flag = app.state::<HuntKey>();
+    if flag.0.swap(true, Ordering::AcqRel) { return; }
+    let result = app.global_shortcut().on_shortcut(HUNT_KEY, |app, _shortcut, event| {
+        if event.state() == ShortcutState::Pressed { hunt_hotkey(app); }
+    });
+    // Another program may own the shortcut; the dock buttons still work.
+    if result.is_err() { flag.0.store(false, Ordering::Release); }
+}
+
+fn unregister_hunt_key(app: &AppHandle) {
+    if app.state::<HuntKey>().0.swap(false, Ordering::AcqRel) { let _ = app.global_shortcut().unregister(HUNT_KEY); }
+}
+
+fn hunt_hotkey(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let core: Core = app.state::<Core>().inner().clone();
+        let _ = with_core(&core, |c| {
+            let (id, paused, phase, last) = c.game.hunt_session.as_ref().map(|s| (s.id.clone(), s.paused, s.phase.clone(), s.last_command))?;
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+            let action = if paused { "resume" } else if phase == "swinging" { "drop" } else { return None };
+            c.game.hunt_action(&id, now.max(last + 1), action).ok()
+        }).await;
+    });
+}
+
 #[tauri::command]
-async fn start_hunt(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>) -> Result<engine::hunt::HuntView, Failure> {
+async fn start_hunt(app: AppHandle, window: tauri::WebviewWindow, core: State<'_, Core>, busy: State<'_, Busy>) -> Result<engine::hunt::HuntView, Failure> {
     let _guard = busy.enter()?;
     let view = with_core(&core, |c| c.game.start_hunt(&engine::local_today())).await?;
-    if let Some(w) = app.get_webview_window("hunt") { let _ = w.show(); let _ = w.set_focus(); }
-    else {
-        if let Err(e) = tauri::WebviewWindowBuilder::new(&app, "hunt", tauri::WebviewUrl::App("hunt.html".into()))
-            .title("TrashQuarium — Trục vớt Vỏ sò").inner_size(960.0, 600.0).min_inner_size(720.0, 480.0).center().build() {
+    // The hunt is played on the desktop ocean itself, so that must be on.
+    if !with_core(&core, |c| c.game.state.settings.tank_enabled).await {
+        if let Err(e) = apply_tank(&app, core.inner().clone(), true).await {
             with_core(&core, |c| c.game.hunt_session = None).await;
-            return Err(Failure::new("hunt_window", e));
+            return Err(e);
         }
     }
+    register_hunt_key(&app);
+    // Started from the manager: get it out of the way so the desktop shows.
+    if window.label() == "manager" { let _ = window.minimize(); }
     notify(&app);
     Ok(view)
 }
 
 #[tauri::command]
-async fn hunt_action(core: State<'_, Core>, session_id: String, seq: u64, action: String) -> Result<engine::hunt::HuntView, Failure> {
-    with_core(&core, move |c| c.game.hunt_action(&session_id, seq, &action)).await
+async fn hunt_action(app: AppHandle, core: State<'_, Core>, session_id: String, seq: u64, action: String) -> Result<engine::hunt::HuntView, Failure> {
+    let leaving = action == "leave";
+    let view = with_core(&core, move |c| c.game.hunt_action(&session_id, seq, &action)).await;
+    if leaving { unregister_hunt_key(&app); notify(&app); }
+    view
 }
 
 #[tauri::command]
@@ -137,27 +177,35 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
         let mut previous = std::time::Instant::now();
         let mut dock_visible = false;
         let mut dock_tick = 0;
+        let mut hunting = false;
+        let mut was_hunting = false;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(100));
             let now = std::time::Instant::now();
             let elapsed = now.duration_since(previous).as_millis() as u64; previous = now;
-            let hunt_focused = app.get_webview_window("hunt").is_some_and(|w| w.is_focused().unwrap_or(false));
+            // The hunt only runs while the desktop it is drawn on is in front.
+            let away = hunting && !desktop::hunt_surface_ready(&app);
             let mut changed = false;
             let mut desired_dock = None;
             if let Ok(mut c) = core.try_lock() {
-                if !hunt_focused || elapsed > 2000 {
+                if away || elapsed > 2000 {
                     if let Some(s) = &mut c.game.hunt_session { s.paused = true; }
                 }
                 changed = c.game.tick_hunt(if elapsed > 2000 { 0 } else { elapsed }, &engine::local_today()).unwrap_or(false);
+                hunting = c.game.hunt_session.is_some();
                 dock_tick += 1;
                 if dock_tick >= 5 {
                     dock_tick = 0;
-                    desired_dock = Some(c.game.state.settings.tank_enabled && c.game.state.settings.quick_dock_enabled
+                    desired_dock = Some(c.game.state.settings.tank_enabled && (c.game.state.settings.quick_dock_enabled || hunting)
                         && !c.game.state.settings.meeting_mode && desktop::desktop_foreground(&app));
                 }
             }
             // Native window operations may dispatch to the main thread. Never
             // hold the core lock while doing them (especially during app exit).
+            if hunting != was_hunting {
+                if hunting { register_hunt_key(&app); } else { unregister_hunt_key(&app); }
+                was_hunting = hunting;
+            }
             if changed { notify(&app); }
             if let Some(visible) = desired_dock {
                 if visible != dock_visible {
@@ -377,6 +425,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| { if !args.iter().any(|a| a == "--autostart") { show_manager(app); } }))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
         .setup(|app| {
             let catalog = Catalog::bundled().map_err(|e| format!("bundled catalog invalid: {e}"))?;
@@ -387,6 +436,7 @@ pub fn run() {
             app.manage(core.clone());
             app.manage(Busy::default());
             app.manage(PendingRoute::default());
+            app.manage(HuntKey::default());
             build_tray(app.handle(), &core)?;
             #[cfg(windows)]
             desktop::ensure_hud(app.handle()).map_err(std::io::Error::other)?;
@@ -425,12 +475,6 @@ pub fn run() {
         if let tauri::RunEvent::Exit = &event {
             let core = app.state::<Core>();
             if let Ok(mut c) = core.lock() { let _ = c.game.checkpoint_hunt(); };
-        }
-        if let tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } = &event {
-            if label == "hunt" {
-                let core = app.state::<Core>();
-                if let Ok(mut c) = core.lock() { c.game.hunt_session = None; };
-            }
         }
         #[cfg(target_os = "macos")]
         if let tauri::RunEvent::Reopen { .. } = event {

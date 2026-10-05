@@ -58,6 +58,15 @@ pub fn desktop_foreground(app: &AppHandle) -> bool {
     { let _ = app; false }
 }
 
+/// The hunt is played on the desktop ocean, so it only runs while the desktop
+/// (or the dock) is in front. Other platforms have no dock and never auto-pause.
+pub fn hunt_surface_ready(app: &AppHandle) -> bool {
+    #[cfg(windows)]
+    { desktop_foreground(app) }
+    #[cfg(not(windows))]
+    { let _ = app; true }
+}
+
 /// Opens the tank. Attachment finishes asynchronously on the main thread;
 /// `on_fail` receives the reason if it does not work.
 pub fn show_tank(app: &AppHandle, on_fail: impl FnOnce(String) + Send + 'static) -> Result<(), String> {

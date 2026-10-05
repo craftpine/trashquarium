@@ -475,14 +475,16 @@ function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
   return h("section", { class: "settings" },
     h("h2", {}, "Trục vớt Vỏ sò"),
-    h("p", { class: "lead" }, "Gọi thuyền, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận Vỏ sò."),
+    h("p", { class: "lead" }, "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận Vỏ sò."),
     h("div", { class: "setting" }, h("div", {},
       h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
       h("p", {}, "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.")),
-      h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
-        onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
+      state.hunt.session
+        ? h("button", { onclick: () => api.huntAction(state.hunt.session!.id, Date.now(), "leave").then(refresh, fail) }, "Rời thuyền")
+        : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
+            onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
     h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
-    h("p", { class: "fine" }, "Click vùng chơi hoặc Space để thả móc. Trượt không mất điểm. Chế độ họp tạm dừng; rời thuyền giữ sò chưa nhặt."),
+    h("p", { class: "fine" }, "Thả móc bằng Ctrl+Alt+Space hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt."),
   );
 }
 

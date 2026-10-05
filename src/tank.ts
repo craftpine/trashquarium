@@ -1,7 +1,8 @@
 // Desktop ocean. Renders only while visible: 30 FPS normally, 10 FPS when the
 // computer is idle or Meeting Mode is on, nothing when the window is hidden.
 import { listen } from "@tauri-apps/api/event";
-import { api, type Fish, type StateView } from "./api";
+import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
+import { reason } from "./i18n";
 
 const VISIBLE_FPS = 30;
 const QUIET_FPS = 10;
@@ -54,6 +55,15 @@ let quiet = false;
 let lastFrame = 0;
 let width = 0;
 let height = 0;
+let clock = 0;
+// Shell hunt, played on this desktop ocean: live view while a session exists.
+let hunt: HuntView | null = null;
+let huntBlend = 0; // 0 = idle ocean, 1 = hunt scene fully shown
+const huntArt: Record<string, HTMLImageElement | null> = {};
+const HUNT_KEY = "Ctrl+Alt+Space";
+const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
+const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
+const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -126,7 +136,24 @@ function fishLength(f: Fish) {
   return Math.min(width, height) * 0.22 * (SPECIES_SCALE[f.species_id] ?? 0.8) * STAGE_SCALE[f.stage];
 }
 
+const huntActive = () => !!hunt?.session && !state?.settings.meeting_mode;
+const ease = (t: number) => t * t * (3 - 2 * t);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** The hunt plays in a square (engine units 0..1) centred on the screen. */
+function huntFrame() {
+  const side = Math.min(width, height * 0.96);
+  return { side, ox: (width - side) / 2, oy: (height - side) / 2 };
+}
+
+async function pollHunt() {
+  if (!hunt?.session && !state?.hunt.session) return;
+  try { hunt = await api.huntStatus(); } catch { /* keep the last view */ }
+}
+
 function step(dt: number) {
+  clock += dt;
+  huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
   const calm = state?.settings.meeting_mode ? 0.4 : 1;
   for (const s of swimmers) {
     const len = fishLength(s.fish);
@@ -168,19 +195,103 @@ function drawFallbackFish(len: number) {
   ctx.fill();
 }
 
+function drawShell(shell: HuntShell, x: number, y: number, size: number) {
+  const img = huntArt[`shell_${shell.size}`];
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(shell.x * 3) * 0.12 + Math.sin(clock * 0.9 + shell.x * 9) * 0.05);
+  if (img) {
+    ctx.shadowColor = "rgba(0, 20, 25, 0.4)";
+    ctx.shadowBlur = size * 0.1;
+    ctx.drawImage(img, -size / 2, -size / 2, size, size);
+  } else {
+    const r = size * 0.4;
+    ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function huntMessage(): string {
+  const s = hunt?.session;
+  if (!s || !hunt) return "";
+  if (s.error) return reason(s.error);
+  if (s.paused) return `Đã tạm dừng — nhấn ${HUNT_KEY} để tiếp tục`;
+  const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
+  if (s.phase === "swinging") return `${left} sò đang chờ · ${HUNT_KEY} để thả móc`;
+  return s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…";
+}
+
+/** Boat, rope, claw and status pill. Drawn above the fish, below nothing. */
+function drawHunt(e: number) {
+  const s = hunt?.session;
+  if (!s || !hunt || e <= 0) return;
+  const { side, ox, oy } = huntFrame();
+  const at = (x: number, y: number): [number, number] => [ox + x * side, oy + y * side];
+  const [px, py0] = at(HUNT_PIVOT.x, HUNT_PIVOT.y);
+  const bob = Math.sin(clock * 1.6) * side * 0.003;
+  const dive = (1 - e) * side * 0.3; // the boat sails in from above
+  const py = py0 + bob - dive;
+  ctx.save();
+  ctx.globalAlpha = e;
+
+  // Rope and claw first: the hull hides them while they are pulled in.
+  const angle = s.angle * Math.PI / 180;
+  const len = Math.max(s.length, 0.0);
+  const [tx, ty0] = at(HUNT_PIVOT.x + Math.sin(angle) * len, HUNT_PIVOT.y + Math.cos(angle) * len);
+  const ty = ty0 + bob - dive;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(60, 40, 20, 0.55)"; ctx.lineWidth = Math.max(4, side * 0.005);
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tx, ty); ctx.stroke();
+  ctx.strokeStyle = "#ecdfb8"; ctx.lineWidth = Math.max(2, side * 0.003);
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tx, ty); ctx.stroke();
+
+  const clawImg = huntArt.claw;
+  const ch = side * 0.13;
+  const cw = ch * 128 / 176;
+  ctx.save();
+  ctx.translate(tx, ty); ctx.rotate(-angle);
+  if (clawImg) ctx.drawImage(clawImg, -cw / 2, -ch * CLAW_GRAB, cw, ch);
+  else { ctx.strokeStyle = "#e3aa45"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-cw * .4, -ch * .3); ctx.lineTo(-cw * .25, ch * .2); ctx.lineTo(0, ch * .3); ctx.lineTo(cw * .25, ch * .2); ctx.lineTo(cw * .4, -ch * .3); ctx.stroke(); }
+  ctx.restore();
+  const caught = hunt.batch?.shells.find((sh) => sh.id === s.caught_id);
+  if (caught) drawShell(caught, tx, ty + ch * 0.02, side * (0.06 + caught.size * 0.005));
+
+  // Boat on top.
+  const boat = huntArt.boat;
+  const bw = side * 0.26;
+  const bh = bw * 0.75;
+  ctx.save();
+  ctx.translate(px, py); ctx.rotate(Math.sin(clock * 1.1) * 0.02);
+  ctx.shadowColor = "rgba(0, 20, 25, 0.35)"; ctx.shadowBlur = bw * 0.05;
+  if (boat) ctx.drawImage(boat, -bw * BOAT_HATCH.x, -bh * BOAT_HATCH.y, bw, bh);
+  else { ctx.fillStyle = "#f0be83"; ctx.fillRect(-bw * .4, -bh * .25, bw * .8, bh * .25); }
+  ctx.restore();
+
+  // Status pill, top centre.
+  const text = huntMessage() + (hunt.session ? `  ·  Hôm nay ${hunt.earned}/${hunt.daily_cap}` : "");
+  ctx.font = "600 15px system-ui, sans-serif";
+  const w = ctx.measureText(text).width + 36;
+  const x = width / 2 - w / 2;
+  ctx.fillStyle = "rgba(6, 36, 46, 0.82)";
+  ctx.beginPath(); ctx.roundRect(x, 18, w, 34, 17); ctx.fill();
+  ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  ctx.fillText(text, width / 2, 36);
+  ctx.restore();
+}
+
 function draw() {
   ctx.drawImage(background, 0, 0, width, height);
   // Persistent batch, not a new random field on every render/restart.
-  for (const shell of state?.hunt.batch?.shells ?? []) {
-    if (shell.collected) continue;
-    const x = shell.x * width;
-    const y = height * (0.82 + (shell.y - 0.65) * 0.38);
-    const r = 10 + shell.size * 2;
-    ctx.save(); ctx.translate(x, y);
-    ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
-    for (let n = -2; n <= 2; n++) { ctx.beginPath(); ctx.moveTo(0, r * .4); ctx.lineTo(n * r * .3, -r * .7); ctx.stroke(); }
-    ctx.restore();
+  const e = ease(huntBlend);
+  const f = huntFrame();
+  const batch = hunt?.session ? hunt.batch : state?.hunt.batch;
+  const carried = hunt?.session?.caught_id ?? null;
+  for (const shell of batch?.shells ?? []) {
+    if (shell.collected || (e > 0 && shell.id === carried)) continue;
+    const idle = { x: shell.x * width, y: height * (0.82 + (shell.y - 0.65) * 0.38), size: 30 + shell.size * 5 };
+    const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
+    drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
   }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {
@@ -209,11 +320,12 @@ function draw() {
     }
     ctx.restore();
   }
+  drawHunt(e);
 }
 
 function frame(now: number) {
   requestAnimationFrame(frame); // browsers stop rAF while the window is hidden
-  const fps = quiet || state?.settings.meeting_mode ? QUIET_FPS : VISIBLE_FPS;
+  const fps = !huntActive() && (quiet || state?.settings.meeting_mode) ? QUIET_FPS : VISIBLE_FPS;
   const elapsed = now - lastFrame;
   if (elapsed < 1000 / fps - 1) return;
   lastFrame = now;
@@ -248,12 +360,14 @@ async function pollIdle() {
 
 async function main() {
   oceanImage = await loadImage("/art/ocean.jpg");
+  for (const name of ["boat", "claw", "shell_0", "shell_1", "shell_2"]) huntArt[name] = await loadImage(`/art/hunt/${name}.png`);
   resize();
   window.addEventListener("resize", resize);
   await refresh();
   await listen("state-changed", refresh);
   await pollIdle();
   setInterval(pollIdle, 5000);
+  setInterval(pollHunt, 50);
   requestAnimationFrame(frame);
 }
 

@@ -7,7 +7,6 @@ const reasons: Record<string, string> = {
   hunt_meeting: "Tắt Chế độ họp để gọi thuyền.",
   hunt_stale: "Lượt thuyền đã kết thúc; hãy gọi thuyền lại.",
   hunt_busy: "Móc đang hoạt động; chờ kéo về thuyền.",
-  hunt_window: "Không mở được cửa sổ thuyền.",
   autostart_failed: "Không thay đổi được tùy chọn mở cùng hệ thống.",
   autostart_dev: "Chỉ bật mở cùng hệ thống từ bản game đã cài, không dùng bản dev.",
   dock_failed: "Không mở được nút nhanh desktop.",
