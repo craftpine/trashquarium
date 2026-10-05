@@ -48,6 +48,12 @@ export interface Breeding {
   price_high: number;
 }
 
+export interface RedeemOutcome {
+  kind: "cbcoins" | "full_exp";
+  cbcoins: number;
+  fish: number;
+}
+
 export interface BreedOutcome {
   charged: number;
   refunded: number;
@@ -140,6 +146,7 @@ export const api = {
   preview: (paths: string[]) => invoke<Inspection[]>("preview_files", { paths }),
   feed: (items: Inspection[], fishId: string) => invoke<FeedReport>("feed", { items, fishId }),
   buy: (speciesId: string, price: number) => invoke<Fish>("buy", { speciesId, price }),
+  redeem: (code: string) => invoke<RedeemOutcome>("redeem_code", { code }),
   sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
   breed: (firstId: string, secondId: string, eggs: number) => invoke<BreedOutcome>("breed_fish", { firstId, secondId, eggs }),
   bellyList: () => invoke<BellyEntry[]>("belly_list"),
@@ -150,6 +157,7 @@ export const api = {
   finishOnboarding: () => invoke<StateView>("finish_onboarding"),
   createSample: () => invoke<string>("create_sample_file"),
   idleSeconds: () => invoke<number>("system_idle_seconds"),
+  setTrayLanguage: (lang: string) => invoke<void>("set_tray_language", { lang }),
   quit: () => invoke<void>("quit_app"),
   huntStatus: () => invoke<HuntView>("hunt_status"),
   startHunt: () => invoke<HuntView>("start_hunt"),

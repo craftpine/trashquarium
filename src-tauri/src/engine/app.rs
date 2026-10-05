@@ -209,14 +209,15 @@ mod tests {
         let paths: Vec<_> = (0..30).map(|i| s.file(&format!("docs/{i}.txt"), &format!("unique-{i}"))).collect();
         let preview = c.preview(&paths.iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<_>>());
         let report = c.feed(&preview,&fish).unwrap();
-        assert_eq!(report.files.iter().filter(|f|f.ok).count(),25);
-        assert_eq!(report.reward.unwrap().exp,500);
-        for p in &paths[25..] { assert!(p.exists()); }
-        assert_eq!(c.game.state.fish[0].exp,500);
-        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_full");
-        c.game.state.fish[0].exp=10000; c.game.state.fish[0].resting_until=0;
-        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_adult");
-        assert!(paths[25].exists());
+        // 20 EXP per small file; the fish rests at Lv.5 (50 EXP), so the third file fills it.
+        assert_eq!(report.files.iter().filter(|f|f.ok).count(),3);
+        assert_eq!(report.reward.unwrap().exp,60);
+        for p in &paths[3..] { assert!(p.exists()); }
+        assert_eq!((c.game.state.fish[0].exp, c.game.state.fish[0].pending_exp),(50,10));
+        assert_eq!(c.feed(&preview[3..],&fish).unwrap_err().code,"fish_full");
+        c.game.state.fish[0].exp=crate::engine::game::MAX_EXP; c.game.state.fish[0].pending_exp=0; c.game.state.fish[0].resting_until=0;
+        assert_eq!(c.feed(&preview[3..],&fish).unwrap_err().code,"fish_adult");
+        assert!(paths[3].exists());
     }
 
     #[test]

@@ -41,6 +41,34 @@ impl HuntBalance {
         self.wait_min_ms + ((self.wait_max_ms - self.wait_min_ms) as f64 * (random() + random()) / 2.0) as u64
     }
 }
+/// Shell area: scattered anywhere the claw can reach (not in rows), kept apart so one
+/// grab never touches two shells.
+const SHELL_X: (f64, f64) = (0.06, 0.94);
+const SHELL_Y: (f64, f64) = (0.55, 0.92);
+const SHELL_GAP: f64 = 0.08;
+const SHELL_MAX_REACH: f64 = 0.84; // claw stops at 0.88
+const SHELL_MAX_ANGLE: f64 = 60.0; // claw swings ±65°
+
+fn reachable(x: f64, y: f64) -> bool {
+    let (dx, dy) = (x - PIVOT.0, y - PIVOT.1);
+    dx.hypot(dy) <= SHELL_MAX_REACH && dx.atan2(dy).to_degrees().abs() <= SHELL_MAX_ANGLE
+}
+
+fn scatter_spot(placed: &[(f64, f64)]) -> (f64, f64) {
+    let mut best = (0.5, 0.75);
+    let mut best_gap = -1.0;
+    for _ in 0..200 {
+        let angle = ((random() * 2.0 - 1.0) * SHELL_MAX_ANGLE).to_radians();
+        let reach = 0.42 + random() * (SHELL_MAX_REACH - 0.42);
+        let (x, y) = (PIVOT.0 + angle.sin() * reach, PIVOT.1 + angle.cos() * reach);
+        if !(SHELL_X.0..=SHELL_X.1).contains(&x) || !(SHELL_Y.0..=SHELL_Y.1).contains(&y) || !reachable(x, y) { continue; }
+        let gap = placed.iter().map(|(px, py)| (px - x).hypot(py - y)).fold(f64::INFINITY, f64::min);
+        if gap >= SHELL_GAP { return (x, y); }
+        if gap > best_gap { best = (x, y); best_gap = gap; }
+    }
+    best // crowded batch: the most spread-out spot found
+}
+
 fn random() -> f64 {
     let b = *uuid::Uuid::new_v4().as_bytes();
     u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as f64 / (u32::MAX as f64 + 1.0)
@@ -61,12 +89,15 @@ pub struct Shell {
 pub struct Batch { pub id: String, pub shells: Vec<Shell> }
 impl Batch {
     pub fn generate(count: usize) -> Self {
-        let shells = (0..count).map(|i| {
+        let mut placed: Vec<(f64, f64)> = Vec::new();
+        let shells = (0..count).map(|_| {
             let rare = random() < RARE_CHANCE;
+            let (x, y) = scatter_spot(&placed);
+            placed.push((x, y));
             Shell {
             id: uuid::Uuid::new_v4().to_string(),
-            x: 0.13 + (i % 5) as f64 * 0.185 + (random() - 0.5) * 0.035,
-            y: 0.70 + (i / 5) as f64 * 0.14 + random() * 0.025,
+            x,
+            y,
             size: (random() * 3.0) as u8,
             collected: false,
             kind: match (random() * 3.0) as u8 { 0 => ShellKind::Great, 1 => ShellKind::Queen, _ => ShellKind::Variegated },
@@ -110,7 +141,7 @@ impl HuntState {
             let mut ids = std::collections::BTreeSet::new();
             if b.id.is_empty() || b.shells.is_empty() || b.shells.len() > 10 { return Err("invalid shell batch".into()); }
             for s in &b.shells {
-                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(0.10..=0.90).contains(&s.x) || !(0.65..=0.88).contains(&s.y) || s.size > 2 || (s.pearl && !s.rare) {
+                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(SHELL_X.0..=SHELL_X.1).contains(&s.x) || !(SHELL_Y.0..=SHELL_Y.1).contains(&s.y) || s.size > 2 || (s.pearl && !s.rare) {
                     return Err("invalid shell".into());
                 }
             }
@@ -206,9 +237,17 @@ mod tests {
                 let dx = s.x - PIVOT.0; let dy = s.y - PIVOT.1;
                 assert!(dx.hypot(dy) < 0.88 && dx.atan2(dy).to_degrees().abs() < 65.0);
             }
+            for (i, a) in b.shells.iter().enumerate() {
+                for c in &b.shells[i + 1..] { assert!((a.x - c.x).hypot(a.y - c.y) > 0.052, "two shells inside one grab"); }
+            }
             let state = HuntState { batch: Some(b), ..HuntState::default() };
             assert!(state.validate().is_ok());
         }
+    }
+    #[test] fn shells_are_scattered_not_in_rows() {
+        let mut rows = std::collections::BTreeSet::new();
+        for _ in 0..20 { for s in &Batch::generate(10).shells { rows.insert((s.y * 100.0).round() as i64); } }
+        assert!(rows.len() > 15, "shell heights should vary, got {rows:?}");
     }
     #[test] fn a_catch_requires_retraction_and_replayed_drop_is_ignored() {
         let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false, kind: ShellKind::Great, rare: false, pearl: false }] };

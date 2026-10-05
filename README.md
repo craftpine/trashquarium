@@ -6,6 +6,14 @@ earn **CBCoin** (in-game points) by hunting shells with the boat and buy real
 fish species from a 64-species shop. See `docs/economy-growth.md`. In the UI
 CBCoin is shown as the CB logo (`public/art/cb-coin.png`, `src/coin.ts`).
 
+Player guides: `docs/how-to-play.md` (English), `docs/huong-dan-nguoi-moi.md`
+(Vietnamese) and `docs/how-to-play.zh.md` (Chinese); the same guide opens in-game from the **?** button.
+
+Languages: Vietnamese, English and Simplified Chinese (🌐 picker in the header or
+Settings → Language; defaults to the system language). Vietnamese is the source text: wrap new UI text in `t("…")` from
+`src/i18n.ts` and add the English and Chinese lines to `src/locales/en.ts` / `zh.ts` (species names
+and facts in `src/locales/species-en.ts` / `species-zh.ts`). `npm run test:i18n` fails on anything missing.
+
 Reimplementation of `../specs/TrashQuarium-Source-2026-09-28` against
 `../specs/TRASHQUARIUM-MASTER-SPEC-V4.md`, milestones **A** (file safety,
 Belly, recovery, save, desktop lifecycle) and **B** (shop, wallet, feeding).
@@ -22,7 +30,7 @@ Runs on macOS and Windows.
   - `app.rs` facade used by the Tauri commands
 - `src-tauri/src/desktop.rs` — desktop tank window below the icons (macOS window level / Windows WorkerW), idle detection
 - `src-tauri/src/lib.rs` — commands, tray/menu-bar, single instance
-- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle)
+- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle), `i18n.ts` + `locales/` (vi/en text)
 
 ## Run
 
@@ -65,7 +73,7 @@ remove it.
 - Journal is written before the move. On start, recovery settles unfinished
   transactions from what is on disk; ambiguous cases are parked as
   "needs attention" with both copies kept.
-- Rewards (schema 4): Belly receipt → one atomic save of EXP + ledger (feeding gives EXP only; CBCoin comes from shells). A failed
+- Rewards (schema 5): Belly receipt → one atomic save of EXP + ledger (feeding gives EXP only; CBCoin comes from shells). A failed
   save leaves the receipt pending and it is paid once later. Recovery-completed
   moves are not rewarded. Duplicate content pays nothing (new rewards hash the whole
   file; older ledger entries keep the legacy size + first 1 MiB fingerprint).
@@ -106,11 +114,11 @@ remove it.
   shopping, shell hunting and settings/Belly. The dock hides outside the desktop
   and in Meeting Mode; Settings can disable it. Position is currently fixed to
   the monitor's lower-right corner. Dock visibility needs Windows GUI QA.
-- Feeding gives EXP only: (floor(bytes / 20 MB) + 1) × 20 per file, 100 EXP = 1
+- Feeding gives EXP only: (floor(bytes / 20 MB) + 1) × 20 per file, 10 EXP = 1
   level, every 5 levels the fish rests 2 hours (leftover EXP is kept), Lv.50 =
   sub-adult, Lv.100 = adult. Adult fish can be sold to the boat for purchase
   price × 100 CBCoin. Resting fish show a speech bubble on the desktop.
-- Save schemas 1–3 are read and migrated to 4 with existing fish, wallet
+- Save schemas 1–4 are read and migrated to 5 (schema 5: 10 EXP per level, old EXP ÷ 10 so levels stay) with existing fish, wallet
   (`shells` → `cbcoins` 1:1), receipts and Belly preserved. Older app builds
   will open the new save read-only. Full rules: `docs/economy-growth.md`;
   hunt features and QA notes: `docs/hunt-features.md` (written for the earlier

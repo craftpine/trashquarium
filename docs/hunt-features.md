@@ -1,10 +1,12 @@
 # Shell Hunt — cập nhật tính năng và QA
 
-> Luật tiền/EXP và kết quả test bên dưới là mốc bàn giao trước. Luật hiện tại đã đổi sang CBCoin và save schema 4; xem [economy-growth.md](economy-growth.md).
+> Luật tiền/EXP và kết quả test bên dưới là mốc bàn giao trước. Luật hiện tại đã đổi sang CBCoin và save schema 5; xem [economy-growth.md](economy-growth.md).
 
 > Ghi chú tích hợp: cửa sổ đào sò riêng đã được thay bằng cảnh đào sò vẽ thẳng trên bể desktop (`src/tank.ts`; điều khiển bằng dock nhỏ + Space/Ctrl+Alt+Space). Animation móc đóng/mở, sò hiếm, ripple và thông báo bắt sò đã port sang đó; bộ sưu tập nằm ở tab đào sò trong manager. Nút bật/tắt âm thanh nằm ở dock (`src/hunt-sound.ts`, mặc định tắt).
 
 ## Đã triển khai
+
+- Sò rải ngẫu nhiên khắp vùng móc với tới được (góc ±60°, tầm 0,42–0,84 tính từ trục móc), không xếp hàng; hai sò luôn cách nhau đủ xa để một lần gắp không chạm hai sò.
 
 - Móc đóng khi thu dây/nhận thưởng, mở lại khi thả; hỗ trợ reduced motion và giữ trạng thái khi pause. Animation dùng PNG hiện có, không sửa ảnh gốc.
 - Hiệu ứng nước, viền vàng cho sò hiếm, thông báo phần thưởng. Âm thanh tổng hợp có nút bật/tắt, mặc định tắt.

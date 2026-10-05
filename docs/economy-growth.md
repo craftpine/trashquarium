@@ -9,8 +9,8 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch�
 - Không còn hệ số tuổi file, loại file, giảm thưởng mỗi ngày hoặc trần EXP ngày. Các kiểm tra loại/vị trí/dung lượng an toàn vẫn áp dụng; tối đa 4 GiB/file như trước.
 - File mới dùng SHA-256 toàn bộ nội dung + kích thước, đọc theo chunk trên máy. Copy/đổi tên vẫn là cùng nội dung. Lịch sử đã trả EXP không bị cắt bỏ; cả restore rồi cho ăn lại cũng không nhận thêm.
 - Preview lọc nội dung trùng giữa các file được chọn và lịch sử đã thưởng. Backend kiểm tra lại và không chuyển file trùng. File đang no hoặc cá trưởng thành cũng bị chặn trước khi chuyển file; một lượt nhiều file dừng cấp thức ăn khi chạm mốc nghỉ, các file còn lại ở nguyên chỗ.
-- Cá mua mới bắt đầu Lv.0, cá non. 100 EXP = 1 level. Lv.50 (5.000 EXP) là thành niên, Lv.100 (10.000 EXP) là trưởng thành và không tăng thêm.
-- Mỗi mốc 5 level, cá nghỉ 7.200 giây. EXP dư của file đã ăn được giữ trong `pending_exp`, không vứt đi. Hết nghỉ, phần dư được tiêu hóa đến mốc nghỉ tiếp theo; nếu lại đủ 5 level thì nghỉ tiếp 2 tiếng. Không tiếp tục nhận file lúc nghỉ. Phần EXP vượt tổng 10.000 không ghi nhận.
+- Cá mua mới bắt đầu Lv.0, cá non. **10 EXP = 1 level** (từ save schema 5; trước đó 100 EXP). Lv.50 (500 EXP) là thành niên, Lv.100 (1.000 EXP) là trưởng thành và không tăng thêm. Một file nhỏ (20 EXP) đã bằng 2 level.
+- Mỗi mốc 5 level (50 EXP), cá nghỉ 7.200 giây. EXP dư của file đã ăn được giữ trong `pending_exp`, không vứt đi. Hết nghỉ, phần dư được tiêu hóa đến mốc nghỉ tiếp theo; nếu lại đủ 5 level thì nghỉ tiếp 2 tiếng. Không tiếp tục nhận file lúc nghỉ. Phần EXP vượt tổng 1.000 không ghi nhận.
 - Thời hạn nghỉ được lưu để sống qua restart; manager/tank kiểm tra lại khoảng 15 giây khi app mở. Đồng hồ hệ thống được dùng cho thời hạn; chưa có cơ chế chống người dùng chỉnh đồng hồ.
 - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
 - Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
@@ -27,15 +27,24 @@ Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặ
 - **Bể đầy:** trứng được xử lý lần lượt; khi bể đầy, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
 - Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
 
+## Code quà tặng (Cài đặt → Nhập code)
+
+Code không phân biệt hoa thường, bỏ khoảng trắng hai đầu; game chỉ lưu SHA-256 của code trong mã nguồn (`game.rs`). Hai code admin để test, dùng lại được nhiều lần:
+
+- `TQ-ADMIN-1TY-CB-2610`: +1.000.000.000 CBCoin.
+- `TQ-ADMIN-FULLEXP-2610`: mọi cá trong bể lên Lv.100 (trưởng thành, hết nghỉ).
+
+Đây là code thử nghiệm: ai biết code đều dùng được, nên cần xóa hoặc đổi trước khi phát hành chính thức.
+
 ## Tương thích dữ liệu
 
-Schema save mới là 4. Wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
+Schema save mới là 5: EXP và EXP đang tiêu hóa của save 4 được chia 10 nên level giữ nguyên. Từ schema 4: wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
 
 Save 1–3 giữ ID cá, ledger, collection và số dư. Cá trưởng thành cũ chuyển Lv.100; cá thành niên cũ giữ giai đoạn tương ứng Lv.50 trở lên; cá non cũ quy đổi tiến độ từ ngưỡng cũ 20/60 EXP. Không tạo lại quà khởi đầu. Save cũ không lưu giá mua thực tế nên dùng giá catalog của loài tại lúc migration; cá mua mới lưu giá giao dịch.
 
 Lịch sử cũ chỉ có hash phần đầu: tiếp tục dùng nó để chặn thưởng lặp với dữ liệu đã ghi. Vì không thể phục hồi toàn bộ nội dung từ hash cũ, hai file khác nhau cùng kích thước/phần đầu có thể bị từ chối nếu khớp lịch sử cũ. File được thưởng từ luật mới dùng hash toàn bộ, không thêm hash phần đầu vào ledger nữa.
 
-Không mở save schema 4 bằng EXE cũ. Save phiên bản tương lai hoặc hỏng vẫn fail-closed/read-only, không ghi đè.
+Không mở save schema 5 bằng EXE cũ. Save phiên bản tương lai hoặc hỏng vẫn fail-closed/read-only, không ghi đè.
 
 ## Kiểm thử và cách chạy
 

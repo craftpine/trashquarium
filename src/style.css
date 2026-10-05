@@ -641,3 +641,76 @@ dialog::backdrop {
   color: var(--ink);
   max-width: 140px;
 }
+
+.pill.help {
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: inherit;
+  border: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+}
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.guide-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.guide-icon {
+  font-size: 26px;
+  line-height: 1.1;
+}
+.guide-item h3 {
+  font-size: 16px;
+  margin: 0 0 2px;
+}
+.guide-item p {
+  font-size: 14px;
+}
+
+.code-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.code-input {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  width: 220px;
+  text-transform: uppercase;
+}
+
+.pill.lang {
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 6px 4px 12px;
+}
+.pill.lang select {
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+.pill.lang select option {
+  color: #17434b;
+}
+.code-input::placeholder {
+  text-transform: none;
+}

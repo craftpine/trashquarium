@@ -1,5 +1,72 @@
-// Vietnamese UI text. Keys are stable so an English table can be added later.
+// UI text. Vietnamese is the source language: `t(<Vietnamese sentence>, { param })` returns
+// the sentence itself, or its translation from locales/en.ts (English) or locales/zh.ts
+// (Simplified Chinese). `npm run test:i18n` fails if a sentence is missing in either table.
 import type { Category, Stage } from "./api";
+import { EN } from "./locales/en";
+import { SPECIES_EN } from "./locales/species-en";
+import { ZH } from "./locales/zh";
+import { SPECIES_ZH } from "./locales/species-zh";
+
+export type Lang = "vi" | "en" | "zh";
+export const LANGS: { id: Lang; label: string; short: string }[] = [
+  { id: "vi", label: "Tiếng Việt", short: "VI" },
+  { id: "en", label: "English", short: "EN" },
+  { id: "zh", label: "中文", short: "中" },
+];
+const isLang = (v: unknown): v is Lang => v === "vi" || v === "en" || v === "zh";
+const TABLES: Record<Exclude<Lang, "vi">, Record<string, string>> = { en: EN, zh: ZH };
+const SPECIES: Record<Exclude<Lang, "vi">, Record<string, { name: string; fact: string }>> = { en: SPECIES_EN, zh: SPECIES_ZH };
+const LANG_KEY = "tq.lang";
+const listeners = new Set<() => void>();
+
+function detect(): Lang {
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (isLang(saved)) return saved;
+  } catch { /* storage can be unavailable */ }
+  const sys = (navigator.language || "").toLowerCase();
+  return sys.startsWith("vi") ? "vi" : sys.startsWith("zh") ? "zh" : "en";
+}
+
+let lang: Lang = detect();
+if (typeof document !== "undefined") document.documentElement.lang = lang;
+
+export const getLang = (): Lang => lang;
+
+function apply(next: Lang) {
+  lang = next;
+  if (typeof document !== "undefined") document.documentElement.lang = next;
+  listeners.forEach((cb) => cb());
+}
+
+export function setLang(next: Lang) {
+  try { localStorage.setItem(LANG_KEY, next); } catch { /* keep in memory */ }
+  apply(next);
+}
+
+/** Runs `cb` when the language changes here or in another game window. */
+export function onLangChange(cb: () => void) {
+  listeners.add(cb);
+}
+
+// Every window follows a language change made in another one (shared localStorage).
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === LANG_KEY && isLang(e.newValue) && e.newValue !== lang) apply(e.newValue);
+  });
+}
+
+export function t(vi: string, params?: Record<string, string | number>): string {
+  const text = lang === "vi" ? vi : (TABLES[lang][vi] ?? vi);
+  return params ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m)) : text;
+}
+
+type SpeciesText = { id: string; name: string; fact: string };
+/** Species display name / fact in the current language (English table is keyed by species id). */
+export const speciesName = (s: SpeciesText): string => (lang === "vi" ? s.name : SPECIES[lang][s.id]?.name ?? s.name);
+export const speciesFact = (s: SpeciesText): string => (lang === "vi" ? s.fact : SPECIES[lang][s.id]?.fact ?? s.fact);
+
+export const locale = () => ({ vi: "vi-VN", en: "en-US", zh: "zh-CN" })[lang];
 
 const reasons: Record<string, string> = {
   fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
@@ -46,6 +113,8 @@ const reasons: Record<string, string> = {
   busy: "Đang xử lý một thao tác khác, thử lại sau giây lát",
   not_enough_shells: "Chưa đủ CBCoin",
   tank_full: "Bể đã đầy",
+  code_invalid: "Code không đúng. Kiểm tra lại từng ký tự nhé.",
+  wallet_overflow: "Ví CBCoin đã quá đầy, không cộng thêm được.",
   breed_same_fish: "Hãy chọn hai con cá khác nhau để ghép cặp.",
   breed_species_mismatch: "Chỉ ghép cặp được hai cá cùng loài.",
   breed_exhausted: "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.",
@@ -75,28 +144,32 @@ const reasons: Record<string, string> = {
 };
 
 export function reason(code: string): string {
-  if (code.startsWith("original_unsafe")) return reasons.original_unsafe;
-  return reasons[code] ?? code;
+  if (code.startsWith("original_unsafe")) return t(reasons.original_unsafe);
+  return reasons[code] ? t(reasons[code]) : code;
 }
 
-export const attentionNote: Record<string, string> = {
+export const attentionNoteSource: Record<string, string> = {
   both_exist: "File có mặt ở cả hai nơi. Cả hai được giữ nguyên — hãy tự kiểm tra rồi quyết định.",
   missing: "Không thấy file ở cả hai nơi. Không có gì bị xóa bởi game; hãy kiểm tra thủ công.",
   index_mismatch: "Sổ ghi không khớp với ổ đĩa. Mọi file được giữ nguyên.",
   journal_unreadable: "Không đọc được một sổ giao dịch. Mọi file được giữ nguyên.",
 };
 
-export const stageName: Record<Stage, string> = {
+export const attentionNote = (note: string): string => (attentionNoteSource[note] ? t(attentionNoteSource[note]) : note);
+
+export const stageSource: Record<Stage, string> = {
   fry: "Cá non",
   juvenile: "Cá thành niên",
   adult: "Trưởng thành",
 };
+export const stageName = (stage: Stage): string => t(stageSource[stage]);
 
-export const categoryName: Record<Category, string> = {
+export const categorySource: Record<Category, string> = {
   doc: "Tài liệu",
   media: "Ảnh/âm thanh/video",
   tech: "Nén/log/bộ cài",
 };
+export const categoryName = (category: Category): string => t(categorySource[category]);
 
 export function formatSize(bytes: number): string {
   const units = ["B", "KB", "MB", "GB"];
@@ -106,9 +179,9 @@ export function formatSize(bytes: number): string {
     n /= 1024;
     i++;
   }
-  return `${n.toLocaleString("vi-VN", { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
+  return `${n.toLocaleString(locale(), { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
 }
 
 export function formatDate(unix: number): string {
-  return new Date(unix * 1000).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+  return new Date(unix * 1000).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
 }

@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "tauri": "tauri",
     "test": "cd src-tauri && cargo test --lib",
+    "test:i18n": "node scripts/test-i18n.mjs",
     "seed": "node scripts/seed-fish.mjs"
   },
   "dependencies": {
