@@ -69,6 +69,36 @@ pub struct Balance {
     pub fingerprint_bytes: u64,
     pub stage_exp: StageExp,
     pub economy: Economy,
+    #[serde(default)]
+    pub breeding: Breeding,
+}
+
+/// Breeding: each egg costs both parents one purchase price of sale value, and
+/// hatches with a chance that falls linearly from `hatch_max` (cheapest fish)
+/// to `hatch_min` (most expensive fish).
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct Breeding {
+    pub hatch_max: f64,
+    pub hatch_min: f64,
+    pub price_low: u64,
+    pub price_high: u64,
+}
+
+impl Default for Breeding {
+    fn default() -> Self {
+        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300 }
+    }
+}
+
+impl Breeding {
+    /// Hatch chance for one egg of a species priced `price` CBCoin.
+    pub fn hatch_rate(&self, price: u64) -> f64 {
+        if price <= self.price_low { return self.hatch_max; }
+        if price >= self.price_high { return self.hatch_min; }
+        let t = (price - self.price_low) as f64 / (self.price_high - self.price_low) as f64;
+        self.hatch_max + (self.hatch_min - self.hatch_max) * t
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -117,6 +147,10 @@ impl Catalog {
         }
         if b.tank_capacity == 0 || b.stage_exp.juvenile >= b.stage_exp.adult {
             return Err("tank capacity / stage thresholds invalid".into());
+        }
+        let br = &b.breeding;
+        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high {
+            return Err("breeding balance invalid".into());
         }
         let e = &b.economy;
         let non_negative = [

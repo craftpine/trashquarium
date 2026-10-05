@@ -277,7 +277,7 @@ function showSpecies(s: Species) {
         h("dt", {}, "Nhãn"), h("dd", {}, "Có thật"),
         h("dt", {}, "Sinh sản"), h("dd", {}, s.reproduction === "live_birth" ? "Đẻ con (không có trứng ngoài bụng)" : "Đẻ trứng"),
         h("dt", {}, "Khi mua"), h("dd", {}, stageName.fry),
-        h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài — tính năng gia đình cá sẽ có ở bản sau"),
+        h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá"),
         h("dt", {}, "Nguồn"), h("dd", {}, h("code", {}, s.source)),
       ),
     ),
@@ -315,10 +315,71 @@ function confirmBuy(s: Species) {
   );
 }
 
+const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
+
+// ---------- breeding ----------
+
+function confirmBreed(fish: Fish) {
+  const partners = state.fish.filter((o) => o.id !== fish.id && o.species_id === fish.species_id && o.stage === "adult" && o.eggs_used < 99);
+  const sp = speciesOf(fish.species_id);
+  if (fish.eggs_used >= 99 || partners.length === 0) {
+    modal(h("div", {},
+      h("h2", {}, `Sinh sản · ${fish.name}`),
+      h("p", {}, fish.eggs_used >= 99
+        ? "Giá trị cá này đã về mức giá mua gốc nên không sinh sản thêm được."
+        : "Cần thêm một con cá cùng loài đã trưởng thành (Lv.100) trong bể để ghép cặp.")
+    ), [{ label: "Đóng", kind: "primary" }]);
+    return;
+  }
+  let partner = partners[0];
+  let eggs = 1;
+  const free = Math.max(0, state.capacity - state.fish.length);
+  const b = state.breeding;
+  const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
+  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
+  const summary = h("p", { class: "fine", role: "status" });
+  const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": "Số trứng" }) as HTMLInputElement;
+  const refreshSummary = () => {
+    const r = rate(sp?.price ?? fish.purchase_price);
+    eggs = Math.max(1, Math.min(maxEggs(), Math.floor(Number(eggInput.value) || 1)));
+    eggInput.max = String(maxEggs());
+    summary.replaceChildren(...coinText([
+      `Tỷ lệ nở mỗi trứng: ${(r * 100).toFixed(1)}% · dự kiến khoảng ${(eggs * r).toFixed(1)} cá con (Lv.0). `,
+      `Mỗi cá bố mẹ mất ${fish.purchase_price * eggs} CBCoin giá bán: ${saleValue(fish)} → ${fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs)} CBCoin `,
+      `(mỗi trứng −${fish.purchase_price}, tối thiểu ${fish.purchase_price}). `,
+      free === 0 ? "Bể đang đầy — cần chỗ trống để cá con nở." : `Bể còn ${free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.`,
+    ].join("")));
+  };
+  const select = h("select", { "aria-label": "Chọn cá ghép cặp", onchange: (ev: Event) => {
+    partner = partners.find((o) => o.id === (ev.currentTarget as HTMLSelectElement).value) ?? partner;
+    refreshSummary();
+  } }, ...partners.map((o) => h("option", { value: o.id }, `${o.name} · Lv.${Math.floor(o.exp / 100)} · giá bán ${saleValue(o)} CBCoin`)));
+  eggInput.addEventListener("input", refreshSummary);
+  refreshSummary();
+  modal(h("div", { class: "breed-form" },
+    h("h2", {}, `Sinh sản · ${fish.name}`),
+    h("p", {}, "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít."),
+    h("label", {}, "Cá ghép cặp ", select),
+    h("label", {}, "Số trứng ", eggInput),
+    summary,
+  ), [{ label: "Để sau", kind: "ghost" }, { label: "🥚 Sinh sản", kind: "primary", run: async () => {
+    if (working) return;
+    working = true; render();
+    try {
+      const out = await api.breed(fish.id, partner.id, eggs);
+      const n = out.hatched.length;
+      toast(n > 0
+        ? `🥚 Đã đẻ ${out.charged} trứng, nở ${n} cá con (Lv.0)${out.refunded ? ` · giữ lại ${out.refunded} trứng vì bể đầy` : ""}!`
+        : `🥚 Đã đẻ ${out.charged} trứng nhưng chưa quả nào nở (tỷ lệ ${(out.hatch_rate * 100).toFixed(1)}%). Thử lại nhé!`);
+    } catch (e) { fail(e); }
+    finally { working = false; await refresh(); }
+  }}]);
+}
+
 function confirmSell(fish: Fish) {
   modal(h("div", {},
     h("h2", {}, `Gọi thuyền bán ${fish.name}?`),
-    h("p", {}, `Level 100 · Giá bán: ${fish.purchase_price * 100} CBCoin (giá mua ×100).`),
+    h("p", {}, `Level 100 · Giá bán: ${saleValue(fish)} CBCoin (giá mua ×100${fish.eggs_used ? `, trừ ${fish.eggs_used} trứng đã đẻ` : ""}).`),
     h("p", { class: "fine" }, "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.")
   ), [{ label: "Để sau", kind: "ghost" }, { label: "Gọi thuyền", kind: "primary", run: async () => {
     if (working) return;
@@ -483,12 +544,16 @@ function renderTank(): Node {
         h("span", { class: "sci" }, s ? s.scientific_name : f.species_id),
         h("div", { class: "tags" },
           h("span", { class: "tag" }, stageName[f.stage]),
-          h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : "Từ cửa hàng"),
+          h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : f.origin === "hatched" ? `Cá nở trong bể · đời ${f.generation}` : "Từ cửa hàng"),
         ),
         h("div", { class: "bar", role: "progressbar", "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` })),
         h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP · ${f.pending_exp} EXP đang tiêu hóa` : "Level 100 · đã trưởng thành"),
         f.resting_until > Date.now()/1000 ? h("p", {}, `🫧 Bụng em thành bóng rồi! Nghỉ tới ${formatDate(f.resting_until)} nhé.`) : null,
-        f.stage === "adult" ? h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${f.purchase_price * 100} CBCoin`) : null,
+        f.stage === "adult" ? h("div", { class: "tags" },
+          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${saleValue(f)} CBCoin`),
+          h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, "🥚 Sinh sản"),
+        ) : null,
+        f.eggs_used ? h("span", { class: "fine" }, `Đã đẻ ${f.eggs_used} trứng`) : null,
       ),
     );
   });

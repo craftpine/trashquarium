@@ -22,7 +22,7 @@ Runs on macOS and Windows.
   - `app.rs` facade used by the Tauri commands
 - `src-tauri/src/desktop.rs` — desktop tank window below the icons (macOS window level / Windows WorkerW), idle detection
 - `src-tauri/src/lib.rs` — commands, tray/menu-bar, single instance
-- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, 30 FPS / 10 FPS idle)
+- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle)
 
 ## Run
 
@@ -126,7 +126,7 @@ change does not apply a Windows theme or alter file intake safety.
 
 ## Still not done
 
-- Milestones C–E: breeding, ancestry, eggs, trait layers, birth cards, full
+- Milestones C–E: breeding (trial: pair + egg count + hatch rate, see docs/economy-growth.md), ancestry, egg incubation, trait layers, birth cards, full
   Fishdex, Ancient/Mythic lines, Museum/events.
 - Taskbar-overlay mode and Windows themes (wallpaper/cursor/colours).
 - Fish rename, sounds, English localisation.

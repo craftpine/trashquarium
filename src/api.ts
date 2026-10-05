@@ -29,7 +29,7 @@ export interface Fish {
   id: string;
   species_id: string;
   name: string;
-  origin: "starter" | "shop";
+  origin: "starter" | "shop" | "hatched";
   parent_ids: string[];
   generation: number;
   stage: Stage;
@@ -37,7 +37,22 @@ export interface Fish {
   pending_exp: number;
   resting_until: number;
   purchase_price: number;
+  eggs_used: number;
   acquired_at: number;
+}
+
+export interface Breeding {
+  hatch_max: number;
+  hatch_min: number;
+  price_low: number;
+  price_high: number;
+}
+
+export interface BreedOutcome {
+  charged: number;
+  refunded: number;
+  hatch_rate: number;
+  hatched: Fish[];
 }
 
 export interface Settings {
@@ -67,6 +82,7 @@ export interface StateView {
   species: Species[];
   disclaimer: string;
   stage_exp: { juvenile: number; adult: number };
+  breeding: Breeding;
   max_preview_files: number;
   read_only: Failure | null;
   recovered_from_backup: boolean;
@@ -125,6 +141,7 @@ export const api = {
   feed: (items: Inspection[], fishId: string) => invoke<FeedReport>("feed", { items, fishId }),
   buy: (speciesId: string, price: number) => invoke<Fish>("buy", { speciesId, price }),
   sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
+  breed: (firstId: string, secondId: string, eggs: number) => invoke<BreedOutcome>("breed_fish", { firstId, secondId, eggs }),
   bellyList: () => invoke<BellyEntry[]>("belly_list"),
   restore: (entryId: string) => invoke<{ path: string; renamed: boolean }>("belly_restore", { entryId }),
   recover: () => invoke<StateView>("belly_recover"),

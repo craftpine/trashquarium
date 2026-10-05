@@ -17,6 +17,16 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch�
 - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
 - Giữ quà khởi đầu 40 CBCoin, giá shop hiện có, sức chứa bể và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
 
+## Sinh sản (bản dùng thử)
+
+Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng.
+
+- **Giá trị bán:** mỗi trứng trừ của *từng* cá bố mẹ đúng một lần giá mua gốc. Giá bán hiện tại = giá mua × (100 − số trứng đã đẻ). Số trứng cộng dồn theo từng cá (`eggs_used`) và tối đa 99, tức giá bán không bao giờ thấp hơn giá mua gốc. Khi một trong hai cá hết hạn mức, chỉ còn đẻ được số trứng còn lại của cá ít hạn mức hơn.
+- **Tỷ lệ nở mỗi trứng:** giảm tuyến tính theo giá của loài, từ 20% (giá ≤ 20 CBCoin) xuống 5% (giá ≥ 300 CBCoin). Cấu hình trong `balance.json` mục `breeding`. Trứng không nở vẫn bị trừ giá trị.
+- **Cá con:** nở ra là cá bột Lv.0, `origin = hatched`, có `parent_ids` của hai cá bố mẹ và `generation` = đời lớn nhất của bố mẹ + 1. Giá mua ghi nhận bằng giá catalog của loài, nên cá con nuôi lên Lv.100 bán được như cá mua mới.
+- **Bể đầy:** trứng được xử lý lần lượt; khi bể đầy, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
+- Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
+
 ## Tương thích dữ liệu
 
 Schema save mới là 4. Wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
