@@ -104,7 +104,7 @@ remove it.
 
 The frontend is type-checked and built locally. Rust tests cover reachability,
 pause, catches/retraction, replay-safe payout, failed saves and migration.
-Hunt sprites are regenerated with `python3 scripts/hunt-art/build.py`. Windows GUI checks for autostart, dock,
+Hunt sprites in `public/art/hunt` are AI-generated (prompts and QA in `scripts/hunt-art/ai/`); `scripts/hunt-art/build.py` renders a vector fallback set into `scripts/hunt-art/vector-fallback/`. Windows GUI checks for autostart, dock,
 hotkey, on-desktop hunt and focus/Explorer and installer behaviour remain required before release. This
 change does not apply a Windows theme or alter file intake safety.
 

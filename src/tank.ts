@@ -247,7 +247,7 @@ function drawHunt(e: number) {
   ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tx, ty); ctx.stroke();
 
   const clawImg = huntArt.claw;
-  const ch = side * 0.13;
+  const ch = side * 0.14;
   const cw = ch * 128 / 176;
   ctx.save();
   ctx.translate(tx, ty); ctx.rotate(-angle);
@@ -259,7 +259,7 @@ function drawHunt(e: number) {
 
   // Boat on top.
   const boat = huntArt.boat;
-  const bw = side * 0.26;
+  const bw = side * 0.27;
   const bh = bw * 0.75;
   ctx.save();
   ctx.translate(px, py); ctx.rotate(Math.sin(clock * 1.1) * 0.02);

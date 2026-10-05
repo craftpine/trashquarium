@@ -1,0 +1,107 @@
+[
+  {
+    "file": "boat.png",
+    "sha256": "494955878760956C1FBF71B9343378FF342F9C497B99083DC312ED4FF683F9AF",
+    "image": {
+      "width": 720,
+      "height": 540,
+      "transparentPixels": 275584,
+      "partiallyTransparentPixels": 110397,
+      "opaqueEdgePixels": 0,
+      "leftMargin": 94,
+      "topMargin": 32,
+      "rightMargin": 85,
+      "bottomMargin": 68,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "file": "claw.png",
+    "sha256": "CF34581F1EA61DA13363161A80E36BA9E59CCB0DC1A6E844FB03F72EE836FAA7",
+    "image": {
+      "width": 256,
+      "height": 352,
+      "transparentPixels": 69984,
+      "partiallyTransparentPixels": 18771,
+      "opaqueEdgePixels": 0,
+      "leftMargin": 20,
+      "topMargin": 12,
+      "rightMargin": 20,
+      "bottomMargin": 24,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "file": "shell_0.png",
+    "sha256": "F6DC3543A1E867519D76AE0F176BF14414910B0A39ACE77D3AE23879D20BDD08",
+    "image": {
+      "width": 512,
+      "height": 512,
+      "transparentPixels": 158868,
+      "partiallyTransparentPixels": 102274,
+      "opaqueEdgePixels": 0,
+      "leftMargin": 54,
+      "topMargin": 79,
+      "rightMargin": 51,
+      "bottomMargin": 79,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "file": "shell_1.png",
+    "sha256": "FE984A0486AFF8D3F6AFBD15693F6E86C463782058616DA6C527C1D037E1D074",
+    "image": {
+      "width": 512,
+      "height": 512,
+      "transparentPixels": 168750,
+      "partiallyTransparentPixels": 92357,
+      "opaqueEdgePixels": 0,
+      "leftMargin": 64,
+      "topMargin": 86,
+      "rightMargin": 62,
+      "bottomMargin": 88,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "file": "shell_2.png",
+    "sha256": "1913E69C3136B6BFCAF94EF0A995E2B791F8C4BD91D671369619038004CB82CA",
+    "image": {
+      "width": 512,
+      "height": 512,
+      "transparentPixels": 164048,
+      "partiallyTransparentPixels": 97103,
+      "opaqueEdgePixels": 0,
+      "leftMargin": 58,
+      "topMargin": 85,
+      "rightMargin": 57,
+      "bottomMargin": 91,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  }
+]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draws the shell-hunt sprites (boat, claw, three shells) as SVG and renders
-them to transparent PNGs in public/art/hunt.
+them to transparent PNGs in scripts/hunt-art/vector-fallback (fallback; public/art/hunt holds the AI-generated sprites).
 
     python3 scripts/hunt-art/build.py
 
@@ -11,7 +11,7 @@ import math
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
-OUT = HERE.parent.parent / "public" / "art" / "hunt"
+OUT = HERE / "vector-fallback"
 
 # ---------------------------------------------------------------- shells ---
 SHELLS = {
