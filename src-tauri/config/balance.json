@@ -5,7 +5,7 @@
   "max_preview_files": 50,
   "max_file_bytes": 4294967296,
   "fingerprint_bytes": 1048576,
-  "stage_exp": { "juvenile": 5000, "adult": 10000 },
+  "stage_exp": { "juvenile": 500, "adult": 1000 },
   "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300 },
   "economy": {
     "welcome_shells": 40,

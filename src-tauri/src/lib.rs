@@ -42,8 +42,33 @@ impl Drop for BusyGuard<'_> {
 }
 
 struct TrayItems {
+    open: MenuItem<Wry>,
     tank: CheckMenuItem<Wry>,
     meeting: CheckMenuItem<Wry>,
+    quit: MenuItem<Wry>,
+}
+
+/// Tray menu labels: (open, tank, meeting, quit). Vietnamese is the default.
+fn tray_labels(lang: &str) -> [&'static str; 4] {
+    if lang == "en" {
+        ["Open TrashQuarium", "Desktop aquarium", "Meeting mode (less motion)", "Quit TrashQuarium"]
+    } else if lang == "zh" {
+        ["打开 TrashQuarium", "桌面鱼缸", "会议模式（减少动画）", "退出 TrashQuarium"]
+    } else {
+        ["Mở TrashQuarium", "Bể cá desktop", "Chế độ họp (giảm chuyển động)", "Thoát TrashQuarium"]
+    }
+}
+
+/// The game windows tell Rust which language the player picked so the tray menu follows it.
+#[tauri::command]
+fn set_tray_language(app: AppHandle, lang: String) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let [open, tank, meeting, quit] = tray_labels(&lang);
+        let _ = items.open.set_text(open);
+        let _ = items.tank.set_text(tank);
+        let _ = items.meeting.set_text(meeting);
+        let _ = items.quit.set_text(quit);
+    }
 }
 
 /// Runs `f` on a blocking thread with the core locked. File moves and saves
@@ -307,6 +332,14 @@ async fn breed_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>
 }
 
 #[tauri::command]
+async fn redeem_code(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, code: String) -> Result<engine::game::RedeemOutcome, Failure> {
+    let _guard = busy.enter()?;
+    let result = with_core(&core, move |c| c.game.redeem(&code)).await;
+    notify(&app);
+    result
+}
+
+#[tauri::command]
 async fn belly_restore(
     app: AppHandle,
     core: State<'_, Core>,
@@ -428,7 +461,7 @@ fn build_tray(app: &AppHandle, core: &Core) -> tauri::Result<()> {
     let meeting = CheckMenuItem::with_id(app, "meeting", "Chế độ họp (giảm chuyển động)", true, settings.meeting_mode, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Thoát TrashQuarium", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &tank, &meeting, &PredefinedMenuItem::separator(app)?, &quit])?;
-    app.manage(TrayItems { tank, meeting });
+    app.manage(TrayItems { open, tank, meeting, quit });
     let mut tray = TrayIconBuilder::with_id("main")
         .tooltip("TrashQuarium")
         .menu(&menu)
@@ -504,6 +537,7 @@ pub fn run() {
             buy,
             sell_fish,
             breed_fish,
+            redeem_code,
             belly_list,
             belly_restore,
             belly_recover,
@@ -513,6 +547,7 @@ pub fn run() {
             create_sample_file,
             system_idle_seconds,
             quit_app,
+            set_tray_language,
             hunt_status, start_hunt, hunt_action,
             open_manager_tab, take_manager_route,
             set_quick_dock, resize_quick_dock,
@@ -541,6 +576,16 @@ mod hotkey_tests {
     fn hunt_hotkeys_parse() {
         for key in [HUNT_KEY, SPACE_KEY] {
             key.parse::<tauri_plugin_global_shortcut::Shortcut>().unwrap_or_else(|e| panic!("{key}: {e}"));
+        }
+    }
+
+    #[test]
+    fn tray_labels_exist_in_both_languages() {
+        let (vi, en, zh) = (tray_labels("vi"), tray_labels("en"), tray_labels("zh"));
+        assert_eq!(tray_labels("anything-else"), vi);
+        for i in 0..4 {
+            assert!(!vi[i].is_empty() && !en[i].is_empty() && !zh[i].is_empty());
+            assert!(vi[i] != en[i] && en[i] != zh[i] && vi[i] != zh[i]);
         }
     }
 }

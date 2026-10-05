@@ -3,8 +3,9 @@
 // the window is hidden.
 import { listen } from "@tauri-apps/api/event";
 import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
-import { reason } from "./i18n";
+import { reason, t } from "./i18n";
 import { closureStep, drawClaw } from "./hunt-motion";
+import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
 import { COIN_SRC } from "./coin";
 
 const VISIBLE_FPS = 60;
@@ -32,6 +33,8 @@ interface Swimmer {
   facing: number; // -1 left … 1 right, eased for smooth turns
   phase: number;
   tail: number; // tail-beat phase, faster when the fish swims faster
+  fin: number; // pectoral/dorsal fin flutter phase
+  burst: number; // 0 = gliding, 1 = fast tail beats
   speed: number;
 }
 
@@ -66,7 +69,7 @@ const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat s
 const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
 const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
 const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
-const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const;
+const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const; // keys for t()
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let closure = 0; // 0 = claw open, 1 = closed on a catch
 let prevLength = 0;
@@ -136,6 +139,8 @@ function syncSwimmers(fish: Fish[]) {
       facing: 1,
       phase: Math.random() * Math.PI * 2,
       tail: Math.random() * Math.PI * 2,
+      fin: Math.random() * Math.PI * 2,
+      burst: 0,
       speed: 0.9 + Math.random() * 0.3,
     };
     pickTarget(s);
@@ -169,7 +174,7 @@ function step(dt: number) {
   const calm = state?.settings.meeting_mode ? 0.4 : 1;
   for (const s of swimmers) {
     const len = fishLength(s.fish);
-    const cruise = (len * 0.35 + 18) * s.speed * calm;
+    const cruise = (len * 0.35 + 18) * s.speed * calm * (0.75 + 0.7 * s.burst);
     const dx = s.tx - s.x;
     const dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
@@ -180,10 +185,14 @@ function step(dt: number) {
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.phase += dt * (2 + Math.abs(s.vx) / 40);
-    s.tail += dt * (3.2 + Math.hypot(s.vx, s.vy) / 22);
+    // Tail beats speed up with swimming speed and during a burst; fins flutter all the time.
+    s.tail += dt * (3 + Math.hypot(s.vx, s.vy) / 26 + 5 * s.burst) * calm;
+    s.fin += dt * (7 + 3 * s.burst) * calm;
     // Dead zone: a fish that is nearly still keeps its heading instead of flip-flopping.
     const want = s.vx > 4 ? 1 : s.vx < -4 ? -1 : Math.sign(s.facing) || 1;
+    const turned = want !== (Math.sign(s.facing) || 1);
     s.facing += (want - s.facing) * Math.min(1, dt * 4);
+    s.burst = calm < 1 ? 0 : nextBurst(s.burst, dt, Math.random(), turned);
   }
   if (!state?.settings.meeting_mode) {
     if (bubbles.length < 18 && Math.random() < dt * 1.5) {
@@ -202,7 +211,7 @@ function step(dt: number) {
 // Fish art is a still PNG, so the body is drawn as thin vertical slices whose
 // vertical offset follows a travelling wave: calm at the head, wide at the tail.
 // The shadow is baked once per size (shadowBlur every frame is slow on big screens).
-const SLICES = 18;
+const SLICES = 28;
 const baked = new Map<string, { canvas: HTMLCanvasElement; pad: number; w: number; h: number }>();
 
 // Sprites have uneven transparent margins, so size each fish by its visible body.
@@ -260,12 +269,24 @@ function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
   const { canvas: src, pad, w, h } = bakeFish(s.fish.species_id, img, len);
   const totalW = w + pad * 2, totalH = h + pad * 2;
   const sliceW = src.width / SLICES, destW = totalW / SLICES;
-  const amp = reducedMotion.matches ? 0 : w * 0.04;
+  if (reducedMotion.matches) { ctx.drawImage(src, -totalW / 2, -totalH / 2, totalW, totalH); return; }
+  const style = swimStyle(s.fish.species_id);
+  const power = 1 + 0.7 * s.burst; // a burst throws the tail harder
+  // The whole body rocks a little with each tail beat.
+  ctx.rotate(Math.sin(s.tail + 1.2) * (style === "ray" ? 0.03 : 0.025) * power);
+  const uAt = (x: number) => Math.min(1, Math.max(0, (x + w / 2) / w)); // 0 = tail, 1 = head (sprites face right)
+  const waveAt = (x: number) => bodyWave(style, uAt(x), s.tail) * w * power;
+  let left = waveAt(-totalW / 2);
   for (let i = 0; i < SLICES; i++) {
-    const cx = -totalW / 2 + (i + 0.5) * destW;
-    const u = Math.min(1, Math.max(0, (cx + w / 2) / w)); // 0 = tail, 1 = head (sprites face right)
-    const dy = Math.sin(s.tail - (1 - u) * 3.4) * amp * Math.pow(1 - u, 1.5);
-    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, -totalW / 2 + i * destW, -totalH / 2 + dy, destW + 0.8, totalH);
+    const x0 = -totalW / 2 + i * destW;
+    const right = waveAt(x0 + destW);
+    const sh = totalH * finStretch(style, uAt(x0 + destW / 2), s.tail, s.fin);
+    // Shear each slice so its edges meet the neighbours: a smooth bend, no stair steps.
+    ctx.save();
+    ctx.transform(1, (right - left) / destW, 0, 1, x0, left);
+    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, 0, -sh / 2, destW + 0.8, sh);
+    ctx.restore();
+    left = right;
   }
 }
 
@@ -300,10 +321,10 @@ function huntMessage(): string {
   const s = hunt?.session;
   if (!s || !hunt) return "";
   if (s.error) return reason(s.error);
-  if (s.paused) return `Đã tạm dừng — nhấn ${HUNT_KEY} để tiếp tục`;
+  if (s.paused) return t("Đã tạm dừng — nhấn {key} để tiếp tục", { key: HUNT_KEY });
   const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
-  if (s.phase === "swinging") return `${left} sò đang chờ · ${HUNT_KEY} để thả móc`;
-  return s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…";
+  if (s.phase === "swinging") return t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
+  return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
 }
 
 /** Boat, rope, claw and status pill. Drawn above the fish, below nothing. */
@@ -366,7 +387,7 @@ function drawHunt(e: number) {
   ctx.restore();
 
   // Status pill, top centre.
-  const text = huntMessage() + (hunt.session ? `  ·  Hôm nay ${hunt.earned}/${hunt.daily_cap}` : "");
+  const text = huntMessage() + (hunt.session ? "  ·  " + t("Hôm nay {earned}/{cap}", { earned: hunt.earned, cap: hunt.daily_cap }) : "");
   ctx.font = "600 15px system-ui, sans-serif";
   const w = ctx.measureText(text).width + 36;
   const x = width / 2 - w / 2;
@@ -413,7 +434,7 @@ function huntTick(dt: number) {
   if (receipt && receipt.shell_id !== seenReceipt) {
     seenReceipt = receipt.shell_id;
     notice = {
-      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${SHELL_NAME[receipt.kind]}${receipt.rare ? " · Sò hiếm!" : ""}${receipt.pearl ? " · +1 Ngọc trai!" : ""}${receipt.first_of_kind ? " · Thẻ mới trong Bộ sưu tập" : ""}`,
+      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${t(SHELL_NAME[receipt.kind])}${receipt.rare ? t(" · Sò hiếm!") : ""}${receipt.pearl ? t(" · +1 Ngọc trai!") : ""}${receipt.first_of_kind ? t(" · Thẻ mới trong Bộ sưu tập") : ""}`,
       until: performance.now() + 7000,
     };
   }
@@ -455,8 +476,8 @@ function draw() {
     ctx.restore();
     if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
       // Fed to the next 5-level mark: the fish naps and says so.
-      const jokes = ["No căng vảy! Cho em ngủ tí", "Bụng em thành bóng rồi!", "Đừng thêm buffet… em xin thua!", "Đang tiêu hóa, đừng gọi em đi gym!"];
-      const text = jokes[Math.floor(s.fish.exp / 500) % jokes.length];
+      const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
+      const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length] // a new joke every 5 levels;
       ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
       const bubbleWidth = ctx.measureText(text).width + 20;
       const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));

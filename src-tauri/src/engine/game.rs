@@ -12,7 +12,13 @@ use super::catalog::{Catalog, Species};
 use super::save::{self, Loaded};
 use super::Failure;
 
-pub const SCHEMA_VERSION: u64 = 4;
+pub const SCHEMA_VERSION: u64 = 5;
+/// Growth (schema 5): 10 EXP = 1 level, Lv.50 juvenile, Lv.100 adult, a 2-hour rest every 5 levels.
+pub const EXP_PER_LEVEL: u64 = 10;
+pub const MAX_EXP: u64 = 100 * EXP_PER_LEVEL;
+pub const JUVENILE_EXP: u64 = 50 * EXP_PER_LEVEL;
+pub const REST_EVERY_EXP: u64 = 5 * EXP_PER_LEVEL;
+pub const REST_SECONDS: i64 = 7200;
 pub const RULES_VERSION: u32 = 1;
 pub const RENDERER_VERSION: u32 = 1;
 /// Sale value runs from price x100 down to price x1: at most 99 eggs per fish.
@@ -68,6 +74,14 @@ impl Fish {
     pub fn sale_value(&self) -> Option<u64> {
         self.purchase_price.checked_mul(100u64.saturating_sub(self.eggs_used as u64))
     }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct RedeemOutcome {
+    /// "cbcoins" or "full_exp"
+    pub kind: String,
+    pub cbcoins: u64,
+    pub fish: u32,
 }
 
 /// Result of one breeding: `charged` eggs were spent, `refunded` were kept
@@ -163,7 +177,7 @@ impl GameState {
             if f.eggs_used > MAX_EGGS_PER_FISH {
                 return Err(format!("invalid egg count {}", f.id));
             }
-            if self.schema_version >= 4 && (f.exp > 10000 || f.pending_exp > 10000 - f.exp || f.resting_until < 0) {
+            if f.exp > MAX_EXP || f.pending_exp > MAX_EXP - f.exp || f.resting_until < 0 {
                 return Err(format!("invalid growth state {}", f.id));
             }
         }
@@ -211,7 +225,7 @@ impl GameStore {
             if version == 1 {
                 v["shell_hunt"] = serde_json::to_value(super::hunt::HuntState::default()).map_err(|e| e.to_string())?;
                 v["settings"]["quick_dock_enabled"] = serde_json::Value::Bool(true);
-            } else if version != 2 && version != 3 && version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
+            } else if !(2..=SCHEMA_VERSION).contains(&version) { return Err("unsupported save schema".into()); }
             if version == 1 || version == 2 {
                 // Keep legacy batches/IDs and never reroll rare rewards during migration.
                 if let Some(shells) = v.get_mut("shell_hunt").and_then(|h| h.get_mut("batch")).and_then(|b| b.get_mut("shells")).and_then(serde_json::Value::as_array_mut) {
@@ -232,6 +246,18 @@ impl GameStore {
                         f["exp"] = serde_json::json!(exp);
                         let price = f["species_id"].as_str().and_then(|id| store.catalog.species(id)).map(|s| s.price).unwrap_or(0);
                         f["purchase_price"] = serde_json::json!(price);
+                    }
+                }
+                v["schema_version"] = serde_json::json!(SCHEMA_VERSION);
+            }
+            if version < 5 {
+                // Schema 5 uses 10 EXP per level instead of 100: levels are kept, EXP shrinks tenfold.
+                if let Some(fish) = v.get_mut("fish").and_then(serde_json::Value::as_array_mut) {
+                    for f in fish {
+                        for key in ["exp", "pending_exp"] {
+                            let old = f[key].as_u64().unwrap_or(0);
+                            f[key] = serde_json::json!(old / 10);
+                        }
                     }
                 }
                 v["schema_version"] = serde_json::json!(SCHEMA_VERSION);
@@ -328,7 +354,7 @@ impl GameStore {
 
     pub fn can_feed(&self, fish_id: &str, now: i64) -> Result<(), Failure> {
         let f = self.state.fish.iter().find(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
-        if f.exp >= 10000 { return Err(Failure::new("fish_adult", "level 100")); }
+        if f.exp >= MAX_EXP { return Err(Failure::new("fish_adult", "level 100")); }
         if f.resting_until > now { return Err(Failure::new("fish_full", f.resting_until)); }
         Ok(())
     }
@@ -337,7 +363,7 @@ impl GameStore {
     pub fn sell(&mut self, fish_id: &str) -> Result<u64, Failure> {
         let mut next = self.state.clone();
         let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
-        if next.fish[i].exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
+        if next.fish[i].exp < MAX_EXP { return Err(Failure::new("fish_not_adult", "level 100 required")); }
         let price = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
         next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
         next.fish.remove(i);
@@ -354,7 +380,7 @@ impl GameStore {
         let find = |id: &str| self.state.fish.iter().position(|f| f.id == id).ok_or_else(|| Failure::new("fish_not_found", id.to_string()));
         let (ai, bi) = (find(a_id)?, find(b_id)?);
         let (a, b) = (&self.state.fish[ai], &self.state.fish[bi]);
-        if a.exp < 10000 || b.exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
+        if a.exp < MAX_EXP || b.exp < MAX_EXP { return Err(Failure::new("fish_not_adult", "level 100 required")); }
         if a.species_id != b.species_id { return Err(Failure::new("breed_species_mismatch", &a.species_id)); }
         let room = (MAX_EGGS_PER_FISH - a.eggs_used.min(MAX_EGGS_PER_FISH)).min(MAX_EGGS_PER_FISH - b.eggs_used.min(MAX_EGGS_PER_FISH));
         if room == 0 { return Err(Failure::new("breed_exhausted", "sale value is back to the purchase price")); }
@@ -392,6 +418,26 @@ impl GameStore {
         })
     }
 
+    /// Redeems a gift code. The two admin test codes can be used again and again.
+    pub fn redeem(&mut self, code: &str) -> Result<RedeemOutcome, Failure> {
+        if code.trim().is_empty() { return Err(Failure::new("code_invalid", "empty")); }
+        let hash = code_hash(code);
+        let mut next = self.state.clone();
+        let outcome = if hash == ADMIN_COINS_SHA256 {
+            next.wallet.cbcoins = next.wallet.cbcoins.checked_add(ADMIN_COINS).ok_or_else(|| Failure::new("wallet_overflow", "code"))?;
+            RedeemOutcome { kind: "cbcoins".into(), cbcoins: ADMIN_COINS, fish: 0 }
+        } else if hash == ADMIN_FULL_EXP_SHA256 {
+            for f in &mut next.fish {
+                f.exp = MAX_EXP; f.pending_exp = 0; f.resting_until = 0; f.stage = Stage::Adult;
+            }
+            RedeemOutcome { kind: "full_exp".into(), cbcoins: 0, fish: next.fish.len() as u32 }
+        } else {
+            return Err(Failure::new("code_invalid", "unknown code"));
+        };
+        self.commit(next)?;
+        Ok(outcome)
+    }
+
     pub fn digest(&mut self, now: i64) -> Result<(), Failure> {
         if !self.state.fish.iter().any(|f| f.pending_exp > 0 && f.resting_until <= now) { return Ok(()); }
         let mut next = self.state.clone();
@@ -427,7 +473,7 @@ impl GameStore {
             let exp = file_exp(e.size);
             next.daily.rewarded += 1;
             if let Some(fish) = next.fish.iter_mut().find(|f| f.id == e.fish_id) {
-                let room = 10000u64.saturating_sub(fish.exp + fish.pending_exp);
+                let room = MAX_EXP.saturating_sub(fish.exp + fish.pending_exp);
                 let credited = exp.min(room);
                 fish.pending_exp += credited;
                 digest_fish(fish, now);
@@ -554,13 +600,27 @@ pub fn shell_value(kind: super::hunt::ShellKind) -> u64 {
 pub fn file_exp(bytes: u64) -> u64 { (bytes / 20_000_000 + 1).saturating_mul(20) }
 
 fn digest_fish(f: &mut Fish, now: i64) {
-    if f.resting_until > now || f.pending_exp == 0 || f.exp >= 10000 { return; }
-    let boundary = ((f.exp / 500 + 1) * 500).min(10000);
+    if f.resting_until > now || f.pending_exp == 0 || f.exp >= MAX_EXP { return; }
+    let boundary = ((f.exp / REST_EVERY_EXP + 1) * REST_EVERY_EXP).min(MAX_EXP);
     let amount = f.pending_exp.min(boundary - f.exp);
     f.exp += amount; f.pending_exp -= amount;
-    f.stage = if f.exp >= 10000 { Stage::Adult } else if f.exp >= 5000 { Stage::Juvenile } else { Stage::Fry };
-    if f.exp == boundary && f.exp < 10000 { f.resting_until = now.saturating_add(7200); }
-    if f.exp == 10000 { f.pending_exp = 0; f.resting_until = 0; }
+    f.stage = stage_for(f.exp);
+    if f.exp == boundary && f.exp < MAX_EXP { f.resting_until = now.saturating_add(REST_SECONDS); }
+    if f.exp == MAX_EXP { f.pending_exp = 0; f.resting_until = 0; }
+}
+
+fn stage_for(exp: u64) -> Stage {
+    if exp >= MAX_EXP { Stage::Adult } else if exp >= JUVENILE_EXP { Stage::Juvenile } else { Stage::Fry }
+}
+
+/// Test codes. Only the SHA-256 of the normalised code (trimmed, upper case) is stored here.
+const ADMIN_COINS_SHA256: &str = "68feb83c1194a8bbc6ea7bcd6597eac49492592b01237d1ae80e5b356e45ac47";
+const ADMIN_FULL_EXP_SHA256: &str = "d5a02bd32cd4af2d9e823bc9b683f4b4cbd2b8bbc972a3831cefc3e452bbf4d5";
+pub const ADMIN_COINS: u64 = 1_000_000_000;
+
+fn code_hash(code: &str) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(code.trim().to_uppercase().as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn mark_owned(state: &mut GameState, species_id: &str) {
@@ -603,7 +663,7 @@ mod tests {
         v["ledger"]["fingerprints"]=serde_json::json!(["p1m:legacy"]);
         fs::write(&s.path,serde_json::to_vec(&v).unwrap()).unwrap();drop(s);
         let mut s=store(dir.path());assert!(s.read_only.is_none());assert_eq!(s.state.wallet.cbcoins,123);
-        assert_eq!(s.state.fish[0].exp,10000);assert_eq!(s.state.fish[0].stage,Stage::Adult);
+        assert_eq!(s.state.fish[0].exp,MAX_EXP);assert_eq!(s.state.fish[0].stage,Stage::Adult);
         assert!(s.state.ledger.fingerprints.contains(&"p1m:legacy".into()));
         let id=s.state.fish[0].id.clone();let price=s.state.fish[0].purchase_price;s.sell(&id).unwrap();
         assert_eq!(store(dir.path()).state.wallet.cbcoins,123+price*100);
@@ -614,7 +674,7 @@ mod tests {
         let dir=tempfile::tempdir().unwrap();let mut s=store(dir.path());s.catalog.balance.economy.max_fingerprints=1;
         let id=s.state.fish[0].id.clone();s.apply_receipts(&[entry("a","A",&id,true),entry("b","B",&id,true)],"2026-10-05",NOW).unwrap();
         assert_eq!(s.apply_receipts(&[entry("c","A",&id,true)],"2026-10-05",NOW).unwrap().duplicates,1);
-        s.state.fish[0].exp=10000;s.state.fish[0].stage=Stage::Adult;s.state.wallet.cbcoins=u64::MAX;
+        s.state.fish[0].exp=MAX_EXP;s.state.fish[0].stage=Stage::Adult;s.state.wallet.cbcoins=u64::MAX;
         assert_eq!(s.sell(&id).unwrap_err().code,"wallet_overflow");assert_eq!(s.state.fish.len(),1);assert_eq!(s.state.wallet.cbcoins,u64::MAX);
     }
 
@@ -622,18 +682,18 @@ mod tests {
     fn growth_rest_bank_restart_adult_and_sale() {
         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
         let id = s.state.fish[0].id.clone();
-        let mut e = entry("big", "big-hash", &id, true); e.size = 599_999_999;
-        assert_eq!(s.apply_receipts(&[e], "2026-10-05", NOW).unwrap().exp, 600);
-        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (500,100));
+        let mut e = entry("big", "big-hash", &id, true); e.size = 59_999_999;
+        assert_eq!(s.apply_receipts(&[e], "2026-10-05", NOW).unwrap().exp, 60);
+        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (50,10)); // Lv.5: rest, 10 EXP banked
         assert_eq!(s.can_feed(&id, NOW+7199).unwrap_err().code, "fish_full");
         drop(s); let mut s = store(dir.path());
-        s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,500);
-        s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(600,0));
+        s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,50);
+        s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(60,0));
         assert!(s.can_feed(&id,NOW+7200).is_ok());
         assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_adult");
-        s.state.fish[0].exp = 4900; s.state.fish[0].pending_exp = 200; s.state.fish[0].resting_until = 0;
-        s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,5000);
-        s.state.fish[0].exp = 9900; s.state.fish[0].pending_exp = 100; s.state.fish[0].resting_until = 0;
+        s.state.fish[0].exp = 490; s.state.fish[0].pending_exp = 20; s.state.fish[0].resting_until = 0;
+        s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,500);
+        s.state.fish[0].exp = 990; s.state.fish[0].pending_exp = 10; s.state.fish[0].resting_until = 0;
         s.digest(NOW+14400).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Adult);
         assert_eq!(s.can_feed(&id,NOW+14400).unwrap_err().code,"fish_adult");
         let paid = s.state.fish[0].purchase_price;
@@ -663,7 +723,7 @@ mod tests {
         let second = s.new_fish(&sp, Origin::Shop, NOW);
         let mut next = s.state.clone();
         next.fish.push(second);
-        for f in &mut next.fish { f.exp = 10000; f.stage = Stage::Adult; }
+        for f in &mut next.fish { f.exp = MAX_EXP; f.stage = Stage::Adult; }
         s.commit(next).unwrap();
         (s.state.fish[0].id.clone(), s.state.fish[1].id.clone())
     }
@@ -732,9 +792,9 @@ mod tests {
         let (a, b) = adult_pair(&mut s);
         assert_eq!(s.breed_with(&a, &a, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_same_fish");
         assert_eq!(s.breed_with(&a, "nope", 1, NOW, &mut || 0.0).unwrap_err().code, "fish_not_found");
-        s.state.fish[1].exp = 9999;
+        s.state.fish[1].exp = MAX_EXP - 1;
         assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "fish_not_adult");
-        s.state.fish[1].exp = 10000; s.state.fish[1].species_id = "danio_rerio".into();
+        s.state.fish[1].exp = MAX_EXP; s.state.fish[1].species_id = "danio_rerio".into();
         assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_species_mismatch");
         s.state.fish[1].species_id = s.state.fish[0].species_id.clone();
         let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
@@ -782,6 +842,36 @@ mod tests {
         v["fish"][0].as_object_mut().unwrap().remove("eggs_used");
         fs::write(&s.path, serde_json::to_vec(&v).unwrap()).unwrap(); drop(s);
         let s = store(dir.path()); assert!(s.read_only.is_none()); assert_eq!(s.state.fish[0].eggs_used, 0);
+    }
+
+    #[test]
+    fn v4_save_keeps_levels_with_ten_exp_per_level() {
+        let dir = tempfile::tempdir().unwrap(); let s = store(dir.path());
+        let mut v = serde_json::to_value(&s.state).unwrap();
+        v["schema_version"] = serde_json::json!(4);
+        v["fish"][0]["exp"] = serde_json::json!(5020); v["fish"][0]["pending_exp"] = serde_json::json!(130); v["fish"][0]["stage"] = serde_json::json!("juvenile");
+        fs::write(&s.path, serde_json::to_vec(&v).unwrap()).unwrap(); drop(s);
+        let s = store(dir.path()); assert!(s.read_only.is_none());
+        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (502, 13)); // still Lv.50
+        assert_eq!(s.state.schema_version, SCHEMA_VERSION);
+        let c = Catalog::bundled().unwrap();
+        assert_eq!((c.balance.stage_exp.juvenile, c.balance.stage_exp.adult), (JUVENILE_EXP, MAX_EXP));
+    }
+
+    #[test]
+    fn admin_codes_grant_coins_and_full_exp_and_others_fail() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let start = s.state.wallet.cbcoins;
+        assert_eq!(s.redeem(" tq-admin-1ty-cb-2610 ").unwrap().cbcoins, ADMIN_COINS);
+        assert_eq!(s.redeem("TQ-ADMIN-1TY-CB-2610").unwrap().kind, "cbcoins"); // reusable test code
+        assert_eq!(s.state.wallet.cbcoins, start + 2 * ADMIN_COINS);
+        assert_eq!(s.redeem("TQ-ADMIN-FULLEXP-2610").unwrap().fish, 1);
+        assert_eq!((s.state.fish[0].exp, s.state.fish[0].stage), (MAX_EXP, Stage::Adult));
+        assert_eq!(s.redeem("nope").unwrap_err().code, "code_invalid");
+        assert_eq!(s.redeem("   ").unwrap_err().code, "code_invalid");
+        let again = store(dir.path()); assert_eq!(again.state.wallet.cbcoins, start + 2 * ADMIN_COINS);
+        s.state.wallet.cbcoins = u64::MAX - 1;
+        assert_eq!(s.redeem("TQ-ADMIN-1TY-CB-2610").unwrap_err().code, "wallet_overflow");
     }
 
     fn store(dir: &Path) -> GameStore {
@@ -892,10 +982,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
         let fish = s.state.fish[0].id.clone();
-        let many: Vec<_> = (0..200).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
+        let many: Vec<_> = (0..30).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         let r = s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
         assert_eq!(r.shells, 0);
-        assert_eq!(r.exp, 4000);
+        assert_eq!(r.exp, 600);
         assert!(!r.capped);
         let more: Vec<_> = (200..210).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         let back = s.apply_receipts(&more, "2026-09-28", NOW).unwrap();
@@ -926,7 +1016,8 @@ mod tests {
         let many: Vec<_> = (0..20).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
         assert_eq!(s.state.fish[0].stage, Stage::Fry);
-        assert_eq!(s.state.fish[0].exp, 400);
+        // 400 EXP earned: 50 digested up to the Lv.5 rest, the rest banked.
+        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (50, 350));
     }
 
     #[test]
