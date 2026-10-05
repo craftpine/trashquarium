@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" width="480" height="360">
+<defs>
+  <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2b46c"/><stop offset=".55" stop-color="#d98a4a"/><stop offset="1" stop-color="#a95f33"/></linearGradient>
+  <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3ba39b"/><stop offset="1" stop-color="#1f6f6e"/></linearGradient>
+  <linearGradient id="sail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f6ecd2"/><stop offset=".6" stop-color="#fffaf0"/><stop offset="1" stop-color="#e6d8b6"/></linearGradient>
+  <linearGradient id="mast" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7b4c2b"/><stop offset=".5" stop-color="#b57a49"/><stop offset="1" stop-color="#6d4325"/></linearGradient>
+  <linearGradient id="flag" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f06a58"/><stop offset="1" stop-color="#ff9d73"/></linearGradient>
+  <radialGradient id="glass" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#d8f6f2"/><stop offset="1" stop-color="#4c9ea0"/></radialGradient>
+  <radialGradient id="foam" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".6" stop-color="#eafcff" stop-opacity=".25"/><stop offset="1" stop-color="#eafcff" stop-opacity="0"/></radialGradient>
+  <clipPath id="hullClip"><path id="hullShape" d="M38,168 C70,192 140,198 240,198 C340,198 410,192 446,158 C446,236 384,302 240,306 C96,302 38,236 38,168 Z"/></clipPath>
+  <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="11" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  1.6 0 0 0 -.6"/></filter>
+  <filter id="drop" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#04222a" flood-opacity=".45"/></filter>
+</defs>
+<ellipse cx="240" cy="304" rx="205" ry="20" fill="url(#foam)"/>
+<g filter="url(#drop)">
+  <!-- mast -->
+  <path d="M236,204 L236,44 L246,44 L246,204 Z" fill="url(#mast)"/>
+  <path d="M241,44 L241,204" stroke="#4a2c17" stroke-opacity=".25" stroke-width="1.5"/>
+  <!-- main sail -->
+  <path d="M232,52 C170,86 122,148 100,198 L232,198 Z" fill="url(#sail)" stroke="#cdb98d" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M232,52 C198,98 176,146 168,198 M232,52 C214,108 204,150 202,198" fill="none" stroke="#cdb98d" stroke-opacity=".55" stroke-width="1.6"/>
+  <path d="M232,52 C176,86 128,146 106,194" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3"/>
+  <!-- jib -->
+  <path d="M252,66 C300,104 340,152 358,198 L252,198 Z" fill="url(#sail)" stroke="#cdb98d" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M252,66 C282,110 296,152 298,198" fill="none" stroke="#cdb98d" stroke-opacity=".55" stroke-width="1.6"/>
+  <!-- pennant -->
+  <path d="M246,46 C266,36 288,50 312,40 C300,54 300,62 312,72 C290,64 268,76 246,64 Z" fill="url(#flag)" stroke="#c9503f" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="241" cy="42" r="6" fill="#f3d27a" stroke="#a97e2b" stroke-width="2"/>
+  <!-- hull -->
+  <use href="#hullShape" fill="url(#hull)"/>
+  <g clip-path="url(#hullClip)">
+    <g fill="none" stroke="#7a4524" stroke-opacity=".34" stroke-width="2.4" stroke-linecap="round">
+      <path d="M40,226 C120,246 360,246 446,224"/>
+      <path d="M60,252 C130,272 350,272 424,250"/>
+      <path d="M96,278 C170,294 310,294 384,278"/>
+    </g>
+    <path d="M30,196 C130,222 350,222 456,190 L456,212 C350,246 130,246 30,218 Z" fill="url(#teal)"/>
+    <path d="M30,196 C130,222 350,222 456,190" fill="none" stroke="#a8e0d8" stroke-opacity=".55" stroke-width="2.5"/>
+    <rect width="480" height="360" filter="url(#grain)" opacity=".30"/>
+  </g>
+  <use href="#hullShape" fill="none" stroke="#7a4524" stroke-width="4" stroke-linejoin="round"/>
+  <!-- sheer (gunwale) strip -->
+  <path d="M38,168 C70,192 140,198 240,198 C340,198 410,192 446,158" fill="none" stroke="#b79a62" stroke-width="16" stroke-linecap="round"/>
+  <path d="M38,168 C70,192 140,198 240,198 C340,198 410,192 446,158" fill="none" stroke="#fff1cd" stroke-width="11" stroke-linecap="round"/>
+  <!-- portholes -->
+  <circle cx="170" cy="262" r="14" fill="url(#glass)" stroke="#8a5428" stroke-width="4"/>
+  <circle cx="310" cy="262" r="14" fill="url(#glass)" stroke="#8a5428" stroke-width="4"/>
+  <ellipse cx="165" cy="256" rx="5" ry="3" fill="#fff" opacity=".8"/>
+  <ellipse cx="305" cy="256" rx="5" ry="3" fill="#fff" opacity=".8"/>
+  <!-- winch hatch where the rope leaves the hull -->
+  <circle cx="240" cy="299" r="9" fill="#5a3519" stroke="#3b2210" stroke-width="2.5"/>
+  <circle cx="240" cy="299" r="3.5" fill="#d8c7a0"/>
+</g>
+</svg>

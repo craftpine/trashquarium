@@ -4,6 +4,21 @@ use super::Failure;
 
 pub const PIVOT: (f64, f64) = (0.5, 0.14);
 const SWING_LIMIT: f64 = 65.0;
+pub const RARE_CHANCE: f64 = 0.08;
+pub const PEARL_CHANCE_IF_RARE: f64 = 0.35;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum ShellKind { #[default] Great, Queen, Variegated }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CollectionEntry { pub count: u64, pub rare_count: u64, pub first_found: String }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CatchReceipt {
+    pub shell_id: String, pub kind: ShellKind, pub rare: bool,
+    pub pearl: bool, pub first_of_kind: bool,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct HuntBalance {
@@ -38,18 +53,27 @@ pub struct Shell {
     pub y: f64,
     pub size: u8,
     pub collected: bool,
+    #[serde(default)] pub kind: ShellKind,
+    #[serde(default)] pub rare: bool,
+    #[serde(default)] pub pearl: bool,
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Batch { pub id: String, pub shells: Vec<Shell> }
 impl Batch {
     pub fn generate(count: usize) -> Self {
-        let shells = (0..count).map(|i| Shell {
+        let shells = (0..count).map(|i| {
+            let rare = random() < RARE_CHANCE;
+            Shell {
             id: uuid::Uuid::new_v4().to_string(),
             x: 0.13 + (i % 5) as f64 * 0.185 + (random() - 0.5) * 0.035,
             y: 0.70 + (i / 5) as f64 * 0.14 + random() * 0.025,
             size: (random() * 3.0) as u8,
             collected: false,
-        }).collect();
+            kind: match (random() * 3.0) as u8 { 0 => ShellKind::Great, 1 => ShellKind::Queen, _ => ShellKind::Variegated },
+            rare,
+            // Rolled once at spawn, not on catch/retry/restart.
+            pearl: rare && random() < PEARL_CHANCE_IF_RARE,
+        }}).collect();
         Self { id: uuid::Uuid::new_v4().to_string(), shells }
     }
     pub fn remaining(&self) -> usize { self.shells.iter().filter(|s| !s.collected).count() }
@@ -61,10 +85,12 @@ pub struct HuntState {
     pub date: String,
     pub earned: u64,
     pub batch: Option<Batch>,
+    #[serde(default)] pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
+    #[serde(default)] pub last_catch: Option<CatchReceipt>,
 }
 impl Default for HuntState {
     fn default() -> Self {
-        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None }
+        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None }
     }
 }
 impl HuntState {
@@ -74,11 +100,17 @@ impl HuntState {
     pub fn validate(&self) -> Result<(), String> {
         if self.remaining_wait_ms > 86_400_000 { return Err("invalid hunt countdown".into()); }
         if !self.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.date, "%Y-%m-%d").is_err() { return Err("invalid hunt date".into()); }
+        for entry in self.collection.values() {
+            if entry.count == 0 || entry.rare_count > entry.count || chrono::NaiveDate::parse_from_str(&entry.first_found, "%Y-%m-%d").is_err() { return Err("invalid shell collection".into()); }
+        }
+        if let Some(receipt) = &self.last_catch {
+            if receipt.shell_id.is_empty() || (receipt.pearl && !receipt.rare) || !self.collection.contains_key(&receipt.kind) { return Err("invalid catch receipt".into()); }
+        }
         if let Some(b) = &self.batch {
             let mut ids = std::collections::BTreeSet::new();
             if b.id.is_empty() || b.shells.is_empty() || b.shells.len() > 10 { return Err("invalid shell batch".into()); }
             for s in &b.shells {
-                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(0.10..=0.90).contains(&s.x) || !(0.65..=0.88).contains(&s.y) || s.size > 2 {
+                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(0.10..=0.90).contains(&s.x) || !(0.65..=0.88).contains(&s.y) || s.size > 2 || (s.pearl && !s.rare) {
                     return Err("invalid shell".into());
                 }
             }
@@ -154,6 +186,9 @@ impl HuntSession {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct HuntView {
+    pub pearls: u64,
+    pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
+    pub last_catch: Option<CatchReceipt>,
     pub batch: Option<Batch>,
     pub earned: u64,
     pub daily_cap: u64,
@@ -176,7 +211,7 @@ mod tests {
         }
     }
     #[test] fn a_catch_requires_retraction_and_replayed_drop_is_ignored() {
-        let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false }] };
+        let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false, kind: ShellKind::Great, rare: false, pearl: false }] };
         let mut s = HuntSession::new(&b); s.angle = 0.0;
         let id = s.id.clone(); s.action(&id, 1, "drop").unwrap();
         s.step(1.15, &b); assert_eq!(s.caught_id.as_deref(), Some("s")); assert_eq!(s.phase, "retracting");
@@ -190,5 +225,26 @@ mod tests {
         let mut state = HuntState::default(); state.roll_day("2026-10-03"); state.earned = 60;
         state.roll_day("2026-10-02"); assert_eq!(state.earned, 60);
         state.roll_day("2026-10-04"); assert_eq!(state.earned, 0);
+    }
+    #[test] fn spawn_metadata_roundtrips_without_reroll() {
+        for _ in 0..20 {
+            let batch = Batch::generate(10);
+            assert!(batch.shells.iter().all(|s| !s.pearl || s.rare));
+            let saved = serde_json::to_string(&batch).unwrap();
+            let loaded: Batch = serde_json::from_str(&saved).unwrap();
+            assert_eq!(batch.id, loaded.id);
+            for (before, after) in batch.shells.iter().zip(&loaded.shells) {
+                assert_eq!((&before.id, before.kind, before.rare, before.pearl, before.size, before.collected), (&after.id, after.kind, after.rare, after.pearl, after.size, after.collected));
+                assert!((before.x-after.x).abs() < 1e-12 && (before.y-after.y).abs() < 1e-12);
+            }
+        }
+    }
+    #[test] fn invalid_pearl_or_collection_is_rejected() {
+        let mut state = HuntState { batch: Some(Batch::generate(1)), ..HuntState::default() };
+        let shell = &mut state.batch.as_mut().unwrap().shells[0]; shell.rare = false; shell.pearl = true;
+        assert!(state.validate().is_err());
+        state.batch = None;
+        state.collection.insert(ShellKind::Great, CollectionEntry { count: 1, rare_count: 2, first_found: "2026-10-05".into() });
+        assert!(state.validate().is_err());
     }
 }

@@ -1,7 +1,10 @@
 // Desktop ocean. Renders only while visible: 30 FPS normally, 10 FPS when the
 // computer is idle or Meeting Mode is on, nothing when the window is hidden.
 import { listen } from "@tauri-apps/api/event";
-import { api, type Fish, type StateView } from "./api";
+import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
+import { reason } from "./i18n";
+import { closureStep, drawClaw } from "./hunt-motion";
+import { COIN_SRC } from "./coin";
 
 const VISIBLE_FPS = 30;
 const QUIET_FPS = 10;
@@ -54,6 +57,25 @@ let quiet = false;
 let lastFrame = 0;
 let width = 0;
 let height = 0;
+let clock = 0;
+// Shell hunt, played on this desktop ocean: live view while a session exists.
+let hunt: HuntView | null = null;
+let huntBlend = 0; // 0 = idle ocean, 1 = hunt scene fully shown
+const huntArt: Record<string, HTMLImageElement | null> = {};
+let coinArt: HTMLImageElement | null = null;
+const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
+const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
+const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
+const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
+const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
+const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
+const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let closure = 0; // 0 = claw open, 1 = closed on a catch
+let prevLength = 0;
+let ripples: { x: number; y: number; age: number }[] = [];
+let notice = { text: "", until: 0 };
+let seenReceipt: string | null | undefined;
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -126,7 +148,24 @@ function fishLength(f: Fish) {
   return Math.min(width, height) * 0.22 * (SPECIES_SCALE[f.species_id] ?? 0.8) * STAGE_SCALE[f.stage];
 }
 
+const huntActive = () => !!hunt?.session && !state?.settings.meeting_mode;
+const ease = (t: number) => t * t * (3 - 2 * t);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** The hunt plays in a square (engine units 0..1) centred on the screen. */
+function huntFrame() {
+  const side = Math.min(width, height * 0.96);
+  return { side, ox: (width - side) / 2, oy: (height - side) / 2 };
+}
+
+async function pollHunt() {
+  if (!hunt?.session && !state?.hunt.session) return;
+  try { hunt = await api.huntStatus(); } catch { /* keep the last view */ }
+}
+
 function step(dt: number) {
+  clock += dt;
+  huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
   const calm = state?.settings.meeting_mode ? 0.4 : 1;
   for (const s of swimmers) {
     const len = fishLength(s.fish);
@@ -168,19 +207,158 @@ function drawFallbackFish(len: number) {
   ctx.fill();
 }
 
+function drawShell(shell: HuntShell, x: number, y: number, size: number) {
+  const img = huntArt[`shell_${SHELL_SPRITE[shell.kind] ?? shell.size}`];
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(shell.x * 3) * 0.12 + Math.sin(clock * 0.9 + shell.x * 9) * 0.05);
+  if (img) {
+    ctx.shadowColor = shell.rare ? "#ffe5a4" : "rgba(0, 20, 25, 0.4)";
+    ctx.shadowBlur = shell.rare ? size * 0.22 + (reducedMotion.matches ? 0 : Math.sin(clock * 2.4) * size * 0.04) : size * 0.1;
+    ctx.drawImage(img, -size / 2, -size / 2, size, size);
+  } else {
+    const r = size * 0.4;
+    ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function huntMessage(): string {
+  const s = hunt?.session;
+  if (!s || !hunt) return "";
+  if (s.error) return reason(s.error);
+  if (s.paused) return `Đã tạm dừng — nhấn ${HUNT_KEY} để tiếp tục`;
+  const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
+  if (s.phase === "swinging") return `${left} sò đang chờ · ${HUNT_KEY} để thả móc`;
+  return s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…";
+}
+
+/** Boat, rope, claw and status pill. Drawn above the fish, below nothing. */
+function drawHunt(e: number) {
+  const s = hunt?.session;
+  if (!s || !hunt || e <= 0) return;
+  const { side, ox, oy } = huntFrame();
+  const at = (x: number, y: number): [number, number] => [ox + x * side, oy + y * side];
+  const [px, py0] = at(HUNT_PIVOT.x, HUNT_PIVOT.y);
+  const bob = Math.sin(clock * 1.6) * side * 0.003;
+  const dive = (1 - e) * side * 0.3; // the boat sails in from above
+  const py = py0 + bob - dive;
+  ctx.save();
+  ctx.globalAlpha = e;
+
+  // Rope and claw first: the hull hides them while they are pulled in.
+  const angle = s.angle * Math.PI / 180;
+  const len = Math.max(s.length, 0.0);
+  const [tx, ty0] = at(HUNT_PIVOT.x + Math.sin(angle) * len, HUNT_PIVOT.y + Math.cos(angle) * len);
+  const ty = ty0 + bob - dive;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(60, 40, 20, 0.55)"; ctx.lineWidth = Math.max(4, side * 0.005);
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tx, ty); ctx.stroke();
+  ctx.strokeStyle = "#ecdfb8"; ctx.lineWidth = Math.max(2, side * 0.003);
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(tx, ty); ctx.stroke();
+
+  const clawImg = huntArt.claw;
+  const ch = side * 0.14;
+  const cw = ch * 128 / 176;
+  ctx.save();
+  ctx.translate(tx, ty); ctx.rotate(-angle);
+  if (clawImg) drawClaw(ctx, clawImg, { x: -cw / 2, y: -ch * CLAW_GRAB, width: cw, height: ch }, closure);
+  else { ctx.strokeStyle = "#e3aa45"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-cw * .4, -ch * .3); ctx.lineTo(-cw * .25, ch * .2); ctx.lineTo(0, ch * .3); ctx.lineTo(cw * .25, ch * .2); ctx.lineTo(cw * .4, -ch * .3); ctx.stroke(); }
+  ctx.restore();
+  const caught = hunt.batch?.shells.find((sh) => sh.id === s.caught_id);
+  if (caught) drawShell(caught, tx, ty + ch * 0.02, side * (0.06 + caught.size * 0.005));
+
+  // Water-entry ripple when the claw dives below the surface.
+  if (!s.paused && !reducedMotion.matches) {
+    if (prevLength < 0.12 && s.length >= 0.12 && s.phase === "extending") ripples.push({ x: tx, y: py0 + side * 0.12, age: 0 });
+    for (const r of ripples) {
+      r.age += 1 / 30;
+      ctx.save(); ctx.globalAlpha = Math.max(0, 1 - r.age / 0.6) * 0.8;
+      ctx.strokeStyle = "#c6fff4"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(r.x, r.y, 8 + r.age * 60, 3 + r.age * 18, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    ripples = ripples.filter((r) => r.age < 0.6);
+  } else ripples = [];
+  prevLength = s.length;
+
+  // Boat on top.
+  const boat = huntArt.boat;
+  const bw = side * 0.27;
+  const bh = bw * 0.75;
+  ctx.save();
+  ctx.translate(px, py); ctx.rotate(Math.sin(clock * 1.1) * 0.02);
+  ctx.shadowColor = "rgba(0, 20, 25, 0.35)"; ctx.shadowBlur = bw * 0.05;
+  if (boat) ctx.drawImage(boat, -bw * BOAT_HATCH.x, -bh * BOAT_HATCH.y, bw, bh);
+  else { ctx.fillStyle = "#f0be83"; ctx.fillRect(-bw * .4, -bh * .25, bw * .8, bh * .25); }
+  ctx.restore();
+
+  // Status pill, top centre.
+  const text = huntMessage() + (hunt.session ? `  ·  Hôm nay ${hunt.earned}/${hunt.daily_cap}` : "");
+  ctx.font = "600 15px system-ui, sans-serif";
+  const w = ctx.measureText(text).width + 36;
+  const x = width / 2 - w / 2;
+  ctx.fillStyle = "rgba(6, 36, 46, 0.82)";
+  ctx.beginPath(); ctx.roundRect(x, 18, w, 34, 17); ctx.fill();
+  ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  ctx.fillText(text, width / 2, 36);
+  if (performance.now() < notice.until) {
+    const nw = richWidth(notice.text) + 36;
+    ctx.fillStyle = "rgba(22, 70, 76, 0.9)";
+    ctx.beginPath(); ctx.roundRect(width / 2 - nw / 2, 60, nw, 34, 17); ctx.fill();
+    ctx.fillStyle = "#ffe5a4"; drawRich(notice.text, width / 2, 78);
+  }
+  ctx.restore();
+}
+
+const COIN_PX = 22;
+/** Width of text where the word "CBCoin" is drawn as the CB logo. */
+function richWidth(text: string): number {
+  const parts = text.split("CBCoin");
+  return parts.reduce((w, part) => w + ctx.measureText(part).width, 0) + (parts.length - 1) * (COIN_PX + 4);
+}
+function drawRich(text: string, cx: number, cy: number) {
+  const parts = text.split("CBCoin");
+  let x = cx - richWidth(text) / 2;
+  const align = ctx.textAlign; ctx.textAlign = "left";
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      if (coinArt) ctx.drawImage(coinArt, x + 2, cy - COIN_PX / 2, COIN_PX, COIN_PX);
+      else ctx.fillText("CBCoin", x, cy);
+      x += COIN_PX + 4;
+    }
+    ctx.fillText(part, x, cy); x += ctx.measureText(part).width;
+  });
+  ctx.textAlign = align;
+}
+
+/** Closing animation, catch notice and receipt tracking; runs once per frame. */
+function huntTick(dt: number) {
+  const s = hunt?.session;
+  closure = closureStep(closure, s?.phase, dt, !!s?.paused, reducedMotion.matches);
+  const receipt = hunt?.last_catch ?? null;
+  if (seenReceipt === undefined) { if (hunt) seenReceipt = receipt?.shell_id ?? null; return; }
+  if (receipt && receipt.shell_id !== seenReceipt) {
+    seenReceipt = receipt.shell_id;
+    notice = {
+      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${SHELL_NAME[receipt.kind]}${receipt.rare ? " · Sò hiếm!" : ""}${receipt.pearl ? " · +1 Ngọc trai!" : ""}${receipt.first_of_kind ? " · Thẻ mới trong Bộ sưu tập" : ""}`,
+      until: performance.now() + 7000,
+    };
+  }
+}
+
 function draw() {
   ctx.drawImage(background, 0, 0, width, height);
   // Persistent batch, not a new random field on every render/restart.
-  for (const shell of state?.hunt.batch?.shells ?? []) {
-    if (shell.collected) continue;
-    const x = shell.x * width;
-    const y = height * (0.82 + (shell.y - 0.65) * 0.38);
-    const r = 10 + shell.size * 2;
-    ctx.save(); ctx.translate(x, y);
-    ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
-    for (let n = -2; n <= 2; n++) { ctx.beginPath(); ctx.moveTo(0, r * .4); ctx.lineTo(n * r * .3, -r * .7); ctx.stroke(); }
-    ctx.restore();
+  const e = ease(huntBlend);
+  const f = huntFrame();
+  const batch = hunt?.session ? hunt.batch : state?.hunt.batch;
+  const carried = hunt?.session?.caught_id ?? null;
+  for (const shell of batch?.shells ?? []) {
+    if (shell.collected || (e > 0 && shell.id === carried)) continue;
+    const idle = { x: shell.x * width, y: height * (0.82 + (shell.y - 0.65) * 0.38), size: 30 + shell.size * 5 };
+    const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
+    drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
   }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {
@@ -208,16 +386,30 @@ function draw() {
       drawFallbackFish(len);
     }
     ctx.restore();
+    if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+      // Fed to the next 5-level mark: the fish naps and says so.
+      const jokes = ["No căng vảy! Cho em ngủ tí", "Bụng em thành bóng rồi!", "Đừng thêm buffet… em xin thua!", "Đang tiêu hóa, đừng gọi em đi gym!"];
+      const text = jokes[Math.floor(s.fish.exp / 500) % jokes.length];
+      ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      const bubbleWidth = ctx.measureText(text).width + 20;
+      const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
+      const by = Math.max(4, s.y - len * 0.55 - 28);
+      ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
+      ctx.fillStyle = "#17434b"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
+    }
   }
+  drawHunt(e);
 }
 
 function frame(now: number) {
   requestAnimationFrame(frame); // browsers stop rAF while the window is hidden
-  const fps = quiet || state?.settings.meeting_mode ? QUIET_FPS : VISIBLE_FPS;
+  const fps = !huntActive() && (quiet || state?.settings.meeting_mode) ? QUIET_FPS : VISIBLE_FPS;
   const elapsed = now - lastFrame;
   if (elapsed < 1000 / fps - 1) return;
   lastFrame = now;
-  step(Math.min(elapsed, 250) / 1000);
+  const dt = Math.min(elapsed, 250) / 1000;
+  step(dt);
+  huntTick(dt);
   draw();
 }
 
@@ -248,12 +440,16 @@ async function pollIdle() {
 
 async function main() {
   oceanImage = await loadImage("/art/ocean.jpg");
+  for (const name of ["boat", "claw", "shell_0", "shell_1", "shell_2"]) huntArt[name] = await loadImage(`/art/hunt/${name}.png`);
+  coinArt = await loadImage(COIN_SRC);
   resize();
   window.addEventListener("resize", resize);
   await refresh();
   await listen("state-changed", refresh);
   await pollIdle();
   setInterval(pollIdle, 5000);
+  setInterval(pollHunt, 50);
+  setInterval(refresh, 15000); // rest timers expire without a state-changed event
   requestAnimationFrame(frame);
 }
 

@@ -2,12 +2,15 @@
 import type { Category, Stage } from "./api";
 
 const reasons: Record<string, string> = {
+  fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
+  fish_adult: "Cá đã trưởng thành ở level 100, không nhận thêm EXP.",
+  fish_not_adult: "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.",
+  duplicate: "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.",
   hunt_waiting: "Chưa có sò mới; bạn có thể quay lại sau.",
-  hunt_cap: "Đã nhặt đủ Vỏ sò hôm nay. Sò chưa nhặt được giữ lại.",
+  hunt_cap: "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.",
   hunt_meeting: "Tắt Chế độ họp để gọi thuyền.",
   hunt_stale: "Lượt thuyền đã kết thúc; hãy gọi thuyền lại.",
   hunt_busy: "Móc đang hoạt động; chờ kéo về thuyền.",
-  hunt_window: "Không mở được cửa sổ thuyền.",
   autostart_failed: "Không thay đổi được tùy chọn mở cùng hệ thống.",
   autostart_dev: "Chỉ bật mở cùng hệ thống từ bản game đã cài, không dùng bản dev.",
   dock_failed: "Không mở được nút nhanh desktop.",
@@ -41,7 +44,7 @@ const reasons: Record<string, string> = {
   index_write: "Không ghi được danh sách Bụng cá",
   simulated_crash: "Gián đoạn giữa chừng",
   busy: "Đang xử lý một thao tác khác, thử lại sau giây lát",
-  not_enough_shells: "Chưa đủ Vỏ sò",
+  not_enough_shells: "Chưa đủ CBCoin",
   tank_full: "Bể đã đầy",
   price_changed: "Giá đã thay đổi — hãy xem lại trước khi đổi",
   unknown_species: "Loài này không có trong cửa hàng",
@@ -80,8 +83,8 @@ export const attentionNote: Record<string, string> = {
 };
 
 export const stageName: Record<Stage, string> = {
-  fry: "Cá bột",
-  juvenile: "Cá non",
+  fry: "Cá non",
+  juvenile: "Cá thành niên",
   adult: "Trưởng thành",
 };
 

@@ -1,0 +1,37 @@
+[
+  {
+    "file": "boat.png",
+    "w": 720,
+    "h": 540,
+    "prompt": "Use case: stylized-concept. Asset type: transparent 2D game sprite for TrashQuarium shell-hunt. A small cute wooden fishing sailboat seen strictly from the side, bow pointing right, cream canvas sail with a small red pennant on the mast, teal and cream striped hull with exactly two round brass portholes, warm orange wood planks. A small round rope outlet/hole at the center bottom edge of the hull; its center must be at 50% of canvas width and 83% of canvas height. Tiny rope stub at outlet only, no dangling rope below boat because game draws rope. Full boat and mast inside 4:3 canvas, clear margin, no waves, water, ground or scenery. hand-painted digital illustration, soft painterly shading, warm rim light from above, gentle texture, same style as a lush planted freshwater aquarium game, clean silhouette, isolated on a fully transparent background, no text, no watermark, no shadow on the ground.",
+    "source": "C:\\Users\\LENOVO\\.codex\\generated_images\\01a10a15-f3a8-7782-ad29-ae21e4544042\\exec-14c913d2-ae41-477f-95e3-accb80826bf9.png"
+  },
+  {
+    "file": "claw.png",
+    "w": 256,
+    "h": 352,
+    "prompt": "Use case: stylized-concept. Asset type: transparent 2D game sprite for TrashQuarium shell-hunt. A vertical brass grabber claw with exactly three curved prongs opening downward, a small ring on top for attaching a rope, polished warm gold metal with subtle highlights, slightly open. Vertical symmetry, full mechanical claw visible on 8:11 canvas. Top rope connection at horizontal center near top; the central capture point between three prongs must be at 50% of canvas width and 71% of canvas height. No attached rope. hand-painted digital illustration, soft painterly shading, warm rim light from above, gentle texture, same style as a lush planted freshwater aquarium game, clean silhouette, isolated on a fully transparent background, no text, no watermark, no shadow on the ground.",
+    "source": "C:\\Users\\LENOVO\\.codex\\generated_images\\01a10a15-f3a8-7782-ad29-ae21e4544042\\exec-c6f38594-159d-4a9e-b70a-c313e4587e9b.png"
+  },
+  {
+    "file": "shell_0.png",
+    "w": 512,
+    "h": 512,
+    "prompt": "Use case: stylized-concept. Asset type: transparent 2D game sprite for TrashQuarium shell-hunt. A single scallop seashell seen from the front, fan-shaped with radial ridges, hinge at the bottom, cream white with soft beige ridges, glossy pearl highlights, centered with approximately 10% clear margin on each side, square canvas. One shell only, entire shell visible. hand-painted digital illustration, soft painterly shading, warm rim light from above, gentle texture, same style as a lush planted freshwater aquarium game, clean silhouette, isolated on a fully transparent background, no text, no watermark, no shadow on the ground.",
+    "source": "C:\\Users\\LENOVO\\.codex\\generated_images\\01a10a15-f3a8-7782-ad29-ae21e4544042\\exec-03610d81-38dd-476e-9373-6f8fdbc9634e.png"
+  },
+  {
+    "file": "shell_1.png",
+    "w": 512,
+    "h": 512,
+    "prompt": "Use case: stylized-concept. Asset type: transparent 2D game sprite for TrashQuarium shell-hunt. A single scallop seashell seen from the front, fan-shaped with radial ridges, hinge at the bottom, coral pink with rose ridges, glossy pearl highlights, centered with approximately 10% clear margin on each side, square canvas. One shell only, entire shell visible. hand-painted digital illustration, soft painterly shading, warm rim light from above, gentle texture, same style as a lush planted freshwater aquarium game, clean silhouette, isolated on a fully transparent background, no text, no watermark, no shadow on the ground.",
+    "source": "C:\\Users\\LENOVO\\.codex\\generated_images\\01a10a15-f3a8-7782-ad29-ae21e4544042\\exec-54944e8b-828d-4a79-ab7c-ca3bf979a80f.png"
+  },
+  {
+    "file": "shell_2.png",
+    "w": 512,
+    "h": 512,
+    "prompt": "Use case: stylized-concept. Asset type: transparent 2D game sprite for TrashQuarium shell-hunt. A single scallop seashell seen from the front, fan-shaped with radial ridges, hinge at the bottom, pearl lilac with pale violet ridges, glossy pearl highlights, centered with approximately 10% clear margin on each side, square canvas. One shell only, entire shell visible. hand-painted digital illustration, soft painterly shading, warm rim light from above, gentle texture, same style as a lush planted freshwater aquarium game, clean silhouette, isolated on a fully transparent background, no text, no watermark, no shadow on the ground.",
+    "source": "C:\\Users\\LENOVO\\.codex\\generated_images\\01a10a15-f3a8-7782-ad29-ae21e4544042\\exec-4a54d644-12ae-4568-9736-8637b32cc552.png"
+  }
+]

@@ -46,7 +46,7 @@ pub struct DailyView {
 #[derive(Serialize, Clone, Debug)]
 pub struct StateView {
     pub hunt: super::hunt::HuntView,
-    pub shells: u64,
+    pub cbcoins: u64,
     pub capacity: usize,
     pub fish: Vec<Fish>,
     pub daily: DailyView,
@@ -81,11 +81,18 @@ impl AppCore {
 
     pub fn preview(&self, paths: &[String]) -> Vec<Inspection> {
         let mut seen = std::collections::HashSet::new();
+        let mut content = std::collections::HashSet::new();
         paths
             .iter()
             .filter(|p| seen.insert(p.as_str()))
             .take(self.game.catalog().balance.max_preview_files)
-            .map(|p| guard::inspect(&self.policy, Path::new(p)))
+            .map(|p| {
+                let mut item = guard::inspect(&self.policy, Path::new(p));
+                if item.ok && (item.fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp) || !content.insert(fp.clone())) || item.legacy_fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp))) {
+                    item.ok = false; item.code = "duplicate".into();
+                }
+                item
+            })
             .collect()
     }
 
@@ -93,6 +100,9 @@ impl AppCore {
         if let Some(e) = &self.game.read_only {
             return Err(e.clone());
         }
+        self.reconcile()?;
+        self.game.digest(now_unix())?;
+        self.game.can_feed(fish_id, now_unix())?;
         if !self.game.state.fish.iter().any(|f| f.id == fish_id) {
             return Err(Failure::new("fish_not_found", fish_id));
         }
@@ -100,24 +110,32 @@ impl AppCore {
         if items.len() > limit {
             return Err(Failure::new("too_many_files", limit));
         }
-        let vault = self.belly.as_mut().map_err(|e| e.clone())?;
         let mut files = Vec::new();
+        let mut total = RewardSummary::default();
+        let mut reward_error = None;
         for item in items {
-            let outcome = if !item.ok {
+            // Never trust client-supplied hashes, including legacy compatibility metadata.
+            let verified = if self.game.can_feed(fish_id, now_unix()).is_ok() && item.ok { guard::inspect(&self.policy, Path::new(&item.path)) } else { item.clone() };
+            let outcome = if let Err(e) = self.game.can_feed(fish_id, now_unix()) {
+                FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: e.code, undetermined: false }
+            } else if verified.fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp)) || verified.legacy_fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp)) {
+                total.duplicates += 1;
+                FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: "duplicate".into(), undetermined: false }
+            } else if !item.ok {
                 FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: item.code.clone(), undetermined: false }
             } else {
-                match vault.swallow(&self.policy, item, fish_id) {
+                match self.belly.as_mut().map_err(|e| e.clone())?.swallow(&self.policy, item, fish_id) {
                     Ok(_) => FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: true, code: "ok".into(), undetermined: false },
                     Err(e) => FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: e.code, undetermined: e.undetermined },
                 }
             };
             files.push(outcome);
+            match self.reconcile() {
+                Ok(r) => { total.files += r.files; total.exp += r.exp; total.duplicates += r.duplicates; total.not_rewardable += r.not_rewardable; }
+                Err(e) => { reward_error = Some(e); break; }
+            }
         }
-        let (reward, reward_error) = match self.reconcile() {
-            Ok(r) => (Some(r), None),
-            Err(e) => (None, Some(e)),
-        };
-        Ok(FeedReport { files, reward, reward_error })
+        Ok(FeedReport { files, reward: Some(total), reward_error })
     }
 
     pub fn restore(&mut self, entry_id: &str) -> Result<RestoreOutcome, Failure> {
@@ -152,7 +170,7 @@ impl AppCore {
         let s = &self.game.state;
         StateView {
             hunt: self.game.hunt_view(),
-            shells: s.wallet.shells,
+            cbcoins: s.wallet.cbcoins,
             capacity: c.balance.tank_capacity,
             fish: s.fish.clone(),
             daily: DailyView {
@@ -183,6 +201,39 @@ mod tests {
     use crate::engine::guard::tests::Sandbox;
     use std::fs;
 
+    #[test]
+    fn hunger_stops_batch_before_moving_more_files() {
+        let s = Sandbox::new(); let mut c = core(&s); let fish = c.game.state.fish[0].id.clone();
+        let paths: Vec<_> = (0..30).map(|i| s.file(&format!("docs/{i}.txt"), &format!("unique-{i}"))).collect();
+        let preview = c.preview(&paths.iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<_>>());
+        let report = c.feed(&preview,&fish).unwrap();
+        assert_eq!(report.files.iter().filter(|f|f.ok).count(),25);
+        assert_eq!(report.reward.unwrap().exp,500);
+        for p in &paths[25..] { assert!(p.exists()); }
+        assert_eq!(c.game.state.fish[0].exp,500);
+        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_full");
+        c.game.state.fish[0].exp=10000; c.game.state.fish[0].resting_until=0;
+        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_adult");
+        assert!(paths[25].exists());
+    }
+
+    #[test]
+    fn copies_different_tails_and_legacy_history_are_filtered() {
+        let s=Sandbox::new();let mut c=core(&s);let fish=c.game.state.fish[0].id.clone();
+        let a=s.file("docs/a.txt","0123456789abcdefTAIL-A");
+        let b=s.file("docs/b.txt","0123456789abcdefTAIL-B");
+        let copy=s.file("docs/copy.txt","0123456789abcdefTAIL-A");
+        let paths=vec![a.to_string_lossy().into_owned(),b.to_string_lossy().into_owned(),copy.to_string_lossy().into_owned()];
+        let preview=c.preview(&paths); assert!(preview[0].ok&&preview[1].ok);assert_eq!(preview[2].code,"duplicate");
+        let report=c.feed(&preview,&fish).unwrap();assert_eq!(report.reward.unwrap().exp,40);assert!(copy.exists());
+        let old=s.file("docs/old.txt","already paid legacy data");
+        let fp=guard::legacy_fingerprint(&old,fs::metadata(&old).unwrap().len(),s.policy.fingerprint_bytes).unwrap();
+        c.game.state.ledger.fingerprints.push_back(fp);
+        assert_eq!(c.preview(&[old.to_string_lossy().into_owned()])[0].code,"duplicate");assert!(old.exists());
+        let mut spoofed = guard::inspect(&s.policy,&old); spoofed.legacy_fingerprint=None;
+        let report=c.feed(&[spoofed],&fish).unwrap();assert_eq!(report.reward.unwrap().exp,0);assert!(old.exists());
+    }
+
     fn core(s: &Sandbox) -> AppCore {
         AppCore::open(s.policy.data_root.clone(), s.policy.clone(), Catalog::bundled().unwrap())
     }
@@ -199,8 +250,8 @@ mod tests {
         let report = c.feed(&preview, &fish).unwrap();
         assert!(report.files[0].ok);
         assert_eq!(report.files[1].code, "extension");
-        assert_eq!(report.reward.unwrap().shells, 2);
-        assert_eq!(c.view().shells, 42);
+        assert_eq!(report.reward.unwrap().exp, 20);
+        assert_eq!(c.view().cbcoins, 40);
         assert!(!a.exists() && b.exists());
         // Restore does not claw back the reward; feeding the same bytes again pays nothing.
         let id = c.held_entries()[0].id.clone();
@@ -209,7 +260,8 @@ mod tests {
         let again = c.preview(&[a.to_string_lossy().into()]);
         let r = c.feed(&again, &fish).unwrap().reward.unwrap();
         assert_eq!((r.shells, r.duplicates), (0, 1));
-        assert_eq!(c.view().shells, 42);
+        assert_eq!(c.view().cbcoins, 40);
+        assert!(a.exists(), "duplicate stays in its original location");
     }
 
     #[test]
@@ -229,8 +281,9 @@ mod tests {
         fs::remove_dir(s.policy.data_root.join("game_save.json")).unwrap();
         fs::rename(s.root.join("moved-save.json"), s.policy.data_root.join("game_save.json")).unwrap();
         let c = core(&s);
-        assert_eq!(c.view().shells, 42);
+        assert_eq!(c.view().cbcoins, 40);
+        assert_eq!(c.view().fish[0].exp, 20);
         drop(c);
-        assert_eq!(core(&s).view().shells, 42, "paid exactly once");
+        assert_eq!(core(&s).view().fish[0].exp, 20, "paid exactly once");
     }
 }

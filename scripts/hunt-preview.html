@@ -1,0 +1,8 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><title>Hunt QA — không dùng save thật</title><style>body{background:#0c343c;color:#edf8f4;font:16px system-ui;margin:24px}canvas{width:min(960px,100%);height:auto;border:1px solid #47716d;border-radius:16px}section{max-width:960px}</style><h1>QA animation · dữ liệu minh họa, không cấp thưởng</h1><canvas id="preview" width="960" height="390"></canvas><div id="collection"></div><script type="module">
+import {huntArt,ready} from '/src/hunt-art.ts';
+import {drawClaw} from '/src/hunt-motion.ts';
+import {collectionPanel} from '/src/shell-collection.ts';
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+function draw(){if(!ready(huntArt.claw)){requestAnimationFrame(draw);return;}ctx.clearRect(0,0,960,390);ctx.font='18px system-ui';ctx.fillStyle='#edf8f4';[0,.5,1].forEach((closure,i)=>{ctx.fillText(['Mở','Khép giữa','Khép hoàn toàn'][i],70+i*320,30);drawClaw(ctx,huntArt.claw,{x:80+i*320,y:60,width:160,height:220},closure);ctx.beginPath();ctx.arc(160+i*320,60+220*.71,3,0,Math.PI*2);ctx.fillStyle='#ff7654';ctx.fill();ctx.fillStyle='#edf8f4';});}
+draw();document.querySelector('#collection').replaceChildren(collectionPanel({pearls:3,collection:{great:{count:2,rare_count:1,first_found:'2026-10-05'},queen:{count:1,rare_count:0,first_found:'2026-10-05'},variegated:{count:1,rare_count:1,first_found:'2026-10-05'}}}));
+</script></html>

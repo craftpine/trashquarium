@@ -4,7 +4,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 
-use super::guard::Category;
 
 const SPECIES_JSON: &str = include_str!("../../config/species.json");
 const BALANCE_JSON: &str = include_str!("../../config/balance.json");
@@ -57,17 +56,6 @@ pub struct Economy {
     pub age_middle_mult: f64,
     pub age_old_mult: f64,
     pub max_fingerprints: usize,
-}
-
-impl Economy {
-    pub fn category_mult(&self, c: Category) -> f64 {
-        let key = match c {
-            Category::Doc => "doc",
-            Category::Media => "media",
-            Category::Tech => "tech",
-        };
-        self.category_multiplier.get(key).copied().unwrap_or(1.0)
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -147,9 +135,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bundled_catalog_is_valid_with_ten_species() {
+    fn bundled_catalog_is_valid_with_sixty_four_species() {
         let c = Catalog::bundled().unwrap();
-        assert_eq!(c.species.len(), 10);
+        assert_eq!(c.species.len(), 64);
     }
 
     #[test]

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { closureStep, drawClaw } from '../src/hunt-motion.ts';
+let closure = 0;
+for (let i=0;i<10;i++) closure = closureStep(closure, 'retracting', 1/30, false, false);
+assert.ok(closure > .99 && closure <= 1);
+assert.equal(closureStep(closure, 'swinging', 1, true, false), closure);
+assert.equal(closureStep(closure, 'swinging', 1/30, false, true), 0);
+assert.equal(closureStep(0, 'settling', 1/30, false, true), 1);
+assert.equal(closureStep(.5, 'swinging', -1, false, false), .5);
+let balance = 0, draws = 0;
+const ctx = { save(){balance++;},restore(){balance--;},translate(){},rotate(){},beginPath(){},rect(){},clip(){},drawImage(){draws++;} };
+drawClaw(ctx,{width:256,height:352},{x:20,y:20,width:28,height:38.5},1);
+assert.equal(balance,0); assert.equal(draws,4);
+console.log('PASS: closure/opening, pause, reduced motion, negative dt, canvas save/restore balance');

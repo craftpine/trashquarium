@@ -1,8 +1,7 @@
 //! FileGuard: decides whether a user-selected file may go into the Belly.
 //!
 //! Fail-closed: anything that cannot be checked is refused. Inspection never
-//! modifies the file; it only reads metadata and at most the first
-//! `fingerprint_bytes` bytes for the duplicate-reward fingerprint.
+//! modifies the file; duplicate protection reads the whole file in bounded chunks.
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -114,6 +113,7 @@ pub struct Inspection {
     pub category: Option<Category>,
     pub modified_unix: i64,
     pub fingerprint: Option<String>,
+    #[serde(default)] pub legacy_fingerprint: Option<String>,
 }
 
 impl Inspection {
@@ -127,13 +127,22 @@ impl Inspection {
             category: None,
             modified_unix: 0,
             fingerprint: None,
+            legacy_fingerprint: None,
         }
     }
 }
 
 pub fn inspect(policy: &GuardPolicy, path: &Path) -> Inspection {
+    let original = path;
+    if path.components().any(|c| matches!(c, Component::ParentDir | Component::CurDir)) {
+        return Inspection::deny(path, "parent_ref");
+    }
+    // Rust canonicalize produces a verbatim local-drive prefix on Windows.
+    // Only normalize that specific prefix; UNC and device namespaces remain denied.
+    let normalized = local_disk_path(path);
+    let path = normalized.as_path();
     match check(policy, path) {
-        Ok(ok) => ok,
+        Ok(mut ok) => { ok.path = original.to_string_lossy().into_owned(); ok },
         Err(code) => {
             let mut denied = Inspection::deny(path, code);
             if let Ok(meta) = fs::symlink_metadata(path) {
@@ -144,6 +153,16 @@ pub fn inspect(policy: &GuardPolicy, path: &Path) -> Inspection {
             denied
         }
     }
+}
+
+fn local_disk_path(path: &Path) -> PathBuf {
+    #[cfg(windows)]
+    if let Some(Component::Prefix(p)) = path.components().next() {
+        if matches!(p.kind(), std::path::Prefix::VerbatimDisk(_)) {
+            if let Some(text) = path.to_str().and_then(|s| s.strip_prefix("\\\\?\\")) { return PathBuf::from(text); }
+        }
+    }
+    path.to_path_buf()
 }
 
 fn check(policy: &GuardPolicy, path: &Path) -> Result<Inspection, &'static str> {
@@ -195,6 +214,7 @@ fn check(policy: &GuardPolicy, path: &Path) -> Result<Inspection, &'static str> 
         category: Some(category),
         modified_unix,
         fingerprint: Some(fingerprint),
+        legacy_fingerprint: Some(legacy_fingerprint(path, size, policy.fingerprint_bytes).map_err(|_| "unreadable")?),
     })
 }
 
@@ -252,13 +272,11 @@ fn is_inside_folder(path: &Path, dir: &Path) -> bool {
     fsops::is_within(path, dir) && fsops::path_key(path) != fsops::path_key(dir)
 }
 
-/// Local duplicate-reward fingerprint: SHA-256 of the size plus the first
-/// `limit` bytes. This is NOT a full-file checksum: two different files that
-/// share size and prefix are treated as the same file.
-pub fn fingerprint(path: &Path, size: u64, limit: u64) -> std::io::Result<String> {
+/// SHA-256 of size plus all bytes; filenames/locations do not affect duplicates.
+pub fn fingerprint(path: &Path, size: u64, _limit: u64) -> std::io::Result<String> {
     let mut hasher = Sha256::new();
     hasher.update(size.to_le_bytes());
-    let mut reader = File::open(path)?.take(limit);
+    let mut reader = File::open(path)?;
     let mut buf = [0u8; 64 * 1024];
     loop {
         let n = reader.read(&mut buf)?;
@@ -267,6 +285,15 @@ pub fn fingerprint(path: &Path, size: u64, limit: u64) -> std::io::Result<String
         }
         hasher.update(&buf[..n]);
     }
+    let hex: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    Ok(format!("sha256:{hex}"))
+}
+
+/// Compatibility only: never add new prefix hashes to the paid ledger.
+pub fn legacy_fingerprint(path: &Path, size: u64, limit: u64) -> std::io::Result<String> {
+    let mut hasher = Sha256::new(); hasher.update(size.to_le_bytes());
+    let mut reader = File::open(path)?.take(limit); let mut buf = [0u8; 64*1024];
+    loop { let n = reader.read(&mut buf)?; if n == 0 { break; } hasher.update(&buf[..n]); }
     let hex: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
     Ok(format!("p1m:{hex}"))
 }
@@ -322,16 +349,27 @@ pub mod tests {
         assert!(r.ok, "{r:?}");
         assert_eq!(r.category, Some(Category::Doc));
         assert_eq!(r.size, 5);
-        assert!(r.fingerprint.unwrap().starts_with("p1m:"));
+        assert!(r.fingerprint.unwrap().starts_with("sha256:"));
     }
 
     #[test]
     fn refuses_unsafe_shapes() {
         let s = Sandbox::new();
         assert_eq!(s.code(Path::new("relative.txt")), "not_absolute");
-        assert_eq!(s.code(&s.root.join("docs/../docs/x.txt")), "parent_ref");
+        assert_eq!(s.code(&local_disk_path(&s.root).join("docs/../docs/x.txt")), "parent_ref");
         assert_eq!(s.code(&s.root.join("docs/missing.txt")), "not_found");
         assert_eq!(s.code(&s.root.join("docs")), "directory");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn canonical_drive_paths_work_but_network_device_and_ads_stay_denied() {
+        let s=Sandbox::new();let file=s.file("docs/canonical.txt","test");
+        assert!(inspect(&s.policy,&fs::canonicalize(&file).unwrap()).ok);
+        for path in [r"\\server\share\a.txt",r"\\?\UNC\server\share\a.txt",r"\\.\C:\docs\a.txt",r"\\?\GLOBALROOT\Device\HarddiskVolume1\a.txt"] {
+            assert_eq!(s.code(Path::new(path)),"device_path");
+        }
+        assert_eq!(s.code(&PathBuf::from(format!("{}:stream",local_disk_path(&file).display()))),"alternate_stream");
     }
 
     #[test]
@@ -374,14 +412,15 @@ pub mod tests {
     }
 
     #[test]
-    fn fingerprint_depends_on_prefix_and_size_only() {
+    fn fingerprint_reads_full_content_and_ignores_copy_name() {
         let s = Sandbox::new();
         let a = s.file("docs/a.txt", "0123456789abcdefTAIL-A");
         let b = s.file("docs/b.txt", "0123456789abcdefTAIL-B");
         let c = s.file("docs/c.txt", "0123456789abcdefTAIL-CC");
-        let fp = |p: &Path| inspect(&s.policy, p).fingerprint.unwrap();
-        // Same size + same 16-byte prefix → documented false duplicate.
-        assert_eq!(fp(&a), fp(&b));
+        let fp = |p: &Path| fingerprint(p, fs::metadata(p).unwrap().len(), 16).unwrap();
+        assert_ne!(fp(&a), fp(&b));
         assert_ne!(fp(&a), fp(&c));
+        let copy = s.file("docs/renamed.txt", "0123456789abcdefTAIL-A");
+        assert_eq!(fp(&a), fp(&copy));
     }
 }

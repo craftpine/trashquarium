@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Manager and tank windows",
-  "windows": ["manager", "tank", "hud", "hunt"],
+  "windows": ["manager", "tank", "hud"],
   "permissions": [
     "core:default",
     "core:window:allow-hide",

@@ -1,4 +1,4 @@
-//! Game save: fish, wallet (Vỏ sò), reward ledger, Fishdex flags and settings.
+//! Game save: fish, CBCoin wallet, reward ledger, Fishdex flags and settings.
 //!
 //! Every change is made on a copy and only becomes current after the atomic
 //! save succeeds, so a failed save never loses shells or creates a fish.
@@ -12,7 +12,7 @@ use super::catalog::{Catalog, Species};
 use super::save::{self, Loaded};
 use super::Failure;
 
-pub const SCHEMA_VERSION: u64 = 2;
+pub const SCHEMA_VERSION: u64 = 4;
 pub const RULES_VERSION: u32 = 1;
 pub const RENDERER_VERSION: u32 = 1;
 const BACKUPS: usize = 3;
@@ -49,6 +49,9 @@ pub struct Fish {
     pub generation: u32,
     pub stage: Stage,
     pub exp: u64,
+    #[serde(default)] pub pending_exp: u64,
+    #[serde(default)] pub resting_until: i64,
+    #[serde(default)] pub purchase_price: u64,
     pub traits: BTreeMap<String, String>,
     pub visual_recipe: VisualRecipe,
     pub rules_version: u32,
@@ -57,16 +60,15 @@ pub struct Fish {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Wallet {
-    pub shells: u64,
+    #[serde(alias = "shells")] pub cbcoins: u64,
+    #[serde(default)] pub pearls: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct RewardLedger {
     /// Every Belly receipt already settled, rewarded or not. Never pruned.
     pub receipts: BTreeSet<String>,
-    /// Fingerprints already rewarded, oldest first. Bounded by
-    /// `economy.max_fingerprints`; beyond that the oldest are forgotten, so
-    /// duplicate protection is not permanent.
+    /// Fingerprints already rewarded, never pruned (copy/rename protection).
     pub fingerprints: VecDeque<String>,
 }
 
@@ -136,6 +138,9 @@ impl GameState {
             if f.species_id.is_empty() {
                 return Err(format!("fish {} has no species", f.id));
             }
+            if self.schema_version >= 4 && (f.exp > 10000 || f.pending_exp > 10000 - f.exp || f.resting_until < 0) {
+                return Err(format!("invalid growth state {}", f.id));
+            }
         }
         if !self.daily.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.daily.date, "%Y-%m-%d").is_err() {
             return Err(format!("invalid daily date {:?}", self.daily.date));
@@ -181,8 +186,31 @@ impl GameStore {
             if version == 1 {
                 v["shell_hunt"] = serde_json::to_value(super::hunt::HuntState::default()).map_err(|e| e.to_string())?;
                 v["settings"]["quick_dock_enabled"] = serde_json::Value::Bool(true);
+            } else if version != 2 && version != 3 && version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
+            if version == 1 || version == 2 {
+                // Keep legacy batches/IDs and never reroll rare rewards during migration.
+                if let Some(shells) = v.get_mut("shell_hunt").and_then(|h| h.get_mut("batch")).and_then(|b| b.get_mut("shells")).and_then(serde_json::Value::as_array_mut) {
+                    for shell in shells {
+                        shell["kind"] = serde_json::json!(match shell["size"].as_u64().unwrap_or(0) { 1 => "queen", 2 => "variegated", _ => "great" });
+                        shell["rare"] = serde_json::json!(false);
+                        shell["pearl"] = serde_json::json!(false);
+                    }
+                }
                 v["schema_version"] = serde_json::Value::from(SCHEMA_VERSION);
-            } else if version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
+            }
+            if version < 4 {
+                if let Some(fish) = v.get_mut("fish").and_then(serde_json::Value::as_array_mut) {
+                    for f in fish {
+                        // Preserve achieved life stage; scale legacy progress to new thresholds.
+                        let old = f["exp"].as_u64().unwrap_or(0);
+                        let exp = match f["stage"].as_str() { Some("adult") => 10000, Some("juvenile") => 5000 + old.saturating_sub(20).min(39) * 100, _ => old.min(19) * 250 };
+                        f["exp"] = serde_json::json!(exp);
+                        let price = f["species_id"].as_str().and_then(|id| store.catalog.species(id)).map(|s| s.price).unwrap_or(0);
+                        f["purchase_price"] = serde_json::json!(price);
+                    }
+                }
+                v["schema_version"] = serde_json::json!(SCHEMA_VERSION);
+            }
             let s: GameState = serde_json::from_value(v).map_err(|e| e.to_string())?;
             s.validate()?;
             Ok(s)
@@ -195,7 +223,7 @@ impl GameStore {
                     fresh.fish.push(store.new_fish(&sp, Origin::Starter, now));
                     mark_owned(&mut fresh, &sp.id);
                 }
-                fresh.wallet.shells = store.catalog.balance.economy.welcome_shells;
+                fresh.wallet.cbcoins = store.catalog.balance.economy.welcome_shells;
                 fresh.welcome_granted = true;
                 if let Err(e) = store.commit(fresh) {
                     store.read_only = Some(e);
@@ -230,12 +258,7 @@ impl GameStore {
     }
 
     fn new_fish(&self, species: &Species, origin: Origin, now: i64) -> Fish {
-        let stage = match species.stage_on_purchase.as_str() {
-            "fry" => Stage::Fry,
-            "adult" => Stage::Adult,
-            _ => Stage::Juvenile,
-        };
-        let thresholds = &self.catalog.balance.stage_exp;
+        let stage = Stage::Fry;
         Fish {
             id: uuid::Uuid::new_v4().to_string(),
             species_id: species.id.clone(),
@@ -244,11 +267,7 @@ impl GameStore {
             parent_ids: Vec::new(),
             generation: 0,
             stage,
-            exp: match stage {
-                Stage::Fry => 0,
-                Stage::Juvenile => thresholds.juvenile,
-                Stage::Adult => thresholds.adult,
-            },
+            exp: 0, pending_exp: 0, resting_until: 0, purchase_price: species.price,
             traits: BTreeMap::new(),
             visual_recipe: VisualRecipe { base: species.id.clone(), renderer_version: RENDERER_VERSION },
             rules_version: RULES_VERSION,
@@ -270,16 +289,42 @@ impl GameStore {
         if self.state.fish.len() >= self.catalog.balance.tank_capacity {
             return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity));
         }
-        if self.state.wallet.shells < species.price {
-            return Err(Failure::new("not_enough_shells", species.price - self.state.wallet.shells));
+        if self.state.wallet.cbcoins < species.price {
+            return Err(Failure::new("not_enough_shells", species.price - self.state.wallet.cbcoins));
         }
         let fish = self.new_fish(&species, Origin::Shop, now);
         let mut next = self.state.clone();
-        next.wallet.shells -= species.price;
+        next.wallet.cbcoins -= species.price;
         next.fish.push(fish.clone());
         mark_owned(&mut next, &species.id);
         self.commit(next)?;
         Ok(fish)
+    }
+
+    pub fn can_feed(&self, fish_id: &str, now: i64) -> Result<(), Failure> {
+        let f = self.state.fish.iter().find(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
+        if f.exp >= 10000 { return Err(Failure::new("fish_adult", "level 100")); }
+        if f.resting_until > now { return Err(Failure::new("fish_full", f.resting_until)); }
+        Ok(())
+    }
+
+    /// Calling the sale boat transfers only the game fish, never its Belly files.
+    pub fn sell(&mut self, fish_id: &str) -> Result<u64, Failure> {
+        let mut next = self.state.clone();
+        let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
+        if next.fish[i].exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
+        let price = next.fish[i].purchase_price.checked_mul(100).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+        next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+        next.fish.remove(i);
+        self.commit(next)?;
+        Ok(price)
+    }
+
+    pub fn digest(&mut self, now: i64) -> Result<(), Failure> {
+        if !self.state.fish.iter().any(|f| f.pending_exp > 0 && f.resting_until <= now) { return Ok(()); }
+        let mut next = self.state.clone();
+        for f in &mut next.fish { digest_fish(f, now); }
+        self.commit(next)
     }
 
     /// Settles every Belly receipt not yet in the ledger, exactly once: the
@@ -294,8 +339,6 @@ impl GameStore {
         if pending.is_empty() {
             return Ok(summary);
         }
-        let eco = self.catalog.balance.economy.clone();
-        let thresholds = self.catalog.balance.stage_exp.clone();
         let mut next = self.state.clone();
         roll_day(&mut next.daily, today);
         for e in pending {
@@ -309,44 +352,17 @@ impl GameStore {
                 continue;
             }
             next.ledger.fingerprints.push_back(e.fingerprint.clone());
-            while next.ledger.fingerprints.len() > eco.max_fingerprints {
-                next.ledger.fingerprints.pop_front();
-            }
-            let diminish = (1.0 - eco.diminish_step * next.daily.rewarded as f64).max(eco.diminish_min);
-            let size_factor = ((e.size as f64 / 1024.0 + 1.0).log10() / eco.size_log_divisor).clamp(eco.size_min, eco.size_max);
-            let age_days = ((now - e.modified_unix) as f64 / 86400.0).max(0.0);
-            let age_factor = if age_days < eco.age_recent_days {
-                eco.age_recent_mult
-            } else if age_days <= eco.age_old_days {
-                eco.age_middle_mult
-            } else {
-                eco.age_old_mult
-            };
-            let exp_room = eco.daily_exp_cap.saturating_sub(next.daily.exp);
-            let shell_room = eco.daily_shell_cap.saturating_sub(next.daily.shells);
-            let exp = ((eco.base_exp * eco.category_mult(e.category) * size_factor * age_factor * diminish).round() as u64).min(exp_room);
-            let shells = ((eco.base_shells * diminish).round() as u64).max(1).min(shell_room);
-            if shells == 0 || exp_room == 0 {
-                summary.capped = true;
-            }
+            let exp = file_exp(e.size);
             next.daily.rewarded += 1;
-            next.daily.exp += exp;
-            next.daily.shells += shells;
-            next.wallet.shells += shells;
             if let Some(fish) = next.fish.iter_mut().find(|f| f.id == e.fish_id) {
-                fish.exp += exp;
-                let grown = if fish.exp >= thresholds.adult {
-                    Stage::Adult
-                } else if fish.exp >= thresholds.juvenile {
-                    Stage::Juvenile
-                } else {
-                    Stage::Fry
-                };
-                fish.stage = fish.stage.max(grown);
+                let room = 10000u64.saturating_sub(fish.exp + fish.pending_exp);
+                let credited = exp.min(room);
+                fish.pending_exp += credited;
+                digest_fish(fish, now);
+                summary.exp += credited;
+                next.daily.exp += credited;
             }
             summary.files += 1;
-            summary.shells += shells;
-            summary.exp += exp;
         }
         self.commit(next)?;
         Ok(summary)
@@ -360,7 +376,7 @@ impl GameStore {
 
     pub fn hunt_view(&self) -> super::hunt::HuntView {
         let h = &self.state.shell_hunt;
-        super::hunt::HuntView { batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
+        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
     }
 
     pub fn start_hunt(&mut self, today: &str) -> Result<super::hunt::HuntView, Failure> {
@@ -419,9 +435,16 @@ impl GameStore {
                     if s.phase == "settling" {
                         if let Some(shell) = b.shells.iter().find(|sh| Some(&sh.id) == s.caught_id.as_ref() && !sh.collected) {
                             let id = shell.id.clone();
+                            let kind = shell.kind; let rare = shell.rare; let pearl = shell.pearl;
+                            let first_of_kind = !next.shell_hunt.collection.contains_key(&kind);
+                            let entry = next.shell_hunt.collection.entry(kind).or_insert_with(|| super::hunt::CollectionEntry { count: 0, rare_count: 0, first_found: today.into() });
+                            entry.count = entry.count.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "collection"))?;
+                            if rare { entry.rare_count = entry.rare_count.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "rare collection"))?; }
+                            if pearl { next.wallet.pearls = next.wallet.pearls.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "pearls"))?; }
+                            next.shell_hunt.last_catch = Some(super::hunt::CatchReceipt { shell_id: id.clone(), kind, rare, pearl, first_of_kind });
                             next.shell_hunt.batch.as_mut().unwrap().shells.iter_mut().find(|sh| sh.id == id).unwrap().collected = true;
                             next.shell_hunt.earned += 1;
-                            next.wallet.shells = next.wallet.shells.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", ""))?;
+                            next.wallet.cbcoins = next.wallet.cbcoins.checked_add(shell_value(kind)).ok_or_else(|| Failure::new("wallet_overflow", ""))?;
                             changed = true;
                         }
                     }
@@ -451,6 +474,23 @@ impl GameStore {
     pub fn checkpoint_hunt(&mut self) -> Result<(), Failure> { self.commit(self.state.clone()) }
 }
 
+pub fn shell_value(kind: super::hunt::ShellKind) -> u64 {
+    match kind { super::hunt::ShellKind::Great => 1, super::hunt::ShellKind::Queen => 10, super::hunt::ShellKind::Variegated => 100 }
+}
+
+/// Decimal MB, strict upper bounds: exactly 20 MB belongs to the 40 EXP tier.
+pub fn file_exp(bytes: u64) -> u64 { (bytes / 20_000_000 + 1).saturating_mul(20) }
+
+fn digest_fish(f: &mut Fish, now: i64) {
+    if f.resting_until > now || f.pending_exp == 0 || f.exp >= 10000 { return; }
+    let boundary = ((f.exp / 500 + 1) * 500).min(10000);
+    let amount = f.pending_exp.min(boundary - f.exp);
+    f.exp += amount; f.pending_exp -= amount;
+    f.stage = if f.exp >= 10000 { Stage::Adult } else if f.exp >= 5000 { Stage::Juvenile } else { Stage::Fry };
+    if f.exp == boundary && f.exp < 10000 { f.resting_until = now.saturating_add(7200); }
+    if f.exp == 10000 { f.pending_exp = 0; f.resting_until = 0; }
+}
+
 fn mark_owned(state: &mut GameState, species_id: &str) {
     let entry = state.dex.entry(species_id.to_string()).or_default();
     entry.seen = true;
@@ -474,6 +514,76 @@ mod tests {
 
     const NOW: i64 = 1_790_000_000;
     const OLD: i64 = NOW - 90 * 86400;
+
+    #[test]
+    fn size_tiers_are_strict_decimal_mb() {
+        for (bytes, exp) in [(0,20),(19_999_999,20),(20_000_000,40),(39_999_999,40),(40_000_000,60),(59_999_999,60),(60_000_000,80),(4_000_000_000,4020)] {
+            assert_eq!(file_exp(bytes), exp);
+        }
+    }
+
+    #[test]
+    fn v3_save_migrates_currency_stage_price_and_keeps_ledger() {
+        let dir=tempfile::tempdir().unwrap();let s=store(dir.path());let mut v=serde_json::to_value(&s.state).unwrap();
+        v["schema_version"]=serde_json::json!(3);v["wallet"].as_object_mut().unwrap().remove("cbcoins");v["wallet"]["shells"]=serde_json::json!(123);
+        v["fish"][0]["stage"]=serde_json::json!("adult");v["fish"][0]["exp"]=serde_json::json!(60);
+        for key in ["purchase_price","resting_until","pending_exp"] {v["fish"][0].as_object_mut().unwrap().remove(key);}
+        v["ledger"]["fingerprints"]=serde_json::json!(["p1m:legacy"]);
+        fs::write(&s.path,serde_json::to_vec(&v).unwrap()).unwrap();drop(s);
+        let mut s=store(dir.path());assert!(s.read_only.is_none());assert_eq!(s.state.wallet.cbcoins,123);
+        assert_eq!(s.state.fish[0].exp,10000);assert_eq!(s.state.fish[0].stage,Stage::Adult);
+        assert!(s.state.ledger.fingerprints.contains(&"p1m:legacy".into()));
+        let id=s.state.fish[0].id.clone();let price=s.state.fish[0].purchase_price;s.sell(&id).unwrap();
+        assert_eq!(store(dir.path()).state.wallet.cbcoins,123+price*100);
+    }
+
+    #[test]
+    fn duplicate_history_is_not_pruned_and_sale_overflow_is_atomic() {
+        let dir=tempfile::tempdir().unwrap();let mut s=store(dir.path());s.catalog.balance.economy.max_fingerprints=1;
+        let id=s.state.fish[0].id.clone();s.apply_receipts(&[entry("a","A",&id,true),entry("b","B",&id,true)],"2026-10-05",NOW).unwrap();
+        assert_eq!(s.apply_receipts(&[entry("c","A",&id,true)],"2026-10-05",NOW).unwrap().duplicates,1);
+        s.state.fish[0].exp=10000;s.state.fish[0].stage=Stage::Adult;s.state.wallet.cbcoins=u64::MAX;
+        assert_eq!(s.sell(&id).unwrap_err().code,"wallet_overflow");assert_eq!(s.state.fish.len(),1);assert_eq!(s.state.wallet.cbcoins,u64::MAX);
+    }
+
+    #[test]
+    fn growth_rest_bank_restart_adult_and_sale() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let id = s.state.fish[0].id.clone();
+        let mut e = entry("big", "big-hash", &id, true); e.size = 599_999_999;
+        assert_eq!(s.apply_receipts(&[e], "2026-10-05", NOW).unwrap().exp, 600);
+        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (500,100));
+        assert_eq!(s.can_feed(&id, NOW+7199).unwrap_err().code, "fish_full");
+        drop(s); let mut s = store(dir.path());
+        s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,500);
+        s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(600,0));
+        assert!(s.can_feed(&id,NOW+7200).is_ok());
+        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_adult");
+        s.state.fish[0].exp = 4900; s.state.fish[0].pending_exp = 200; s.state.fish[0].resting_until = 0;
+        s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,5000);
+        s.state.fish[0].exp = 9900; s.state.fish[0].pending_exp = 100; s.state.fish[0].resting_until = 0;
+        s.digest(NOW+14400).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Adult);
+        assert_eq!(s.can_feed(&id,NOW+14400).unwrap_err().code,"fish_adult");
+        let paid = s.state.fish[0].purchase_price;
+        let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
+        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,40);
+        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,40+paid*100);
+        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_found");
+        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,40+paid*100);
+    }
+
+    #[test]
+    fn all_shell_colors_credit_coin_values_once() {
+        use super::super::hunt::ShellKind;
+        for (kind,value) in [(ShellKind::Great,1),(ShellKind::Queen,10),(ShellKind::Variegated,100)] {
+            let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
+            let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.kind=kind; shell.pearl=false; let id=shell.id.clone();
+            let session=s.hunt_session.as_mut().unwrap(); session.phase="settling".into();session.caught_id=Some(id.clone());
+            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,40+value);
+            let session=s.hunt_session.as_mut().unwrap();session.phase="settling".into();session.caught_id=Some(id);
+            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,40+value);
+        }
+    }
 
     fn store(dir: &Path) -> GameStore {
         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
@@ -503,13 +613,13 @@ mod tests {
     fn new_profile_gets_starter_and_welcome_once() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
-        assert_eq!(s.state.wallet.shells, 40);
+        assert_eq!(s.state.wallet.cbcoins, 40);
         assert_eq!(s.state.fish.len(), 1);
         assert_eq!(s.state.fish[0].origin, Origin::Starter);
         assert!(s.state.fish[0].parent_ids.is_empty());
         s.purchase("danio_rerio", 20, NOW).unwrap();
         let s = store(dir.path());
-        assert_eq!(s.state.wallet.shells, 20, "welcome credit must not be granted again");
+        assert_eq!(s.state.wallet.cbcoins, 20, "welcome credit must not be granted again");
         assert_eq!(s.state.fish.len(), 2);
     }
 
@@ -523,8 +633,8 @@ mod tests {
         let f = s.purchase("danio_rerio", 20, NOW).unwrap();
         assert_eq!(f.origin, Origin::Shop);
         assert_eq!(f.name, "Cá ngựa vằn");
-        assert_eq!(f.stage, Stage::Juvenile);
-        assert_eq!(s.state.wallet.shells, 20);
+        assert_eq!(f.stage, Stage::Fry);
+        assert_eq!(s.state.wallet.cbcoins, 20);
         assert!(s.state.dex["danio_rerio"].owned);
     }
 
@@ -532,13 +642,13 @@ mod tests {
     fn full_tank_blocks_purchase_without_charging() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
-        s.state.wallet.shells = 10_000;
+        s.state.wallet.cbcoins = 10_000;
         while s.state.fish.len() < 12 {
             s.purchase("danio_rerio", 20, NOW).unwrap();
         }
-        let before = s.state.wallet.shells;
+        let before = s.state.wallet.cbcoins;
         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "tank_full");
-        assert_eq!(s.state.wallet.shells, before);
+        assert_eq!(s.state.wallet.cbcoins, before);
     }
 
     #[test]
@@ -547,7 +657,7 @@ mod tests {
         let mut s = store(dir.path());
         s.path = dir.path().join("missing-dir/game.json");
         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "save_failed");
-        assert_eq!(s.state.wallet.shells, 40);
+        assert_eq!(s.state.wallet.cbcoins, 40);
         assert_eq!(s.state.fish.len(), 1);
     }
 
@@ -558,11 +668,11 @@ mod tests {
         let fish = s.state.fish[0].id.clone();
         let entries = vec![entry("r1", "fp1", &fish, true)];
         let first = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
-        assert_eq!(first.shells, 2);
+        assert_eq!(first.shells, 0);
         assert!(first.exp > 0);
         let replay = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
         assert_eq!(replay, RewardSummary::default());
-        assert_eq!(s.state.wallet.shells, 42);
+        assert_eq!(s.state.wallet.cbcoins, 40);
     }
 
     #[test]
@@ -579,19 +689,20 @@ mod tests {
     }
 
     #[test]
-    fn daily_cap_holds_and_clock_rollback_does_not_reset_it() {
+    fn feeding_exp_has_no_old_daily_diminish_or_currency_reward() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
         let fish = s.state.fish[0].id.clone();
         let many: Vec<_> = (0..200).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         let r = s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
-        assert_eq!(r.shells, 100);
-        assert!(r.capped);
+        assert_eq!(r.shells, 0);
+        assert_eq!(r.exp, 4000);
+        assert!(!r.capped);
         let more: Vec<_> = (200..210).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         let back = s.apply_receipts(&more, "2026-09-28", NOW).unwrap();
         assert_eq!(back.shells, 0, "turning the clock back must not reopen the cap");
         let next: Vec<_> = (300..301).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
-        assert!(s.apply_receipts(&next, "2026-09-30", NOW).unwrap().shells >= 1);
+        assert_eq!(s.apply_receipts(&next, "2026-09-30", NOW).unwrap().exp, 20);
     }
 
     #[test]
@@ -603,9 +714,9 @@ mod tests {
         let good = s.path.clone();
         s.path = dir.path().join("missing-dir/game.json");
         assert!(s.apply_receipts(&entries, "2026-09-29", NOW).is_err());
-        assert_eq!(s.state.wallet.shells, 40);
+        assert_eq!(s.state.wallet.cbcoins, 40);
         s.path = good;
-        assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().shells, 2);
+        assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().exp, 20);
     }
 
     #[test]
@@ -615,7 +726,8 @@ mod tests {
         let fish = s.state.fish[0].id.clone();
         let many: Vec<_> = (0..20).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
         s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
-        assert_eq!(s.state.fish[0].stage, Stage::Adult);
+        assert_eq!(s.state.fish[0].stage, Stage::Fry);
+        assert_eq!(s.state.fish[0].exp, 400);
     }
 
     #[test]
@@ -648,8 +760,8 @@ mod tests {
         fs::write(&s.path, serde_json::to_vec(&old).unwrap()).unwrap();
         drop(s);
         let s = store(dir.path());
-        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, 2);
-        assert_eq!(s.state.wallet.shells, 20); assert_eq!(s.state.fish.len(), 2);
+        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, SCHEMA_VERSION);
+        assert_eq!(s.state.wallet.cbcoins, 20); assert_eq!(s.state.fish.len(), 2);
         assert_eq!(s.state.fish[0].id, id); assert!(s.state.ledger.receipts.contains("paid"));
         assert!(s.state.settings.quick_dock_enabled);
     }
@@ -659,17 +771,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
         let view = s.start_hunt("2026-10-03").unwrap();
         let b = view.batch.unwrap(); let id = b.shells[0].id.clone();
+        s.state.shell_hunt.batch.as_mut().unwrap().shells[0].kind = super::super::hunt::ShellKind::Great;
         let session = s.hunt_session.as_mut().unwrap();
         session.phase = "settling".into(); session.caught_id = Some(id.clone());
         let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
         assert!(s.tick_hunt(100, "2026-10-03").is_err());
-        assert_eq!(s.state.wallet.shells, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+        assert_eq!(s.state.wallet.cbcoins, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
         s.path = good;
         assert!(s.tick_hunt(100, "2026-10-03").unwrap());
-        assert_eq!(s.state.wallet.shells, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
+        assert_eq!(s.state.wallet.cbcoins, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
-        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.shells, 41);
-        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.shells, 41);
+        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 41);
+        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 41);
         assert_eq!(loaded.state.shell_hunt.batch.as_ref().unwrap().remaining(), 2);
         assert!(loaded.hunt_session.is_none());
     }
@@ -687,5 +800,83 @@ mod tests {
         assert_eq!(s.state.shell_hunt.batch.as_ref().unwrap().id, batch);
         s.state.shell_hunt.earned = 60;
         assert_eq!(s.start_hunt("2026-10-02").unwrap_err().code, "hunt_cap");
+    }
+
+    #[test]
+    fn rare_pearl_collection_reward_is_atomic_and_replay_safe() {
+        use super::super::hunt::ShellKind;
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        s.start_hunt("2026-10-05").unwrap();
+        let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0];
+        shell.kind = ShellKind::Queen; shell.rare = true; shell.pearl = true;
+        let id = shell.id.clone();
+        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id.clone());
+        let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
+        assert!(s.tick_hunt(100, "2026-10-05").is_err());
+        assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty()); assert!(s.state.shell_hunt.last_catch.is_none());
+        s.path = good; s.tick_hunt(100, "2026-10-05").unwrap();
+        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 50);
+        let entry = &s.state.shell_hunt.collection[&ShellKind::Queen]; assert_eq!((entry.count, entry.rare_count), (1,1));
+        assert!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind);
+        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+        s.tick_hunt(100, "2026-10-05").unwrap();
+        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.shell_hunt.collection[&ShellKind::Queen].count, 1);
+        drop(s); let mut loaded = store(dir.path());
+        assert_eq!(loaded.state.wallet.pearls, 1); assert_eq!(loaded.state.shell_hunt.collection[&ShellKind::Queen].rare_count, 1);
+        loaded.tick_hunt(100, "2026-10-06").unwrap();
+        assert_eq!(loaded.state.shell_hunt.earned, 0); assert_eq!(loaded.state.shell_hunt.collection[&ShellKind::Queen].count, 1);
+    }
+
+    #[test]
+    fn v2_migration_keeps_batch_and_does_not_reroll_rewards() {
+        use super::super::hunt::ShellKind;
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        s.start_hunt("2026-10-05").unwrap();
+        let batch_id = s.state.shell_hunt.batch.as_ref().unwrap().id.clone();
+        let mut legacy = serde_json::to_value(&s.state).unwrap();
+        legacy["schema_version"] = serde_json::json!(2);
+        legacy["wallet"].as_object_mut().unwrap().remove("pearls");
+        legacy["shell_hunt"].as_object_mut().unwrap().remove("collection");
+        legacy["shell_hunt"].as_object_mut().unwrap().remove("last_catch");
+        for shell in legacy["shell_hunt"]["batch"]["shells"].as_array_mut().unwrap() {
+            for key in ["kind", "rare", "pearl"] { shell.as_object_mut().unwrap().remove(key); }
+        }
+        fs::write(&s.path, serde_json::to_vec(&legacy).unwrap()).unwrap(); drop(s);
+        let loaded = store(dir.path()); assert!(loaded.read_only.is_none());
+        let batch = loaded.state.shell_hunt.batch.as_ref().unwrap(); assert_eq!(batch.id, batch_id);
+        for shell in &batch.shells {
+            assert!(!shell.rare && !shell.pearl);
+            assert_eq!(shell.kind, match shell.size {1=>ShellKind::Queen,2=>ShellKind::Variegated,_=>ShellKind::Great});
+        }
+        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 40); assert!(loaded.state.shell_hunt.collection.is_empty());
+    }
+
+    #[test]
+    fn pearl_overflow_and_daily_cap_do_not_grant_collection() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
+        let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.rare = true; shell.pearl = true; let id = shell.id.clone();
+        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+        s.state.wallet.pearls = u64::MAX;
+        assert_eq!(s.tick_hunt(100, "2026-10-05").unwrap_err().code, "wallet_overflow");
+        assert!(s.state.shell_hunt.collection.is_empty()); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+        s.state.wallet.pearls = 0; s.state.shell_hunt.earned = s.catalog.balance.shell_hunt.daily_cap;
+        s.tick_hunt(100, "2026-10-05").unwrap(); assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty());
+    }
+
+    #[test]
+    fn collection_survives_finished_batch_and_repeat_discovery() {
+        use super::super::hunt::ShellKind;
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
+        for shell in &mut s.state.shell_hunt.batch.as_mut().unwrap().shells { shell.kind = ShellKind::Great; shell.rare = false; shell.pearl = false; }
+        let ids: Vec<_> = s.state.shell_hunt.batch.as_ref().unwrap().shells.iter().map(|s| s.id.clone()).collect();
+        for (index, id) in ids.iter().enumerate() {
+            let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id.clone());
+            s.tick_hunt(100, "2026-10-05").unwrap();
+            assert_eq!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind, index == 0);
+        }
+        assert!(s.state.shell_hunt.batch.is_none()); assert!(s.hunt_session.is_none());
+        assert_eq!(s.hunt_view().collection[&ShellKind::Great].count, 3);
+        drop(s); let loaded = store(dir.path()); assert_eq!(loaded.hunt_view().collection[&ShellKind::Great].count, 3);
+        assert_eq!(loaded.state.wallet.cbcoins, 43); assert_eq!(loaded.state.wallet.pearls, 0);
     }
 }

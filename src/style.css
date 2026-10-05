@@ -144,6 +144,8 @@ button.small {
   font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
+.coin { display: inline-block; width: 1.5em; height: 1.5em; vertical-align: -0.38em; margin: 0 0.12em; object-fit: contain; }
+.pill .coin { align-self: center; width: 28px; height: 28px; margin: 0; }
 .pill.shells b {
   color: #ffc9b3;
 }
@@ -621,3 +623,5 @@ dialog::backdrop {
     transition: none !important;
   }
 }
+.sale-boat { position: fixed; z-index: 10000; inset: 0; background: rgba(4,36,43,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+.sale-boat img { width: min(440px, 70vw); height: auto; }
