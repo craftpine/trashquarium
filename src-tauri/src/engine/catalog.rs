@@ -71,6 +71,29 @@ pub struct Balance {
     pub economy: Economy,
     #[serde(default)]
     pub breeding: Breeding,
+    #[serde(default)]
+    pub slots: Slots,
+}
+
+/// Tank space: `tank_capacity` counts slots, not fish. Bigger (pricier) fish take more:
+/// below `medium_price` 1 slot, below `large_price` 2 slots, otherwise 3 slots.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct Slots {
+    pub medium_price: u64,
+    pub large_price: u64,
+}
+
+impl Default for Slots {
+    fn default() -> Self {
+        Slots { medium_price: 100, large_price: 200 }
+    }
+}
+
+impl Slots {
+    pub fn for_price(&self, price: u64) -> usize {
+        if price >= self.large_price { 3 } else if price >= self.medium_price { 2 } else { 1 }
+    }
 }
 
 /// Breeding: each egg costs both parents one purchase price of sale value, and
@@ -83,11 +106,16 @@ pub struct Breeding {
     pub hatch_min: f64,
     pub price_low: u64,
     pub price_high: u64,
+    /// Eggs incubate in the egg den for a random time in this range (seconds).
+    pub incubate_min_s: i64,
+    pub incubate_max_s: i64,
+    /// Most eggs the den holds at once.
+    pub den_capacity: usize,
 }
 
 impl Default for Breeding {
     fn default() -> Self {
-        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300 }
+        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300, incubate_min_s: 7200, incubate_max_s: 10800, den_capacity: 100 }
     }
 }
 
@@ -148,8 +176,11 @@ impl Catalog {
         if b.tank_capacity == 0 || b.stage_exp.juvenile >= b.stage_exp.adult {
             return Err("tank capacity / stage thresholds invalid".into());
         }
+        if b.slots.medium_price == 0 || b.slots.medium_price >= b.slots.large_price || b.tank_capacity < 3 {
+            return Err("tank slots invalid".into());
+        }
         let br = &b.breeding;
-        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high {
+        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high || br.incubate_min_s < 0 || br.incubate_min_s > br.incubate_max_s || br.den_capacity == 0 {
             return Err("breeding balance invalid".into());
         }
         let e = &b.economy;

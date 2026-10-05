@@ -46,6 +46,9 @@ export interface Breeding {
   hatch_min: number;
   price_low: number;
   price_high: number;
+  incubate_min_s: number;
+  incubate_max_s: number;
+  den_capacity: number;
 }
 
 export interface RedeemOutcome {
@@ -54,11 +57,27 @@ export interface RedeemOutcome {
   fish: number;
 }
 
+export interface Egg {
+  id: string;
+  species_id: string;
+  parent_ids: string[];
+  generation: number;
+  laid_at: number;
+  hatch_at: number;
+}
+
+export interface HatchResult {
+  egg_id: string;
+  species_id: string;
+  hatched: boolean;
+  fish_id: string | null;
+  at: number;
+}
+
 export interface BreedOutcome {
-  charged: number;
-  refunded: number;
+  laid: number;
   hatch_rate: number;
-  hatched: Fish[];
+  eggs: Egg[];
 }
 
 export interface Settings {
@@ -89,6 +108,10 @@ export interface StateView {
   disclaimer: string;
   stage_exp: { juvenile: number; adult: number };
   breeding: Breeding;
+  slots: { medium_price: number; large_price: number };
+  used_slots: number;
+  eggs: Egg[];
+  hatch_log: HatchResult[];
   max_preview_files: number;
   read_only: Failure | null;
   recovered_from_backup: boolean;

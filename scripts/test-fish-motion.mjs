@@ -15,3 +15,9 @@ for (let u = 0; u <= 1; u += 0.1) for (const st of ['fish', 'tuna', 'eel', 'ray'
 assert.equal(nextBurst(0.2, 0.1, 0.99, true), 1);
 assert.ok(nextBurst(1, 0.5, 0.99, false) < 1 && nextBurst(0, 0.5, 0.99, false) === 0);
 console.log('PASS: tail moves more than head, eel/tuna/ray styles, fins flutter, burst-and-glide');
+import { formatCountdown } from '../src/egg-den.ts';
+assert.equal(formatCountdown(7200), '2:00:00');
+assert.equal(formatCountdown(3725.2), '1:02:06');
+assert.equal(formatCountdown(59), '0:59');
+assert.equal(formatCountdown(-5), '0:00');
+console.log('PASS: egg countdown format');

@@ -6,6 +6,7 @@
 
 ## Đã triển khai
 
+- Khi gọi thuyền, phần trên bể desktop thành mặt biển: bầu trời có mặt trời và mây trôi, đường mặt nước gợn sóng; thuyền nổi trên mặt nước (nửa thân dưới chìm) và nhấp nhô theo sóng (`src/hunt-sky.ts`). Rời thuyền thì bầu trời mờ dần. Chế độ giảm chuyển động giữ mây và sóng đứng yên.
 - Sò rải ngẫu nhiên khắp vùng móc với tới được (góc ±60°, tầm 0,42–0,84 tính từ trục móc), không xếp hàng; hai sò luôn cách nhau đủ xa để một lần gắp không chạm hai sò.
 
 - Móc đóng khi thu dây/nhận thưởng, mở lại khi thả; hỗ trợ reduced motion và giữ trạng thái khi pause. Animation dùng PNG hiện có, không sửa ảnh gốc.

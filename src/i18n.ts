@@ -118,6 +118,7 @@ const reasons: Record<string, string> = {
   breed_same_fish: "Hãy chọn hai con cá khác nhau để ghép cặp.",
   breed_species_mismatch: "Chỉ ghép cặp được hai cá cùng loài.",
   breed_exhausted: "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.",
+  den_full: "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.",
   breed_eggs_invalid: "Số trứng không hợp lệ hoặc vượt mức tối đa cho phép.",
   price_changed: "Giá đã thay đổi — hãy xem lại trước khi đổi",
   unknown_species: "Loài này không có trong cửa hàng",

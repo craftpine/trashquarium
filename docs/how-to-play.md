@@ -37,7 +37,7 @@ Each file gives EXP by size: small files give 20 EXP, and every extra 20 MB adds
 
 ## 🛒 Shopping for the tank
 
-Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a whale shark (300) is almost 4 times as long as a guppy (20). New fish always start at Lv.0. The tank holds up to **12 fish**, so buy too many and it gets crowded.
+Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a whale shark (300) is almost 4 times as long as a guppy (20). New fish always start at Lv.0. The tank has **20 slots**: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 (6 whale sharks already fill 18). Big sharks need their elbow room!
 
 ## ⛵ Sell or 🥚 breed? (at Lv.100)
 
@@ -47,7 +47,8 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
 
 - Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
 - Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
-- Fry are born at Lv.0, show which generation they are, and start all over. If the tank fills up, unused eggs are kept.
+- Every egg goes into the **Egg den** (its own tab, and a little rock cave on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
+- Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
 
 ## 😌 Relax
 

@@ -714,3 +714,69 @@ dialog::backdrop {
 .code-input::placeholder {
   text-transform: none;
 }
+
+.tag.big {
+  background: #fde3c8;
+  color: #8a4a12;
+}
+
+.egg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.egg-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.egg-wrap {
+  position: relative;
+  padding-top: 26px;
+}
+.egg {
+  width: 54px;
+  height: 70px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background:
+    radial-gradient(circle at 30% 30%, var(--spot) 0 4px, transparent 5px),
+    radial-gradient(circle at 68% 52%, var(--spot) 0 3px, transparent 4px),
+    radial-gradient(circle at 42% 74%, var(--spot) 0 4px, transparent 5px),
+    radial-gradient(circle at 35% 25%, #fffdf6, #ead1a2 70%);
+  box-shadow: inset -6px -8px 12px rgba(120, 85, 40, 0.25), 0 6px 10px rgba(0, 0, 0, 0.12);
+  opacity: 0.95;
+}
+.egg-card.soon .egg {
+  animation: egg-wobble 0.9s ease-in-out infinite;
+}
+@keyframes egg-wobble {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .egg-card.soon .egg { animation: none; }
+}
+.egg-timer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #17434b;
+  color: #fff4dc;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.egg-timer.due {
+  background: #b5661b;
+}
