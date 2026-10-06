@@ -9,12 +9,14 @@ const STYLE: Record<string, SwimStyle> = {
   mobula_birostris: "ray", aetobatus_narinari: "ray", rhinoptera_bonasus: "ray",
   // Eels ripple the whole body.
   rhinomuraena_quaesita: "eel", gymnothorax_favagineus: "eel", chlamydoselachus_anguineus: "eel",
+  // Long, thin fish ripple like eels too.
+  hyperoplus_lanceolatus: "eel", syngnathus_acus: "eel", cepola_macrophthalma: "eel",
   // Fast open-ocean swimmers keep the body stiff and drive with the tail.
   thunnus_alalunga: "tuna", thunnus_albacares: "tuna", thunnus_thynnus: "tuna", katsuwonus_pelamis: "tuna",
   xiphias_gladius: "tuna", makaira_nigricans: "tuna", istiophorus_platypterus: "tuna", coryphaena_hippurus: "tuna",
   carcharodon_carcharias: "tuna", lamna_nasus: "tuna", prionace_glauca: "tuna", carcharhinus_longimanus: "tuna",
   galeocerdo_cuvier: "tuna", sphyrna_lewini: "tuna", cetorhinus_maximus: "tuna", megachasma_pelagios: "tuna",
-  rhincodon_typus: "tuna", stegostoma_tigrinum: "tuna",
+  rhincodon_typus: "tuna", stegostoma_tigrinum: "tuna", belone_belone: "tuna",
 };
 
 export const swimStyle = (speciesId: string): SwimStyle => STYLE[speciesId] ?? "fish";

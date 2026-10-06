@@ -3,7 +3,7 @@
 Cozy desktop aquarium: pick files you no longer need, they go into the fish's
 **Belly** (always restorable, never deleted), the fish gain EXP and grow. You
 earn **CBCoin** (in-game points) by hunting shells with the boat and buy real
-fish species from a 64-species shop. See `docs/economy-growth.md`. In the UI
+fish species from a 114-species shop. See `docs/economy-growth.md`. In the UI
 CBCoin is shown as the CB logo (`public/art/cb-coin.png`, `src/coin.ts`).
 
 Test files: `scripts/tao-file-rac.ps1` makes 100 random 20 MB junk files for feeding tests.

@@ -355,7 +355,7 @@ export const EN: Record<string, string> = {
   "Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm.": "Lv.100 fish show “So fat, catch me nowww!”. Hook one onto the boat, then sell it right away (purchase price ×100) or let it keep growing.",
   "Cá bơi qua lại, phải canh đúng lúc mới trúng.": "Fish swim back and forth, so time your drop.",
   "Mua cá và cho sinh sản": "Buy fish and breed them",
-  "Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "The shop has 64 real fish species. The tank has 20 slots; bigger fish take more.",
+  "Cửa hàng có 114 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "The shop has 114 real fish species. The tank has 20 slots; bigger fish take more.",
   "Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở.": "Pair two Lv.100 fish of the same species to lay eggs; eggs incubate for 2–3 hours in the Egg den before hatching.",
   "Sẵn sàng rồi!": "You're all set!",
   "Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền.": "Turn on Desktop aquarium in Settings so your fish swim right under your desktop icons.",

@@ -355,7 +355,7 @@ export const ZH: Record<string, string> = {
   "Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm.": "Lv.100 的鱼会显示“肥得不行啦，快来抓～”。抓上船后，选择马上卖（购买价 ×100）或继续养。",
   "Cá bơi qua lại, phải canh đúng lúc mới trúng.": "鱼会来回游，要看准时机才抓得到。",
   "Mua cá và cho sinh sản": "买鱼和繁殖",
-  "Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "商店有 64 种真实的鱼。鱼缸有 20 个位置，大鱼占得更多。",
+  "Cửa hàng có 114 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "商店有 114 种真实的鱼。鱼缸有 20 个位置，大鱼占得更多。",
   "Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở.": "让两条同种的 Lv.100 鱼配对产卵；卵会在鱼卵洞里孵 2–3 小时才孵化。",
   "Sẵn sàng rồi!": "准备好啦！",
   "Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền.": "在设置里打开“桌面鱼缸”，鱼就会在桌面图标下游动。",

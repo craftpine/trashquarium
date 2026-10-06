@@ -849,7 +849,7 @@ function showIntro(firstRun = false) {
       t("Cá bơi qua lại, phải canh đúng lúc mới trúng."),
     ] },
     { art: "breed", title: t("Mua cá và cho sinh sản"), text: [
-      t("Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
+      t("Cửa hàng có 114 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
       t("Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở."),
     ] },
     { art: "ready", title: t("Sẵn sàng rồi!"), text: [
