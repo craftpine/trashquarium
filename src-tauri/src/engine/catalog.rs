@@ -200,9 +200,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bundled_catalog_is_valid_with_sixty_four_species() {
+    fn bundled_catalog_is_valid_with_114_species() {
         let c = Catalog::bundled().unwrap();
-        assert_eq!(c.species.len(), 64);
+        assert_eq!(c.species.len(), 114);
     }
 
     #[test]

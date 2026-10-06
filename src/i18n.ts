@@ -71,7 +71,7 @@ export const locale = () => ({ vi: "vi-VN", en: "en-US", zh: "zh-CN" })[lang];
 const reasons: Record<string, string> = {
   fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
   fish_adult: "Cá đã trưởng thành ở level 100, không nhận thêm EXP.",
-  fish_not_adult: "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.",
+  fish_not_adult: "Cần cá đã trưởng thành ở level 100.",
   duplicate: "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.",
   hunt_waiting: "Chưa có sò mới; bạn có thể quay lại sau.",
   hunt_cap: "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.",

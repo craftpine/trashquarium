@@ -1,0 +1,186 @@
+{
+  "generator": "Built-in image generation; imagegen skill",
+  "status": "AI concept sprites; anatomy and alpha-edge review required before release",
+  "entries": [
+    {
+      "id": "carcharodon_carcharias",
+      "name": "Cá mập trắng",
+      "english": "Great white shark",
+      "group": "fish",
+      "subject": "a great white shark, slate-gray back, sharply white belly, stout torpedo body, conical snout, triangular first dorsal fin, five gill slits, crescent asymmetrical vertical tail; mouth relaxed closed, no exaggerated teeth",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a great white shark, slate-gray back, sharply white belly, stout torpedo body, conical snout, triangular first dorsal fin, five gill slits, crescent asymmetrical vertical tail; mouth relaxed closed, no exaggerated teeth.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/carcharodon_carcharias.png"
+    },
+    {
+      "id": "rhincodon_typus",
+      "name": "Cá mập voi",
+      "english": "Whale shark",
+      "group": "fish",
+      "subject": "a whale shark, very broad flat head and terminal wide closed mouth, blue-gray back covered with orderly ivory spots and faint pale checker lines, pale underside, long ridged body, large vertical caudal fin; no whale flukes",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a whale shark, very broad flat head and terminal wide closed mouth, blue-gray back covered with orderly ivory spots and faint pale checker lines, pale underside, long ridged body, large vertical caudal fin; no whale flukes.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/rhincodon_typus.png"
+    },
+    {
+      "id": "sphyrna_lewini",
+      "name": "Cá mập đầu búa",
+      "english": "Scalloped hammerhead shark",
+      "group": "fish",
+      "subject": "a scalloped hammerhead shark, slender gray body, broad hammer-shaped head with eyes at the far ends and scalloped front edge, tall dorsal fin, five gill slits; very slight elevated three-quarter view so the head width is unmistakable",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a scalloped hammerhead shark, slender gray body, broad hammer-shaped head with eyes at the far ends and scalloped front edge, tall dorsal fin, five gill slits; very slight elevated three-quarter view so the head width is unmistakable.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/sphyrna_lewini.png"
+    },
+    {
+      "id": "galeocerdo_cuvier",
+      "name": "Cá mập hổ",
+      "english": "Tiger shark",
+      "group": "fish",
+      "subject": "a tiger shark, broad blunt head, sturdy gray-brown body, distinct subtle dark vertical tiger stripes on flanks, white underside, five gill slits, asymmetrical vertical tail",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a tiger shark, broad blunt head, sturdy gray-brown body, distinct subtle dark vertical tiger stripes on flanks, white underside, five gill slits, asymmetrical vertical tail.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/galeocerdo_cuvier.png"
+    },
+    {
+      "id": "prionace_glauca",
+      "name": "Cá mập xanh",
+      "english": "Blue shark",
+      "group": "fish",
+      "subject": "a blue shark, elegant very slender cobalt-blue back and white underside, long narrow pectoral fins, pointed snout, five gill slits and long asymmetrical vertical tail",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a blue shark, elegant very slender cobalt-blue back and white underside, long narrow pectoral fins, pointed snout, five gill slits and long asymmetrical vertical tail.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/prionace_glauca.png"
+    },
+    {
+      "id": "balaenoptera_musculus",
+      "name": "Cá voi xanh",
+      "english": "Blue whale",
+      "group": "marine_mammal",
+      "subject": "a blue whale, very long streamlined mottled blue-gray body, broad flat U-shaped head, ventral throat pleats, small swept-back dorsal fin far toward the tail, short narrow flippers, wide HORIZONTAL mammalian tail flukes shown at a slight angle; no gills",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a blue whale, very long streamlined mottled blue-gray body, broad flat U-shaped head, ventral throat pleats, small swept-back dorsal fin far toward the tail, short narrow flippers, wide HORIZONTAL mammalian tail flukes shown at a slight angle; no gills.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/balaenoptera_musculus.png"
+    },
+    {
+      "id": "megaptera_novaeangliae",
+      "name": "Cá voi lưng gù",
+      "english": "Humpback whale",
+      "group": "marine_mammal",
+      "subject": "a humpback whale, dark blue-gray body, white underside, exceptionally long knobbly pectoral flippers with pale undersides, tubercles on head, ridged throat pleats, modest dorsal hump, broad HORIZONTAL tail flukes; natural proportions",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a humpback whale, dark blue-gray body, white underside, exceptionally long knobbly pectoral flippers with pale undersides, tubercles on head, ridged throat pleats, modest dorsal hump, broad HORIZONTAL tail flukes; natural proportions.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/megaptera_novaeangliae.png"
+    },
+    {
+      "id": "orcinus_orca",
+      "name": "Cá voi sát thủ",
+      "english": "Orca",
+      "group": "marine_mammal",
+      "subject": "a female orca, sleek robust black body, crisp white oval eye patch, white underside, subtle gray saddle patch behind curved dorsal fin, rounded flippers, HORIZONTAL tail flukes; relaxed closed mouth, no gills",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a female orca, sleek robust black body, crisp white oval eye patch, white underside, subtle gray saddle patch behind curved dorsal fin, rounded flippers, HORIZONTAL tail flukes; relaxed closed mouth, no gills.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/orcinus_orca.png"
+    },
+    {
+      "id": "tursiops_truncatus",
+      "name": "Cá heo mũi chai",
+      "english": "Common bottlenose dolphin",
+      "group": "marine_mammal",
+      "subject": "a common bottlenose dolphin, smooth gray body with lighter underside, distinct short rounded beak, gently curved dorsal fin, tapered flippers, HORIZONTAL tail flukes; natural small eye and relaxed closed mouth, not a cartoon smile",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a common bottlenose dolphin, smooth gray body with lighter underside, distinct short rounded beak, gently curved dorsal fin, tapered flippers, HORIZONTAL tail flukes; natural small eye and relaxed closed mouth, not a cartoon smile.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/tursiops_truncatus.png"
+    },
+    {
+      "id": "thunnus_thynnus",
+      "name": "Cá ngừ vây xanh Đại Tây Dương",
+      "english": "Atlantic bluefin tuna",
+      "group": "fish",
+      "subject": "an Atlantic bluefin tuna, muscular fusiform metallic navy-blue back, silver flanks and belly, short pectoral fins, modest yellowish finlets along upper and lower caudal peduncle, strong dark crescent vertical tail",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: an Atlantic bluefin tuna, muscular fusiform metallic navy-blue back, silver flanks and belly, short pectoral fins, modest yellowish finlets along upper and lower caudal peduncle, strong dark crescent vertical tail.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/thunnus_thynnus.png"
+    },
+    {
+      "id": "thunnus_albacares",
+      "name": "Cá ngừ vây vàng",
+      "english": "Yellowfin tuna",
+      "group": "fish",
+      "subject": "a yellowfin tuna, streamlined deep metallic blue back and silver belly, striking long sickle-shaped bright yellow second dorsal and anal fins, yellow finlets, dark crescent vertical tail; distinguish clearly from bluefin tuna",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a yellowfin tuna, streamlined deep metallic blue back and silver belly, striking long sickle-shaped bright yellow second dorsal and anal fins, yellow finlets, dark crescent vertical tail; distinguish clearly from bluefin tuna.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/thunnus_albacares.png"
+    },
+    {
+      "id": "xiphias_gladius",
+      "name": "Cá kiếm",
+      "english": "Swordfish",
+      "group": "fish",
+      "subject": "an adult swordfish, long FLAT sword-shaped bill, metallic slate-blue back and silver belly, tall curved first dorsal fin, large crescent vertical tail; no pelvic fins, not a sailfish, entire long bill visible",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: an adult swordfish, long FLAT sword-shaped bill, metallic slate-blue back and silver belly, tall curved first dorsal fin, large crescent vertical tail; no pelvic fins, not a sailfish, entire long bill visible.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/xiphias_gladius.png"
+    },
+    {
+      "id": "mobula_birostris",
+      "name": "Cá đuối manta đại dương",
+      "english": "Giant oceanic manta ray",
+      "group": "fish",
+      "subject": "a giant oceanic manta ray, dark charcoal dorsal body with white shoulder patches, huge triangular wing-like pectoral fins, two rolled cephalic lobes beside the broad mouth, long slender whip tail; three-quarter slightly elevated view, head pointing right, both wings and tail fully visible",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a giant oceanic manta ray, dark charcoal dorsal body with white shoulder patches, huge triangular wing-like pectoral fins, two rolled cephalic lobes beside the broad mouth, long slender whip tail; three-quarter slightly elevated view, head pointing right, both wings and tail fully visible.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/mobula_birostris.png"
+    },
+    {
+      "id": "amphiprion_ocellaris",
+      "name": "Cá hề",
+      "english": "Ocellaris clownfish",
+      "group": "fish",
+      "subject": "an ocellaris clownfish, orange body with exactly THREE distinct white vertical bands with fine black edges: head band behind eye, midbody band, caudal peduncle band; rounded fins and small mouth",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: an ocellaris clownfish, orange body with exactly THREE distinct white vertical bands with fine black edges: head band behind eye, midbody band, caudal peduncle band; rounded fins and small mouth.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/amphiprion_ocellaris.png"
+    },
+    {
+      "id": "paracanthurus_hepatus",
+      "name": "Cá đuôi gai xanh",
+      "english": "Blue tang",
+      "group": "fish",
+      "subject": "a blue tang, vivid royal-blue oval laterally compressed body, characteristic black palette-shaped marking on flank, bright yellow triangular tail, dark-edged fins, small natural eye; no character likeness",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a blue tang, vivid royal-blue oval laterally compressed body, characteristic black palette-shaped marking on flank, bright yellow triangular tail, dark-edged fins, small natural eye; no character likeness.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/paracanthurus_hepatus.png"
+    },
+    {
+      "id": "zebrasoma_flavescens",
+      "name": "Cá đuôi gai vàng",
+      "english": "Yellow tang",
+      "group": "fish",
+      "subject": "a yellow tang, saturated lemon-yellow laterally compressed oval body, tall continuous dorsal and anal fins, pointed narrow snout, pale small caudal peduncle spine, natural small black eye",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a yellow tang, saturated lemon-yellow laterally compressed oval body, tall continuous dorsal and anal fins, pointed narrow snout, pale small caudal peduncle spine, natural small black eye.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/zebrasoma_flavescens.png"
+    },
+    {
+      "id": "zanclus_cornutus",
+      "name": "Cá thù lù",
+      "english": "Moorish idol",
+      "group": "fish",
+      "subject": "a Moorish idol, disk-shaped white body with two broad black vertical bands and yellow rear flank patch, long thin tubular snout with yellow nose mark, elegant long white dorsal filament sweeping backward; entire filament uncut",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a Moorish idol, disk-shaped white body with two broad black vertical bands and yellow rear flank patch, long thin tubular snout with yellow nose mark, elegant long white dorsal filament sweeping backward; entire filament uncut.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/zanclus_cornutus.png"
+    },
+    {
+      "id": "pterois_volitans",
+      "name": "Cá sư tử đỏ",
+      "english": "Red lionfish",
+      "group": "fish",
+      "subject": "a red lionfish, rich russet-red and cream vertical stripes, numerous long separated dorsal spines, large fan-shaped pectoral fins with delicate rays and spots, facial tentacles; fins elegantly spread, every spine visible, recognizable natural anatomy",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a red lionfish, rich russet-red and cream vertical stripes, numerous long separated dorsal spines, large fan-shaped pectoral fins with delicate rays and spots, facial tentacles; fins elegantly spread, every spine visible, recognizable natural anatomy.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/pterois_volitans.png"
+    },
+    {
+      "id": "arothron_nigropunctatus",
+      "name": "Cá nóc đốm đen",
+      "english": "Blackspotted puffer",
+      "group": "fish",
+      "subject": "a blackspotted dogface puffer, uninflated rounded gray-tan body with black spots, dog-like blunt short face, small puckered beak-like mouth, small pectoral dorsal and anal fins, modest rounded tail; no long spikes, natural eyes",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a blackspotted dogface puffer, uninflated rounded gray-tan body with black spots, dog-like blunt short face, small puckered beak-like mouth, small pectoral dorsal and anal fins, modest rounded tail; no long spikes, natural eyes.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Landscape 3:2 canvas; body fills about 80% of width; slightly elevated side view only where needed to reveal anatomy.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/arothron_nigropunctatus.png"
+    },
+    {
+      "id": "hippocampus_erectus",
+      "name": "Cá ngựa sọc",
+      "english": "Lined seahorse",
+      "group": "fish",
+      "subject": "a lined seahorse, upright amber-brown body with pale fine lines and bony segmented armor rings, slender tubular snout facing right, moderate coronet, tiny translucent dorsal fin, curled prehensile tail; full upright body visible, no horizontal fish pose",
+      "prompt": "Use case: stylized-concept. Asset type: single transparent 2D marine creature sprite for TrashQuarium aquarium game.\nSubject: a lined seahorse, upright amber-brown body with pale fine lines and bony segmented armor rings, slender tubular snout facing right, moderate coronet, tiny translucent dorsal fin, curled prehensile tail; full upright body visible, no horizontal fish pose.\nStyle/medium: refined cozy watercolor and gouache with delicate hand-painted surface texture, realistic recognizable species silhouette, soft warm highlights, crisp clean edges, natural proportions. Match a polished painted aquarium fish sprite, not pixel art, not 3D and not a caricature.\nComposition: exactly ONE whole animal, facing RIGHT, centered, full body and every fin/bill/fluke/filament/tail inside frame with generous 8% safety margin. Square canvas, upright pose filling 80% of height.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No scenery, water, ocean floor, drop shadow, colored mist, halo, glow, bubbles, props, text, labels, logos, border or painted checkerboard. Keep semi-transparent delicate fin edges but no translucent background haze. Readable at 160px.",
+      "file": "fish/hippocampus_erectus.png"
+    }
+  ]
+}

@@ -1,0 +1,1080 @@
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 9081560..9f4a7c9 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -20,13 +20,15 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ 
+ ## Sinh sản (bản dùng thử)
+ 
+-Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng.
++Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng; trứng vào Hang trứng và nở sau 2–3 tiếng.
+ 
+ - **Giá trị bán:** mỗi trứng trừ của *từng* cá bố mẹ đúng một lần giá mua gốc. Giá bán hiện tại = giá mua × (100 − số trứng đã đẻ). Số trứng cộng dồn theo từng cá (`eggs_used`) và tối đa 99, tức giá bán không bao giờ thấp hơn giá mua gốc. Khi một trong hai cá hết hạn mức, chỉ còn đẻ được số trứng còn lại của cá ít hạn mức hơn.
+ - **Tỷ lệ nở mỗi trứng:** giảm tuyến tính theo giá của loài, từ 20% (giá ≤ 20 CBCoin) xuống 5% (giá ≥ 300 CBCoin). Cấu hình trong `balance.json` mục `breeding`. Trứng không nở vẫn bị trừ giá trị.
+ - **Cá con:** nở ra là cá bột Lv.0, `origin = hatched`, có `parent_ids` của hai cá bố mẹ và `generation` = đời lớn nhất của bố mẹ + 1. Giá mua ghi nhận bằng giá catalog của loài, nên cá con nuôi lên Lv.100 bán được như cá mua mới.
+-- **Bể đầy:** trứng được xử lý lần lượt, mỗi cá con cần đủ số chỗ của loài; khi bể không còn đủ chỗ, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
+-- Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
++- **Hang trứng và thời gian ấp:** mọi trứng vừa đẻ đều vào Hang trứng (`GameState.eggs`), mỗi trứng có giờ nở riêng ngẫu nhiên 2–3 tiếng (`incubate_min_s`/`incubate_max_s`). Hang chứa tối đa 100 trứng (`den_capacity`); đẻ quá chỗ trống bị từ chối. Đồng hồ chạy theo giờ hệ thống nên game tắt vẫn tính; khi mở lại, trứng quá giờ được xử lý ngay.
++- **Nở:** đồng hồ native kiểm tra mỗi giây. Trứng đến giờ mới tung tỷ lệ nở: nở thì thành cá con trong bể, không nở thì mất. Kết quả 30 lần gần nhất lưu ở `hatch_log` để giao diện báo.
++- **Bể đầy:** sinh sản không cần chỗ trong bể (trứng nằm trong hang). Trứng đến giờ mà bể không đủ chỗ cho loài đó thì nằm chờ trong hang, chưa tung tỷ lệ, cho tới khi bể có chỗ.
++- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang đá với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
+ 
+ ## Code quà tặng (Cài đặt → Nhập code)
+ 
+diff --git a/docs/how-to-play.md b/docs/how-to-play.md
+index 4f2392f..8b56f6f 100644
+--- a/docs/how-to-play.md
++++ b/docs/how-to-play.md
+@@ -47,7 +47,8 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
+ 
+ - Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
+ - Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
+-- Fry are born at Lv.0, show which generation they are, and start all over. If the tank fills up, unused eggs are kept.
++- Every egg goes into the **Egg den** (its own tab, and a little rock cave on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
++- Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
+ 
+ ## 😌 Relax
+ 
+diff --git a/docs/how-to-play.zh.md b/docs/how-to-play.zh.md
+index 0b86495..9a8edcc 100644
+--- a/docs/how-to-play.zh.md
++++ b/docs/how-to-play.zh.md
+@@ -47,7 +47,8 @@
+ 
+ - 每颗卵会让 **两条** 亲鱼的售价各减少一次原始购买价。生得越多卖得越便宜，但永远不会低于你买它的价钱。
+ - 每颗卵的孵化率是 **5–20%**：便宜的鱼容易孵（20%），贵的鱼难孵（5%）。没孵出的卵也算数。
+-- 鱼苗出生是 Lv.0，会标明第几代，然后从头开始。鱼缸满了的话，没用到的卵会保留。
++- 每颗卵都会放进 **鱼卵洞**（有单独的页签，桌面上也有一个小石洞），孵 **2–3 小时**，每颗卵上都有倒计时。关掉游戏也照样计时。
++- 鱼苗出生是 Lv.0，会标明第几代，然后从头开始。卵到时间时如果鱼缸满了，它会在洞里等到有位置。
+ 
+ ## 😌 放轻松
+ 
+diff --git a/docs/huong-dan-nguoi-moi.md b/docs/huong-dan-nguoi-moi.md
+index 2c1336c..45a055b 100644
+--- a/docs/huong-dan-nguoi-moi.md
++++ b/docs/huong-dan-nguoi-moi.md
+@@ -47,7 +47,8 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
+ 
+ - Mỗi trứng trừ giá bán của **cả hai** bố mẹ một lần giá mua gốc. Đẻ càng nhiều bán càng rẻ, nhưng không bao giờ rẻ hơn giá mua gốc.
+ - Mỗi trứng nở với tỷ lệ **5–20%**: cá rẻ dễ nở (20%), cá đắt khó nở (5%). Trứng không nở vẫn bị tính.
+-- Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Bể đầy thì trứng chưa dùng được giữ lại.
++- Mọi trứng vào **Hang trứng** (có tab riêng, và một hang đá nhỏ trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
++- Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Trứng đến giờ mà bể đầy thì nằm chờ trong hang đến khi có chỗ.
+ 
+ ## 😌 Yên tâm
+ 
+diff --git a/scripts/test-fish-motion.mjs b/scripts/test-fish-motion.mjs
+index 574c8a9..ce2af76 100644
+--- a/scripts/test-fish-motion.mjs
++++ b/scripts/test-fish-motion.mjs
+@@ -15,3 +15,9 @@ for (let u = 0; u <= 1; u += 0.1) for (const st of ['fish', 'tuna', 'eel', 'ray'
+ assert.equal(nextBurst(0.2, 0.1, 0.99, true), 1);
+ assert.ok(nextBurst(1, 0.5, 0.99, false) < 1 && nextBurst(0, 0.5, 0.99, false) === 0);
+ console.log('PASS: tail moves more than head, eel/tuna/ray styles, fins flutter, burst-and-glide');
++import { formatCountdown } from '../src/egg-den.ts';
++assert.equal(formatCountdown(7200), '2:00:00');
++assert.equal(formatCountdown(3725.2), '1:02:06');
++assert.equal(formatCountdown(59), '0:59');
++assert.equal(formatCountdown(-5), '0:00');
++console.log('PASS: egg countdown format');
+diff --git a/src-tauri/config/balance.json b/src-tauri/config/balance.json
+index 0ffc326..e2a64fa 100644
+--- a/src-tauri/config/balance.json
++++ b/src-tauri/config/balance.json
+@@ -7,7 +7,7 @@
+   "max_file_bytes": 4294967296,
+   "fingerprint_bytes": 1048576,
+   "stage_exp": { "juvenile": 500, "adult": 1000 },
+-  "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300 },
++  "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300, "incubate_min_s": 7200, "incubate_max_s": 10800, "den_capacity": 100 },
+   "economy": {
+     "welcome_shells": 40,
+     "base_shells": 2,
+diff --git a/src-tauri/src/engine/app.rs b/src-tauri/src/engine/app.rs
+index cd5b34a..14d93f9 100644
+--- a/src-tauri/src/engine/app.rs
++++ b/src-tauri/src/engine/app.rs
+@@ -58,6 +58,8 @@ pub struct StateView {
+     pub breeding: super::catalog::Breeding,
+     pub slots: super::catalog::Slots,
+     pub used_slots: usize,
++    pub eggs: Vec<super::game::Egg>,
++    pub hatch_log: Vec<super::game::HatchResult>,
+     pub max_preview_files: usize,
+     pub read_only: Option<Failure>,
+     pub recovered_from_backup: bool,
+@@ -190,6 +192,8 @@ impl AppCore {
+             breeding: c.balance.breeding.clone(),
+             slots: c.balance.slots.clone(),
+             used_slots: self.game.used_slots(),
++            eggs: s.eggs.clone(),
++            hatch_log: s.hatch_log.iter().cloned().collect(),
+             max_preview_files: c.balance.max_preview_files,
+             read_only: self.game.read_only.clone(),
+             recovered_from_backup: self.game.recovered_from_backup,
+diff --git a/src-tauri/src/engine/catalog.rs b/src-tauri/src/engine/catalog.rs
+index 8c489d4..77faae6 100644
+--- a/src-tauri/src/engine/catalog.rs
++++ b/src-tauri/src/engine/catalog.rs
+@@ -106,11 +106,16 @@ pub struct Breeding {
+     pub hatch_min: f64,
+     pub price_low: u64,
+     pub price_high: u64,
++    /// Eggs incubate in the egg den for a random time in this range (seconds).
++    pub incubate_min_s: i64,
++    pub incubate_max_s: i64,
++    /// Most eggs the den holds at once.
++    pub den_capacity: usize,
+ }
+ 
+ impl Default for Breeding {
+     fn default() -> Self {
+-        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300 }
++        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300, incubate_min_s: 7200, incubate_max_s: 10800, den_capacity: 100 }
+     }
+ }
+ 
+@@ -175,7 +180,7 @@ impl Catalog {
+             return Err("tank slots invalid".into());
+         }
+         let br = &b.breeding;
+-        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high {
++        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high || br.incubate_min_s < 0 || br.incubate_min_s > br.incubate_max_s || br.den_capacity == 0 {
+             return Err("breeding balance invalid".into());
+         }
+         let e = &b.economy;
+diff --git a/src-tauri/src/engine/game.rs b/src-tauri/src/engine/game.rs
+index 2417f8b..d47f34b 100644
+--- a/src-tauri/src/engine/game.rs
++++ b/src-tauri/src/engine/game.rs
+@@ -84,14 +84,35 @@ pub struct RedeemOutcome {
+     pub fish: u32,
+ }
+ 
+-/// Result of one breeding: `charged` eggs were spent, `refunded` were kept
+-/// because the tank filled up first.
++/// An egg in the egg den. It hatches (or not) once `hatch_at` has passed and the tank
++/// has room for the young fish.
++#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
++pub struct Egg {
++    pub id: String,
++    pub species_id: String,
++    pub parent_ids: Vec<String>,
++    pub generation: u32,
++    pub laid_at: i64,
++    pub hatch_at: i64,
++}
++
++/// What became of one egg, newest first in `GameState::hatch_log`.
++#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
++pub struct HatchResult {
++    pub egg_id: String,
++    pub species_id: String,
++    pub hatched: bool,
++    pub fish_id: Option<String>,
++    pub at: i64,
++}
++const HATCH_LOG: usize = 30;
++
++/// Result of one breeding: all eggs go into the egg den.
+ #[derive(Serialize, Clone, Debug)]
+ pub struct BreedOutcome {
+-    pub charged: u32,
+-    pub refunded: u32,
++    pub laid: u32,
+     pub hatch_rate: f64,
+-    pub hatched: Vec<Fish>,
++    pub eggs: Vec<Egg>,
+ }
+ 
+ #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+@@ -145,6 +166,9 @@ pub struct GameState {
+     pub daily: Daily,
+     pub dex: BTreeMap<String, DexEntry>,
+     pub settings: Settings,
++    /// The egg den: eggs waiting to hatch.
++    #[serde(default)] pub eggs: Vec<Egg>,
++    #[serde(default)] pub hatch_log: VecDeque<HatchResult>,
+ }
+ 
+ impl GameState {
+@@ -161,6 +185,8 @@ impl GameState {
+             daily: Daily::default(),
+             dex: BTreeMap::new(),
+             settings: Settings { tank_enabled: false, meeting_mode: false, onboarding_done: false, quick_dock_enabled: true },
++            eggs: Vec::new(),
++            hatch_log: VecDeque::new(),
+         }
+     }
+ 
+@@ -181,6 +207,12 @@ impl GameState {
+                 return Err(format!("invalid growth state {}", f.id));
+             }
+         }
++        let mut egg_ids = BTreeSet::new();
++        for e in &self.eggs {
++            if e.id.is_empty() || !egg_ids.insert(e.id.as_str()) || e.species_id.is_empty() || e.hatch_at < e.laid_at {
++                return Err(format!("invalid egg {:?}", e.id));
++            }
++        }
+         if !self.daily.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.daily.date, "%Y-%m-%d").is_err() {
+             return Err(format!("invalid daily date {:?}", self.daily.date));
+         }
+@@ -382,10 +414,9 @@ impl GameStore {
+         Ok(price)
+     }
+ 
+-    /// Breeds two adult fish of the same species. Each egg costs both parents one
+-    /// purchase price of sale value (never below one purchase price) and hatches
+-    /// with the species' hatch rate. Offspring start as Lv.0 fry. If the tank fills
+-    /// up, the remaining eggs are not spent. Randomness comes from `roll` (0..1).
++    /// Breeds two adult fish of the same species. Each egg costs both parents one purchase
++    /// price of sale value (never below one purchase price) and goes into the egg den, where it
++    /// incubates for 2–3 hours. `roll` (0..1) picks each egg's incubation time.
+     pub fn breed_with(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64, roll: &mut dyn FnMut() -> f64) -> Result<BreedOutcome, Failure> {
+         if a_id == b_id { return Err(Failure::new("breed_same_fish", a_id)); }
+         let find = |id: &str| self.state.fish.iter().position(|f| f.id == id).ok_or_else(|| Failure::new("fish_not_found", id.to_string()));
+@@ -396,38 +427,74 @@ impl GameStore {
+         let room = (MAX_EGGS_PER_FISH - a.eggs_used.min(MAX_EGGS_PER_FISH)).min(MAX_EGGS_PER_FISH - b.eggs_used.min(MAX_EGGS_PER_FISH));
+         if room == 0 { return Err(Failure::new("breed_exhausted", "sale value is back to the purchase price")); }
+         if eggs == 0 || eggs > room { return Err(Failure::new("breed_eggs_invalid", room)); }
++        let cfg = self.catalog.balance.breeding.clone();
++        let den_room = cfg.den_capacity.saturating_sub(self.state.eggs.len());
++        if den_room == 0 { return Err(Failure::new("den_full", cfg.den_capacity)); }
++        if eggs as usize > den_room { return Err(Failure::new("breed_eggs_invalid", den_room)); }
+         let species = self.catalog.species(&a.species_id).cloned().ok_or_else(|| Failure::new("unknown_species", a.species_id.clone()))?;
+-        let free = self.catalog.balance.tank_capacity.saturating_sub(self.used_slots());
+-        let kid_slots = self.catalog.balance.slots.for_price(species.price);
+-        if free < kid_slots { return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity)); }
+-        let rate = self.catalog.balance.breeding.hatch_rate(species.price);
+         let generation = a.generation.max(b.generation) + 1;
+         let parents = vec![a.id.clone(), b.id.clone()];
+-        let mut hatched = Vec::new();
+-        let mut charged = 0u32;
+-        while charged < eggs && (hatched.len() + 1) * kid_slots <= free {
+-            charged += 1;
+-            if roll() < rate {
++        let span = (cfg.incubate_max_s - cfg.incubate_min_s) as f64;
++        let laid: Vec<Egg> = (0..eggs).map(|_| Egg {
++            id: uuid::Uuid::new_v4().to_string(),
++            species_id: species.id.clone(),
++            parent_ids: parents.clone(),
++            generation,
++            laid_at: now,
++            hatch_at: now + cfg.incubate_min_s + (roll().clamp(0.0, 1.0) * span).round() as i64,
++        }).collect();
++        let mut next = self.state.clone();
++        next.fish[ai].eggs_used += eggs;
++        next.fish[bi].eggs_used += eggs;
++        next.eggs.extend(laid.iter().cloned());
++        self.commit(next)?;
++        Ok(BreedOutcome { laid: eggs, hatch_rate: cfg.hatch_rate(species.price), eggs: laid })
++    }
++
++    pub fn breed(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64) -> Result<BreedOutcome, Failure> {
++        self.breed_with(a_id, b_id, eggs, now, &mut random01)
++    }
++
++    /// Settles every egg whose time is up: it hatches into a Lv.0 fry with the species' hatch
++    /// chance, otherwise it is gone. An egg whose fry would not fit in the tank waits in the
++    /// den (unrolled) until there is room. Returns true when something changed.
++    pub fn hatch_due_with(&mut self, now: i64, roll: &mut dyn FnMut() -> f64) -> Result<bool, Failure> {
++        if self.read_only.is_some() || !self.state.eggs.iter().any(|e| e.hatch_at <= now) { return Ok(false); }
++        let mut next = self.state.clone();
++        let mut due: Vec<Egg> = next.eggs.iter().filter(|e| e.hatch_at <= now).cloned().collect();
++        due.sort_by_key(|e| e.hatch_at);
++        let cap = self.catalog.balance.tank_capacity;
++        let mut used: usize = next.fish.iter().map(|f| self.slots_for(&f.species_id)).sum();
++        let mut changed = false;
++        for egg in due {
++            let Some(species) = self.catalog.species(&egg.species_id).cloned() else {
++                next.eggs.retain(|e| e.id != egg.id); changed = true; continue;
++            };
++            let slots = self.catalog.balance.slots.for_price(species.price);
++            if used + slots > cap { continue; } // wait in the den until the tank has room
++            next.eggs.retain(|e| e.id != egg.id);
++            changed = true;
++            let hatched = roll() < self.catalog.balance.breeding.hatch_rate(species.price);
++            let mut fish_id = None;
++            if hatched {
+                 let mut kid = self.new_fish(&species, Origin::Hatched, now);
+-                kid.parent_ids = parents.clone();
+-                kid.generation = generation;
+-                hatched.push(kid);
++                kid.parent_ids = egg.parent_ids.clone();
++                kid.generation = egg.generation;
++                fish_id = Some(kid.id.clone());
++                next.fish.push(kid);
++                mark_owned(&mut next, &species.id);
++                used += slots;
+             }
++            next.hatch_log.push_front(HatchResult { egg_id: egg.id.clone(), species_id: species.id.clone(), hatched, fish_id, at: now });
++            next.hatch_log.truncate(HATCH_LOG);
+         }
+-        let mut next = self.state.clone();
+-        next.fish[ai].eggs_used += charged;
+-        next.fish[bi].eggs_used += charged;
+-        next.fish.extend(hatched.iter().cloned());
+-        if !hatched.is_empty() { mark_owned(&mut next, &species.id); }
++        if !changed { return Ok(false); }
+         self.commit(next)?;
+-        Ok(BreedOutcome { charged, refunded: eggs - charged, hatch_rate: rate, hatched })
++        Ok(true)
+     }
+ 
+-    pub fn breed(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64) -> Result<BreedOutcome, Failure> {
+-        self.breed_with(a_id, b_id, eggs, now, &mut || {
+-            let bytes = *uuid::Uuid::new_v4().as_bytes();
+-            u64::from_le_bytes(bytes[..8].try_into().unwrap()) as f64 / (u64::MAX as f64 + 1.0)
+-        })
++    pub fn hatch_due(&mut self, now: i64) -> Result<bool, Failure> {
++        self.hatch_due_with(now, &mut random01)
+     }
+ 
+     /// Redeems a gift code. The two admin test codes can be used again and again.
+@@ -621,6 +688,11 @@ fn digest_fish(f: &mut Fish, now: i64) {
+     if f.exp == MAX_EXP { f.pending_exp = 0; f.resting_until = 0; }
+ }
+ 
++fn random01() -> f64 {
++    let bytes = *uuid::Uuid::new_v4().as_bytes();
++    u64::from_le_bytes(bytes[..8].try_into().unwrap()) as f64 / (u64::MAX as f64 + 1.0)
++}
++
+ fn stage_for(exp: u64) -> Stage {
+     if exp >= MAX_EXP { Stage::Adult } else if exp >= JUVENILE_EXP { Stage::Juvenile } else { Stage::Fry }
+ }
+@@ -752,27 +824,45 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn breeding_costs_each_parent_one_price_per_egg_and_hatches_fry() {
++    fn breeding_lays_eggs_in_the_den_and_charges_both_parents() {
+         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+         let (a, b) = adult_pair(&mut s);
+-        let mut rolls = [0.01, 0.99, 0.19, 0.20, 0.5].into_iter();
++        let mut rolls = [0.0, 1.0, 0.5, 0.25, 0.75].into_iter();
+         let out = s.breed_with(&a, &b, 5, NOW, &mut || rolls.next().unwrap()).unwrap();
+-        assert_eq!((out.charged, out.refunded, out.hatched.len()), (5, 0, 2)); // 0.01 and 0.19 < 0.20
+-        for kid in &out.hatched {
+-            assert_eq!((kid.stage, kid.exp, kid.generation, kid.origin.clone()), (Stage::Fry, 0, 1, Origin::Hatched));
+-            assert_eq!(kid.parent_ids, vec![a.clone(), b.clone()]);
+-            assert_eq!(kid.purchase_price, 20);
+-        }
+-        assert_eq!(s.state.fish.len(), 4);
++        assert_eq!(out.laid, 5);
++        assert!((out.hatch_rate - 0.20).abs() < 1e-9);
++        assert_eq!(s.state.fish.len(), 2, "nothing hatches straight away");
++        let times: Vec<i64> = s.state.eggs.iter().map(|e| e.hatch_at - NOW).collect();
++        assert_eq!(times, vec![7200, 10800, 9000, 8100, 9900]); // 2–3 hours
++        for e in &s.state.eggs { assert_eq!((e.generation, e.parent_ids.clone(), e.laid_at), (1, vec![a.clone(), b.clone()], NOW)); }
+         for id in [&a, &b] {
+             let f = s.state.fish.iter().find(|f| &f.id == id).unwrap();
+             assert_eq!(f.eggs_used, 5);
+             assert_eq!(f.sale_value(), Some(20 * 95)); // 2000 - 5 x 20
+         }
+-        // Persisted atomically.
+-        let again = store(dir.path());
+-        assert_eq!(again.state.fish.len(), 4);
+-        assert_eq!(again.state.fish[0].eggs_used, 5);
++        let again = store(dir.path()); // persisted atomically
++        assert_eq!((again.state.eggs.len(), again.state.fish[0].eggs_used), (5, 5));
++    }
++
++    #[test]
++    fn eggs_hatch_only_when_their_time_is_up_with_the_species_chance() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        s.breed_with(&a, &b, 5, NOW, &mut || 0.0).unwrap(); // all due at NOW + 2h
++        assert!(!s.hatch_due_with(NOW + 7199, &mut || 0.0).unwrap());
++        assert_eq!(s.state.eggs.len(), 5);
++        let mut rolls = [0.01, 0.99, 0.19, 0.20, 0.5].into_iter();
++        assert!(s.hatch_due_with(NOW + 7200, &mut || rolls.next().unwrap()).unwrap());
++        assert!(s.state.eggs.is_empty());
++        let kids: Vec<&Fish> = s.state.fish.iter().filter(|f| f.origin == Origin::Hatched).collect();
++        assert_eq!(kids.len(), 2); // 0.01 and 0.19 < 20 %
++        for kid in kids {
++            assert_eq!((kid.stage, kid.exp, kid.generation, kid.purchase_price), (Stage::Fry, 0, 1, 20));
++            assert_eq!(kid.parent_ids, vec![a.clone(), b.clone()]);
++        }
++        assert_eq!(s.state.hatch_log.len(), 5);
++        assert_eq!(s.state.hatch_log.iter().filter(|r| r.hatched).count(), 2);
++        assert_eq!(store(dir.path()).state.fish.len(), 4);
+     }
+ 
+     #[test]
+@@ -781,7 +871,7 @@ mod tests {
+         let (a, b) = adult_pair(&mut s);
+         assert_eq!(s.breed_with(&a, &b, 100, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
+         assert_eq!(s.breed_with(&a, &b, 0, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
+-        assert_eq!(s.breed_with(&a, &b, 99, NOW, &mut || 0.99).unwrap().hatched.len(), 0);
++        assert_eq!(s.breed_with(&a, &b, 99, NOW, &mut || 0.99).unwrap().laid, 99);
+         assert_eq!(s.state.fish[0].sale_value(), Some(20)); // back to the purchase price
+         assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_exhausted");
+         assert_eq!(s.sell(&a).unwrap(), 20);
+@@ -795,7 +885,7 @@ mod tests {
+         s.state.fish[1].eggs_used = 90; // b is nearly exhausted
+         assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
+         s.breed_with(&a, &b, 9, NOW, &mut || 0.99).unwrap();
+-        assert_eq!((s.state.fish[0].eggs_used, s.state.fish[1].eggs_used), (49, 99));
++        assert_eq!((s.state.fish[0].eggs_used, s.state.fish[1].eggs_used, s.state.eggs.len()), (49, 99, 49));
+     }
+ 
+     #[test]
+@@ -811,12 +901,22 @@ mod tests {
+         s.state.fish[1].species_id = s.state.fish[0].species_id.clone();
+         let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
+         assert!(s.breed_with(&a, &b, 3, NOW, &mut || 0.0).is_err());
+-        assert_eq!((s.state.fish.len(), s.state.fish[0].eggs_used), (2, 0));
++        assert_eq!((s.state.fish.len(), s.state.fish[0].eggs_used, s.state.eggs.len()), (2, 0, 0));
+         s.path = good;
+     }
+ 
+     #[test]
+-    fn full_tank_stops_hatching_and_keeps_unspent_eggs() {
++    fn the_den_has_a_capacity() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        s.catalog.balance.breeding.den_capacity = 5;
++        assert_eq!(s.breed_with(&a, &b, 6, NOW, &mut || 0.0).unwrap_err().code, "breed_eggs_invalid");
++        s.breed_with(&a, &b, 5, NOW, &mut || 0.0).unwrap();
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "den_full");
++    }
++
++    #[test]
++    fn full_tank_keeps_due_eggs_waiting_in_the_den() {
+         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+         let (a, b) = adult_pair(&mut s);
+         let cap = s.catalog.balance.tank_capacity;
+@@ -824,26 +924,30 @@ mod tests {
+         let mut next = s.state.clone();
+         while next.fish.len() < cap - 1 { next.fish.push(s.new_fish(&sp, Origin::Shop, NOW)); }
+         s.commit(next).unwrap(); // one free slot
+-        let out = s.breed_with(&a, &b, 10, NOW, &mut || 0.0).unwrap(); // every egg would hatch
+-        assert_eq!((out.charged, out.refunded, out.hatched.len()), (1, 9, 1));
+-        assert_eq!(s.state.fish.len(), cap);
+-        assert_eq!(s.state.fish[0].eggs_used, 1);
+-        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "tank_full");
++        s.breed_with(&a, &b, 3, NOW, &mut || 0.0).unwrap(); // breeding itself needs no tank room
++        assert!(s.hatch_due_with(NOW + 7200, &mut || 0.0).unwrap());
++        assert_eq!((s.state.fish.len(), s.state.eggs.len()), (cap, 2)); // two eggs wait, unrolled
++        assert!(!s.hatch_due_with(NOW + 9000, &mut || 0.0).unwrap());
++        let mut next = s.state.clone(); next.fish.pop(); s.commit(next).unwrap(); // a slot frees up
++        assert!(s.hatch_due_with(NOW + 9000, &mut || 0.0).unwrap());
++        assert_eq!((s.state.fish.len(), s.state.eggs.len()), (cap, 1));
+     }
+ 
+     #[test]
+     fn real_randomness_stays_within_expected_hatch_band() {
+         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+         let (a, b) = adult_pair(&mut s);
+-        s.catalog.balance.tank_capacity = 500;
+-        let mut hatched = 0u32;
+-        let mut spent = 0u32;
+-        for _ in 0..3 { // 99 eggs from a fresh pair each time is not possible; reset the counters
++        s.catalog.balance.tank_capacity = 1000;
++        let (mut hatched, mut laid) = (0usize, 0u32);
++        for _ in 0..3 {
+             for f in &mut s.state.fish { f.eggs_used = 0; }
+-            let out = s.breed(&a, &b, 99, NOW).unwrap();
+-            hatched += out.hatched.len() as u32; spent += out.charged;
++            laid += s.breed(&a, &b, 99, NOW).unwrap().laid;
++            let before = s.state.fish.len();
++            s.hatch_due(NOW + 10800).unwrap();
++            assert!(s.state.eggs.is_empty());
++            hatched += s.state.fish.len() - before;
+         }
+-        let rate = hatched as f64 / spent as f64;
++        let rate = hatched as f64 / laid as f64;
+         assert!((0.08..=0.33).contains(&rate), "rate {rate}");
+     }
+ 
+@@ -908,10 +1012,9 @@ mod tests {
+         for _ in 0..2 { let mut f = s.new_fish(&sp, Origin::Shop, NOW); f.exp = MAX_EXP; f.stage = Stage::Adult; next.fish.push(f); }
+         s.commit(next).unwrap(); // 6 of 20 slots used: room for 4 whale shark pups
+         let (a, b) = (s.state.fish[0].id.clone(), s.state.fish[1].id.clone());
+-        let out = s.breed_with(&a, &b, 10, NOW, &mut || 0.0).unwrap();
+-        assert_eq!((out.hatched.len(), out.charged, out.refunded), (4, 4, 6));
+-        assert_eq!(s.used_slots(), 18);
+-        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "tank_full"); // 2 free < 3
++        assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 1.0).unwrap().laid, 10);
++        s.hatch_due_with(NOW + 10800, &mut || 0.0).unwrap();
++        assert_eq!((s.used_slots(), s.state.eggs.len()), (18, 6)); // 2 free < 3: the rest wait
+     }
+ 
+     fn store(dir: &Path) -> GameStore {
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 3c49488..b63bb1e 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -228,6 +228,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
+         let mut hunting = false;
+         let mut was_hunting = false;
+         let mut space_on = false;
++        let mut hatch_tick = 0;
+         loop {
+             std::thread::sleep(std::time::Duration::from_millis(100));
+             let now = std::time::Instant::now();
+@@ -241,6 +242,12 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
+                     if let Some(s) = &mut c.game.hunt_session { s.paused = true; }
+                 }
+                 changed = c.game.tick_hunt(if elapsed > 2000 { 0 } else { elapsed }, &engine::local_today()).unwrap_or(false);
++                // Eggs in the den hatch on their own, even while no window is open.
++                hatch_tick += 1;
++                if hatch_tick >= 10 {
++                    hatch_tick = 0;
++                    changed |= c.game.hatch_due(engine::now_unix()).unwrap_or(false);
++                }
+                 hunting = c.game.hunt_session.is_some();
+                 dock_tick += 1;
+                 if dock_tick >= 5 {
+@@ -274,7 +281,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
+ 
+ #[tauri::command]
+ async fn get_state(core: State<'_, Core>) -> Result<StateView, Failure> {
+-    with_core(&core, |c| { c.game.digest(engine::now_unix())?; Ok(c.view()) }).await
++    with_core(&core, |c| { c.game.digest(engine::now_unix())?; c.game.hatch_due(engine::now_unix())?; Ok(c.view()) }).await
+ }
+ 
+ #[tauri::command]
+diff --git a/src/api.ts b/src/api.ts
+index ada0a52..4400926 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -46,6 +46,9 @@ export interface Breeding {
+   hatch_min: number;
+   price_low: number;
+   price_high: number;
++  incubate_min_s: number;
++  incubate_max_s: number;
++  den_capacity: number;
+ }
+ 
+ export interface RedeemOutcome {
+@@ -54,11 +57,27 @@ export interface RedeemOutcome {
+   fish: number;
+ }
+ 
++export interface Egg {
++  id: string;
++  species_id: string;
++  parent_ids: string[];
++  generation: number;
++  laid_at: number;
++  hatch_at: number;
++}
++
++export interface HatchResult {
++  egg_id: string;
++  species_id: string;
++  hatched: boolean;
++  fish_id: string | null;
++  at: number;
++}
++
+ export interface BreedOutcome {
+-  charged: number;
+-  refunded: number;
++  laid: number;
+   hatch_rate: number;
+-  hatched: Fish[];
++  eggs: Egg[];
+ }
+ 
+ export interface Settings {
+@@ -91,6 +110,8 @@ export interface StateView {
+   breeding: Breeding;
+   slots: { medium_price: number; large_price: number };
+   used_slots: number;
++  eggs: Egg[];
++  hatch_log: HatchResult[];
+   max_preview_files: number;
+   read_only: Failure | null;
+   recovered_from_backup: boolean;
+diff --git a/src/egg-den.ts b/src/egg-den.ts
+new file mode 100644
+index 0000000..c044867
+--- /dev/null
++++ b/src/egg-den.ts
+@@ -0,0 +1,101 @@
++// The egg den: a small rock cave on the seabed of the desktop ocean. Every egg from breeding
++// waits here with its own countdown until it hatches (2–3 hours).
++
++/** "2:05:09" for times of an hour or more, "5:09" below that, "0:00" once due. */
++export function formatCountdown(seconds: number): string {
++  const s = Math.max(0, Math.ceil(seconds));
++  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
++  const two = (n: number) => String(n).padStart(2, "0");
++  return h > 0 ? `${h}:${two(m)}:${two(r)}` : `${m}:${two(r)}`;
++}
++
++export interface DenEgg { id: string; hatch_at: number }
++
++const SHOWN = 5;
++
++/** Draws the den with its bottom centre at (x, y). `size` is the den width in pixels. */
++export function drawDen(
++  ctx: CanvasRenderingContext2D, x: number, y: number, size: number,
++  eggs: DenEgg[], nowSec: number, clock: number, label: string, waitingLabel: string, still: boolean,
++) {
++  const w = size, h = size * 0.56;
++  ctx.save();
++  ctx.translate(x, y);
++  // Rock mound: a few overlapping boulders so it reads as stone, not a dome.
++  const boulder = (cx: number, cy: number, rx: number, ry: number, light: string, dark: string) => {
++    const g = ctx.createRadialGradient(cx * w - rx * w * 0.35, cy * h - ry * h * 0.45, rx * w * 0.1, cx * w, cy * h, rx * w * 1.05);
++    g.addColorStop(0, light); g.addColorStop(0.6, dark); g.addColorStop(1, "#22231a");
++    ctx.fillStyle = g;
++    ctx.beginPath(); ctx.ellipse(cx * w, cy * h, rx * w, ry * h, 0, 0, Math.PI * 2); ctx.fill();
++  };
++  boulder(-0.3, -0.38, 0.24, 0.42, "#8f8b70", "#57553f");
++  boulder(0.3, -0.36, 0.23, 0.4, "#8a856a", "#525039");
++  boulder(0.02, -0.62, 0.36, 0.5, "#9b9678", "#5f5c45");
++  boulder(-0.12, -0.92, 0.17, 0.2, "#a7a283", "#6a6650");
++  // Cracks.
++  ctx.strokeStyle = "rgba(25, 25, 15, 0.35)"; ctx.lineWidth = Math.max(1, w * 0.006);
++  ctx.beginPath(); ctx.moveTo(-w * 0.3, -h * 0.9); ctx.quadraticCurveTo(-w * 0.22, -h * 0.75, -w * 0.27, -h * 0.6); ctx.stroke();
++  ctx.beginPath(); ctx.moveTo(w * 0.28, -h * 0.82); ctx.quadraticCurveTo(w * 0.33, -h * 0.66, w * 0.25, -h * 0.55); ctx.stroke();
++  // Moss on top.
++  ctx.fillStyle = "rgba(118, 150, 62, 0.42)";
++  for (const [mx, my, mr] of [[-0.18, -1.05, 0.1], [0.08, -1.08, 0.08], [0.26, -0.86, 0.07], [-0.38, -0.66, 0.06], [0.4, -0.55, 0.05]]) {
++    ctx.beginPath(); ctx.ellipse(mx * w, my * h, mr * w, mr * w * 0.42, 0, 0, Math.PI * 2); ctx.fill();
++  }
++  // Cave mouth.
++  const mouth = ctx.createRadialGradient(0, -h * 0.15, w * 0.02, 0, -h * 0.25, w * 0.36);
++  mouth.addColorStop(0, "#1e3a3a"); mouth.addColorStop(1, "#071315");
++  ctx.fillStyle = mouth;
++  ctx.beginPath();
++  ctx.moveTo(-w * 0.36, 0);
++  ctx.bezierCurveTo(-w * 0.36, -h * 0.62, -w * 0.14, -h * 0.8, 0, -h * 0.8);
++  ctx.bezierCurveTo(w * 0.14, -h * 0.8, w * 0.36, -h * 0.62, w * 0.36, 0);
++  ctx.closePath();
++  ctx.fill();
++  // Sand floor of the cave.
++  ctx.fillStyle = "#b99b62";
++  ctx.beginPath(); ctx.ellipse(0, -h * 0.02, w * 0.35, h * 0.1, 0, Math.PI, Math.PI * 2); ctx.fill();
++
++  // Eggs: soonest first, each with its own timer.
++  const sorted = [...eggs].sort((a, b) => a.hatch_at - b.hatch_at);
++  const shown = sorted.slice(0, SHOWN);
++  const ew = w * 0.055, eh = ew * 1.3;
++  const gap = Math.min(w * 0.13, (w * 0.6) / Math.max(1, shown.length));
++  shown.forEach((egg, i) => {
++    const ex = (i - (shown.length - 1) / 2) * gap;
++    const ey = -h * 0.08 - eh;
++    const left = egg.hatch_at - nowSec;
++    ctx.save();
++    ctx.translate(ex, ey + eh);
++    // Eggs about to hatch wobble.
++    if (!still && left < 600) ctx.rotate(Math.sin(clock * 9 + i) * (left <= 0 ? 0.16 : 0.08));
++    const shell = ctx.createRadialGradient(-ew * 0.35, -eh * 1.45, ew * 0.1, 0, -eh, eh * 1.1);
++    shell.addColorStop(0, "#fffdf6"); shell.addColorStop(1, "#e8cf9f");
++    ctx.fillStyle = shell;
++    ctx.beginPath(); ctx.ellipse(0, -eh, ew, eh, 0, 0, Math.PI * 2); ctx.fill();
++    ctx.fillStyle = "rgba(150, 110, 70, 0.45)";
++    for (const [sx, sy, sr] of [[-0.3, -1.3, 0.13], [0.35, -0.9, 0.1], [0.05, -0.55, 0.12], [-0.25, -0.8, 0.08]]) {
++      ctx.beginPath(); ctx.arc(sx * ew, sy * eh, sr * ew, 0, Math.PI * 2); ctx.fill();
++    }
++    ctx.restore();
++    // Timer pill above the egg, staggered so neighbours don't overlap.
++    const text = left > 0 ? formatCountdown(left) : waitingLabel;
++    ctx.font = `700 ${Math.max(12, Math.round(w * 0.045))}px system-ui, sans-serif`;
++    const tw = ctx.measureText(text).width + 12, th = Math.max(18, w * 0.068);
++    const ty = ey - eh * 0.4 - th - (i % 2) * (th + 3);
++    ctx.fillStyle = left > 0 ? "rgba(8, 30, 34, 0.78)" : "rgba(150, 90, 20, 0.85)";
++    ctx.beginPath(); ctx.roundRect(ex - tw / 2, ty, tw, th, th / 2); ctx.fill();
++    ctx.fillStyle = "#fff4dc"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
++    ctx.fillText(text, ex, ty + th / 2 + 0.5);
++  });
++
++  // Name plate on the rock.
++  const more = sorted.length - shown.length;
++  const plate = more > 0 ? `${label} · +${more}` : label;
++  ctx.font = `700 ${Math.max(12, Math.round(w * 0.05))}px system-ui, sans-serif`;
++  const pw = ctx.measureText(plate).width + 18, ph = Math.max(20, w * 0.075);
++  ctx.fillStyle = "rgba(255, 244, 220, 0.9)";
++  ctx.beginPath(); ctx.roundRect(-pw / 2, -h * 1.12 - ph - 4, pw, ph, ph / 2); ctx.fill();
++  ctx.fillStyle = "#4a3a1a"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
++  ctx.fillText(plate, 0, -h * 1.12 - ph / 2 - 3.5);
++  ctx.restore();
++}
+diff --git a/src/i18n.ts b/src/i18n.ts
+index ee48f23..c8cd672 100644
+--- a/src/i18n.ts
++++ b/src/i18n.ts
+@@ -118,6 +118,7 @@ const reasons: Record<string, string> = {
+   breed_same_fish: "Hãy chọn hai con cá khác nhau để ghép cặp.",
+   breed_species_mismatch: "Chỉ ghép cặp được hai cá cùng loài.",
+   breed_exhausted: "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.",
++  den_full: "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.",
+   breed_eggs_invalid: "Số trứng không hợp lệ hoặc vượt mức tối đa cho phép.",
+   price_changed: "Giá đã thay đổi — hãy xem lại trước khi đổi",
+   unknown_species: "Loài này không có trong cửa hàng",
+diff --git a/src/locales/en.ts b/src/locales/en.ts
+index 6b8565a..1867ab8 100644
+--- a/src/locales/en.ts
++++ b/src/locales/en.ts
+@@ -74,16 +74,11 @@ export const EN: Record<string, string> = {
+   "Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ": "Hatch chance per egg: {rate}% · expect about {kids} fry (Lv.0). ",
+   "Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ": "Each parent loses {cost} CBCoin of sale value: {before} → {after} CBCoin ",
+   "(mỗi trứng −{price}, tối thiểu {price}). ": "(−{price} per egg, minimum {price}). ",
+-  "Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.": "Not enough room — each fry of this species needs {kid} free slots.",
+-  "Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "{free} free slots, each fry takes {kid}; if the tank fills up first, unused eggs are kept.",
+   "Chọn cá ghép cặp": "Choose a mate",
+   "{name} · Lv.{lv} · giá bán {price} CBCoin": "{name} · Lv.{lv} · sells for {price} CBCoin",
+   "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.": "Pair with an adult of the same species. Each egg takes one original purchase price off the sale value of both fish, so the more they breed, the less they sell for.",
+   "Cá ghép cặp": "Mate",
+   "🥚 Sinh sản": "🥚 Breed",
+-  "🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!": "🥚 {charged} eggs laid, {n} hatched into fry (Lv.0)!",
+-  " · giữ lại {n} trứng vì bể đầy": " · {n} eggs kept because the tank is full",
+-  "🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!": "🥚 {charged} eggs laid but none hatched ({rate}% chance each). Try again!",
+   "Gọi thuyền bán {name}?": "Call the boat to sell {name}?",
+   "Level 100 · Giá bán: {price} CBCoin (giá mua ×100": "Level 100 · Sale price: {price} CBCoin (purchase price ×100",
+   ", trừ {n} trứng đã đẻ": ", minus {n} eggs laid",
+@@ -300,7 +295,7 @@ export const EN: Record<string, string> = {
+   "Shopping cho bể": "Shopping for the tank",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank has 20 slots: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 — big sharks need their elbow room!",
+   "Bán hay cho đẻ?": "Sell or breed?",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat. Or pair two of the same species and breed: each egg takes value off both fish's sale price, with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
++  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat. Or pair two of the same species and breed: each egg takes value off both fish's sale price, then incubates in the Egg den for 2–3 hours with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
+   "Yên tâm": "Relax",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "No real money, no account, no network. Fish never die — they just get a bit lazy sometimes.",
+   "Đã hiểu!": "Got it!",
+@@ -317,4 +312,22 @@ export const EN: Record<string, string> = {
+   "Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.": "Fish under 100 CBCoin take 1 slot, 100–199 take 2 slots, 200 and up take 3 slots.",
+   "Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ": "Not enough room: needs {need} slots, the tank has {free} free",
+   "Chiếm {n} chỗ": "Takes {n} slot(s)",
++  "Hang trứng": "Egg den",
++  "Trứng vào Hang trứng và ấp {min}–{max} tiếng mới nở. Hang còn {room} chỗ. ": "Eggs go into the Egg den and incubate for {min}–{max} hours before hatching. The den has {room} spaces left. ",
++  "Khi nở, mỗi cá con cần {kid} chỗ trong bể; bể đầy thì trứng chờ trong hang.": "When hatching, each fry needs {kid} slot(s) in the tank; if the tank is full, the egg waits in the den.",
++  "🥚 Đã đẻ {n} trứng vào Hang trứng! Mỗi trứng nở sau 2–3 tiếng (tỷ lệ {rate}%).": "🥚 {n} eggs laid in the Egg den! Each one hatches in 2–3 hours ({rate}% chance).",
++  "Đời {n} · nở lúc {time}": "Generation {n} · hatches at {time}",
++  "{name} đã nở!": "{name} hatched!",
++  "Một trứng {name} không nở": "A {name} egg didn't hatch",
++  "{n}/{cap} trứng": "{n}/{cap} eggs",
++  "Mọi trứng từ sinh sản đều nằm ở đây. Mỗi trứng ấp 2–3 tiếng rồi mới nở thành cá con Lv.0 (game tắt vẫn tính giờ). Bể đầy thì trứng đến giờ sẽ chờ trong hang đến khi có chỗ.": "Every egg from breeding lives here. Each one incubates for 2–3 hours before hatching into a Lv.0 fry (the clock keeps running while the game is closed). If the tank is full, eggs that are due wait in the den until there's room.",
++  "Bể đã đầy — trứng đến giờ sẽ chờ trong hang. Bán bớt cá để trứng nở.": "The tank is full — eggs that are due will wait in the den. Sell a fish so they can hatch.",
++  "Hang trứng đang trống. Cho hai cá cùng loài Lv.100 sinh sản để có trứng.": "The Egg den is empty. Breed two Lv.100 fish of the same species to get eggs.",
++  "Vừa nở gần đây": "Recently hatched",
++  "chờ chỗ": "needs room",
++  "sắp nở!": "hatching!",
++  "🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.": "🐣 {n} eggs just hatched! Go to My tank to meet the fry.",
++  "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} eggs reached their time but didn't hatch.",
++  "Hang trứng · {n} trứng": "Egg den · {n} eggs",
++  "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "The Egg den is full. Wait for some eggs to hatch before breeding again.",
+ };
+diff --git a/src/locales/zh.ts b/src/locales/zh.ts
+index b13b52d..274bcb9 100644
+--- a/src/locales/zh.ts
++++ b/src/locales/zh.ts
+@@ -74,16 +74,11 @@ export const ZH: Record<string, string> = {
+   "Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ": "每颗卵孵化率：{rate}% · 预计约 {kids} 条鱼苗（Lv.0）。",
+   "Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ": "每条亲鱼的售价减少 {cost} CBCoin：{before} → {after} CBCoin ",
+   "(mỗi trứng −{price}, tối thiểu {price}). ": "（每颗卵 −{price}，最低 {price}）。",
+-  "Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.": "位置不够 — 这种鱼的每条鱼苗需要 {kid} 个空位。",
+-  "Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "还剩 {free} 个空位，每条鱼苗占 {kid} 个；如果鱼缸先满了，没用到的鱼卵会保留。",
+   "Chọn cá ghép cặp": "选择配对的鱼",
+   "{name} · Lv.{lv} · giá bán {price} CBCoin": "{name} · Lv.{lv} · 售价 {price} CBCoin",
+   "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.": "与同种的成年鱼配对。每颗卵会让两条鱼的售价各减少一次原始购买价，所以繁殖越多，卖得越便宜。",
+   "Cá ghép cặp": "配对对象",
+   "🥚 Sinh sản": "🥚 繁殖",
+-  "🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!": "🥚 产下 {charged} 颗卵，孵出 {n} 条鱼苗（Lv.0）！",
+-  " · giữ lại {n} trứng vì bể đầy": " · 因鱼缸已满保留了 {n} 颗卵",
+-  "🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!": "🥚 产下 {charged} 颗卵，可惜一颗都没孵出（每颗 {rate}% 机率）。再试一次吧！",
+   "Gọi thuyền bán {name}?": "叫船来卖 {name}？",
+   "Level 100 · Giá bán: {price} CBCoin (giá mua ×100": "Level 100 · 售价：{price} CBCoin（购买价 ×100",
+   ", trừ {n} trứng đã đẻ": "，扣除已产 {n} 颗卵",
+@@ -300,7 +295,7 @@ export const ZH: Record<string, string> = {
+   "Shopping cho bể": "给鱼缸购物",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "便宜的鱼小小只，贵的鱼大大只：鲸鲨（300 CBCoin）差不多是孔雀鱼（20 CBCoin）的 4 倍长。鱼缸有 20 个位置：100 CBCoin 以下的鱼占 1 个，100–199 占 2 个，200 及以上占 3 个 — 大鲨鱼当然要多占点地方！",
+   "Bán hay cho đẻ?": "卖掉还是繁殖？",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
++  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，然后在鱼卵洞里孵 2–3 小时，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
+   "Yên tâm": "放轻松",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "没有真钱、没有账号、不联网。鱼永远不会死，只是偶尔有点懒。",
+   "Đã hiểu!": "知道了！",
+@@ -317,4 +312,22 @@ export const ZH: Record<string, string> = {
+   "Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.": "100 CBCoin 以下的鱼占 1 个位置，100–199 占 2 个，200 及以上占 3 个。",
+   "Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ": "位置不够：需要 {need} 个位置，鱼缸只剩 {free} 个",
+   "Chiếm {n} chỗ": "占 {n} 个位置",
++  "Hang trứng": "鱼卵洞",
++  "Trứng vào Hang trứng và ấp {min}–{max} tiếng mới nở. Hang còn {room} chỗ. ": "鱼卵会放进鱼卵洞，孵 {min}–{max} 小时才会孵化。洞里还剩 {room} 个位置。",
++  "Khi nở, mỗi cá con cần {kid} chỗ trong bể; bể đầy thì trứng chờ trong hang.": "孵化时每条鱼苗需要鱼缸里 {kid} 个位置；鱼缸满了的话，鱼卵会在洞里等着。",
++  "🥚 Đã đẻ {n} trứng vào Hang trứng! Mỗi trứng nở sau 2–3 tiếng (tỷ lệ {rate}%).": "🥚 已在鱼卵洞产下 {n} 颗卵！每颗 2–3 小时后孵化（机率 {rate}%）。",
++  "Đời {n} · nở lúc {time}": "第 {n} 代 · {time} 孵化",
++  "{name} đã nở!": "{name} 孵出来啦！",
++  "Một trứng {name} không nở": "一颗{name}卵没有孵化",
++  "{n}/{cap} trứng": "{n}/{cap} 颗卵",
++  "Mọi trứng từ sinh sản đều nằm ở đây. Mỗi trứng ấp 2–3 tiếng rồi mới nở thành cá con Lv.0 (game tắt vẫn tính giờ). Bể đầy thì trứng đến giờ sẽ chờ trong hang đến khi có chỗ.": "繁殖产下的所有鱼卵都在这里。每颗卵要孵 2–3 小时才会变成 Lv.0 的鱼苗（关掉游戏也照样计时）。鱼缸满了的话，到时间的卵会在洞里等到有位置。",
++  "Bể đã đầy — trứng đến giờ sẽ chờ trong hang. Bán bớt cá để trứng nở.": "鱼缸已满 — 到时间的卵会在洞里等着。卖掉几条鱼让它们孵化吧。",
++  "Hang trứng đang trống. Cho hai cá cùng loài Lv.100 sinh sản để có trứng.": "鱼卵洞是空的。让两条同种的 Lv.100 鱼繁殖就会有卵。",
++  "Vừa nở gần đây": "最近孵化",
++  "chờ chỗ": "等位置",
++  "sắp nở!": "快孵了！",
++  "🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.": "🐣 刚孵出 {n} 条鱼苗！去“我的鱼缸”看看吧。",
++  "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} 颗卵到时间了，但没有孵出来。",
++  "Hang trứng · {n} trứng": "鱼卵洞 · {n} 颗卵",
++  "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "鱼卵洞已满。等一些卵孵化后再繁殖吧。",
+ };
+diff --git a/src/manager.ts b/src/manager.ts
+index c2a0871..817abeb 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -7,8 +7,9 @@ import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspe
+ import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangChange, LANGS, locale, reason, setLang, speciesFact, speciesName, stageName, t, type Lang } from "./i18n";
+ import { collectionPanel } from "./shell-collection";
+ import { coinText } from "./coin";
++import { formatCountdown } from "./egg-den";
+ 
+-type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
++type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "settings" | "hunt";
+ type Child = Node | string | null | undefined | false;
+ 
+ let state: StateView;
+@@ -96,6 +97,7 @@ async function refresh() {
+     return;
+   }
+   if (!state.fish.some((f) => f.id === selectedFish)) selectedFish = state.fish[0]?.id ?? "";
++  announceHatches();
+   if (tab === "belly") bellyEntries = await api.bellyList().catch(() => []);
+   render();
+ }
+@@ -148,6 +150,7 @@ function render() {
+     feed: renderFeed,
+     belly: renderBelly,
+     tank: renderTank,
++    den: renderDen,
+     settings: renderSettings,
+     hunt: renderHunt,
+   };
+@@ -165,7 +168,7 @@ function showGuide() {
+       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
+       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
+       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
+-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
++      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
+     ),
+     [{ label: t("Đã hiểu!"), kind: "primary" }],
+@@ -229,6 +232,7 @@ function renderTabs() {
+     ["feed", t("Cho cá ăn")],
+     ["belly", t("Bụng cá"), state.held_count],
+     ["tank", t("Bể của tôi")],
++    ["den", t("Hang trứng"), state.eggs.length],
+     ["hunt", t("Trục vớt Vỏ sò")],
+     ["settings", t("Cài đặt")],
+   ];
+@@ -368,11 +372,12 @@ function confirmBreed(fish: Fish) {
+   }
+   let partner = partners[0];
+   let eggs = 1;
+-  const free = freeSlots();
+   const kidSlots = slotsOf(sp?.price ?? fish.purchase_price);
++  const denRoom = Math.max(0, state.breeding.den_capacity - state.eggs.length);
++  const hours = (sec: number) => (sec / 3600).toLocaleString(locale(), { maximumFractionDigits: 1 });
+   const b = state.breeding;
+   const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
+-  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
++  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used, denRoom));
+   const summary = h("p", { class: "fine", role: "status" });
+   const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": t("Số trứng") }) as HTMLInputElement;
+   const refreshSummary = () => {
+@@ -383,7 +388,8 @@ function confirmBreed(fish: Fish) {
+       t("Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ", { rate: (r * 100).toFixed(1), kids: (eggs * r).toFixed(1) }),
+       t("Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ", { cost: fish.purchase_price * eggs, before: saleValue(fish), after: fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs) }),
+       t("(mỗi trứng −{price}, tối thiểu {price}). ", { price: fish.purchase_price }),
+-      free < kidSlots ? t("Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.", { kid: kidSlots }) : t("Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.", { free, kid: kidSlots }),
++      t("Trứng vào Hang trứng và ấp {min}–{max} tiếng mới nở. Hang còn {room} chỗ. ", { min: hours(state.breeding.incubate_min_s), max: hours(state.breeding.incubate_max_s), room: denRoom }),
++      t("Khi nở, mỗi cá con cần {kid} chỗ trong bể; bể đầy thì trứng chờ trong hang.", { kid: kidSlots }),
+     ].join("")));
+   };
+   const select = h("select", { "aria-label": t("Chọn cá ghép cặp"), onchange: (ev: Event) => {
+@@ -403,10 +409,8 @@ function confirmBreed(fish: Fish) {
+     working = true; render();
+     try {
+       const out = await api.breed(fish.id, partner.id, eggs);
+-      const n = out.hatched.length;
+-      toast(n > 0
+-        ? t("🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!", { charged: out.charged, n }) + (out.refunded ? t(" · giữ lại {n} trứng vì bể đầy", { n: out.refunded }) : "")
+-        : t("🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!", { charged: out.charged, rate: (out.hatch_rate * 100).toFixed(1) }));
++      toast(t("🥚 Đã đẻ {n} trứng vào Hang trứng! Mỗi trứng nở sau 2–3 tiếng (tỷ lệ {rate}%).", { n: out.laid, rate: (out.hatch_rate * 100).toFixed(1) }));
++      tab = "den";
+     } catch (e) { fail(e); }
+     finally { working = false; await refresh(); }
+   }}]);
+@@ -602,6 +606,72 @@ function renderTank(): Node {
+   );
+ }
+ 
++// ---------- egg den ----------
++
++function renderDen(): Node {
++  const now = Date.now() / 1000;
++  const full = freeSlots() < 1;
++  const eggs = [...state.eggs].sort((a, b) => a.hatch_at - b.hatch_at);
++  const card = (e: (typeof eggs)[number]) => {
++    const sp = speciesOf(e.species_id);
++    const timer = h("span", { class: "egg-timer", "data-hatch": String(e.hatch_at), "data-full": full ? "1" : "" }, "");
++    paintTimer(timer);
++    return h("article", { class: `egg-card${e.hatch_at - now < 600 ? " soon" : ""}` },
++      h("div", { class: "egg-wrap" }, h("div", { class: "egg", style: `--spot:${eggHue(e.species_id)}` }), timer),
++      h("strong", {}, sp ? speciesName(sp) : e.species_id),
++      h("span", { class: "fine" }, t("Đời {n} · nở lúc {time}", { n: e.generation, time: formatDate(e.hatch_at) })),
++    );
++  };
++  const log = state.hatch_log.slice(0, 12).map((r) => {
++    const sp = speciesOf(r.species_id);
++    const name = sp ? speciesName(sp) : r.species_id;
++    return h("div", { class: `row-item ${r.hatched ? "ok" : "bad"}` },
++      h("span", { class: "mark" }, r.hatched ? "🐣" : "💨"),
++      h("div", {}, h("div", { class: "name" }, r.hatched ? t("{name} đã nở!", { name }) : t("Một trứng {name} không nở", { name }))),
++      h("div", { class: "meta" }, formatDate(r.at)),
++    );
++  });
++  return h("section", {},
++    h("div", { class: "section-head" },
++      h("h2", {}, t("Hang trứng")),
++      h("span", { class: "fine" }, t("{n}/{cap} trứng", { n: eggs.length, cap: state.breeding.den_capacity })),
++    ),
++    h("p", { class: "lead" }, t("Mọi trứng từ sinh sản đều nằm ở đây. Mỗi trứng ấp 2–3 tiếng rồi mới nở thành cá con Lv.0 (game tắt vẫn tính giờ). Bể đầy thì trứng đến giờ sẽ chờ trong hang đến khi có chỗ.")),
++    full && eggs.length ? h("div", { class: "banner warn" }, t("Bể đã đầy — trứng đến giờ sẽ chờ trong hang. Bán bớt cá để trứng nở.")) : null,
++    eggs.length ? h("div", { class: "egg-grid" }, ...eggs.map(card)) : h("div", { class: "empty" }, t("Hang trứng đang trống. Cho hai cá cùng loài Lv.100 sinh sản để có trứng.")),
++    log.length ? h("div", { class: "list" }, h("h3", {}, t("Vừa nở gần đây")), ...log) : null,
++  );
++}
++
++/** Same egg, different speckle colour per species. */
++function eggHue(id: string) {
++  let n = 0;
++  for (const c of id) n = (n * 31 + c.charCodeAt(0)) % 360;
++  return `hsl(${n} 45% 45%)`;
++}
++
++function paintTimer(el: HTMLElement) {
++  const left = Number(el.dataset.hatch) - Date.now() / 1000;
++  el.textContent = left > 0 ? formatCountdown(left) : el.dataset.full ? t("chờ chỗ") : t("sắp nở!");
++  el.classList.toggle("due", left <= 0);
++}
++
++// Egg timers tick every second without re-rendering the page.
++setInterval(() => document.querySelectorAll<HTMLElement>(".egg-timer").forEach(paintTimer), 1000);
++
++let seenHatch: string | null | undefined;
++function announceHatches() {
++  const latest = state.hatch_log[0]?.egg_id ?? null;
++  if (seenHatch === undefined) { seenHatch = latest; return; }
++  if (latest === seenHatch) return;
++  const fresh = [];
++  for (const r of state.hatch_log) { if (r.egg_id === seenHatch) break; fresh.push(r); }
++  seenHatch = latest;
++  const born = fresh.filter((r) => r.hatched).length;
++  if (born) toast(t("🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.", { n: born }));
++  else if (fresh.length) toast(t("💨 {n} trứng đã đến giờ nhưng không nở.", { n: fresh.length }));
++}
++
+ function renderHunt(): Node {
+   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
+   return h("section", { class: "settings" },
+@@ -758,7 +828,7 @@ async function main() {
+   setInterval(() => { if (!working && preview.length === 0) void refresh(); }, 15000);
+   const route = async () => {
+     const next = await api.takeRoute();
+-    if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {
++    if (next && ["shop", "feed", "belly", "tank", "den", "settings", "hunt"].includes(next)) {
+       if (working || preview.length > 0) { toast(t("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn.")); return; }
+       switchTab(next as Tab);
+     }
+diff --git a/src/style.css b/src/style.css
+index a39111c..bb643c1 100644
+--- a/src/style.css
++++ b/src/style.css
+@@ -719,3 +719,64 @@ dialog::backdrop {
+   background: #fde3c8;
+   color: #8a4a12;
+ }
++
++.egg-grid {
++  display: grid;
++  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
++  gap: 12px;
++  margin-top: 12px;
++}
++.egg-card {
++  background: var(--card);
++  border: 1px solid var(--line);
++  border-radius: 14px;
++  padding: 14px 12px;
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 4px;
++  text-align: center;
++}
++.egg-wrap {
++  position: relative;
++  padding-top: 26px;
++}
++.egg {
++  width: 54px;
++  height: 70px;
++  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
++  background:
++    radial-gradient(circle at 30% 30%, var(--spot) 0 4px, transparent 5px),
++    radial-gradient(circle at 68% 52%, var(--spot) 0 3px, transparent 4px),
++    radial-gradient(circle at 42% 74%, var(--spot) 0 4px, transparent 5px),
++    radial-gradient(circle at 35% 25%, #fffdf6, #ead1a2 70%);
++  box-shadow: inset -6px -8px 12px rgba(120, 85, 40, 0.25), 0 6px 10px rgba(0, 0, 0, 0.12);
++  opacity: 0.95;
++}
++.egg-card.soon .egg {
++  animation: egg-wobble 0.9s ease-in-out infinite;
++}
++@keyframes egg-wobble {
++  0%, 100% { transform: rotate(-6deg); }
++  50% { transform: rotate(6deg); }
++}
++@media (prefers-reduced-motion: reduce) {
++  .egg-card.soon .egg { animation: none; }
++}
++.egg-timer {
++  position: absolute;
++  top: 0;
++  left: 50%;
++  transform: translateX(-50%);
++  background: #17434b;
++  color: #fff4dc;
++  font-weight: 700;
++  font-size: 13px;
++  font-variant-numeric: tabular-nums;
++  padding: 3px 9px;
++  border-radius: 999px;
++  white-space: nowrap;
++}
++.egg-timer.due {
++  background: #b5661b;
++}
+diff --git a/src/tank.ts b/src/tank.ts
+index a27fb66..1454e50 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -6,6 +6,7 @@ import { api, type Fish, type HuntShell, type HuntView, type StateView } from ".
+ import { reason, t } from "./i18n";
+ import { closureStep, drawClaw } from "./hunt-motion";
+ import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
++import { drawDen } from "./egg-den";
+ import { COIN_SRC } from "./coin";
+ 
+ const VISIBLE_FPS = 60;
+@@ -453,6 +454,12 @@ function draw() {
+     const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
+     drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
+   }
++  // The egg den sits on the seabed, in front of the shells, behind the fish.
++  if (state) {
++    const eggs = state.eggs ?? [];
++    const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
++    drawDen(ctx, width * 0.16, height * 0.93, Math.min(width, height) * 0.34, eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
++  }
+   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
+   for (const b of bubbles) {
+     ctx.beginPath();

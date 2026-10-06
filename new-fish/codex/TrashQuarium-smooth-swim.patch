@@ -1,0 +1,167 @@
+From adbb8ad92e66a70ea7fba0809b9496e7aa376124 Mon Sep 17 00:00:00 2001
+From: onepiecoltd-tech <onepieco.ltd@gmail.com>
+Date: Mon, 5 Oct 2026 13:39:00 +0000
+Subject: [PATCH] Smoother fish motion: display-rate rendering, body
+ undulation, baked shadows
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01DeBm48Vaafme39CvFHRATa
+---
+ README.md   |  2 +-
+ src/tank.ts | 71 ++++++++++++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 58 insertions(+), 15 deletions(-)
+
+diff --git a/README.md b/README.md
+index a25027c..ba74898 100644
+--- a/README.md
++++ b/README.md
+@@ -22,7 +22,7 @@ Runs on macOS and Windows.
+   - `app.rs` facade used by the Tauri commands
+ - `src-tauri/src/desktop.rs` — desktop tank window below the icons (macOS window level / Windows WorkerW), idle detection
+ - `src-tauri/src/lib.rs` — commands, tray/menu-bar, single instance
+-- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, 30 FPS / 10 FPS idle)
++- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle)
+ 
+ ## Run
+ 
+diff --git a/src/tank.ts b/src/tank.ts
+index 78a3aec..3687466 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -1,13 +1,14 @@
+-// Desktop ocean. Renders only while visible: 30 FPS normally, 10 FPS when the
+-// computer is idle or Meeting Mode is on, nothing when the window is hidden.
++// Desktop ocean. Renders only while visible: at the display rate (up to 60 FPS)
++// normally, 20 FPS when the computer is idle or Meeting Mode is on, nothing when
++// the window is hidden.
+ import { listen } from "@tauri-apps/api/event";
+ import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
+ import { reason } from "./i18n";
+ import { closureStep, drawClaw } from "./hunt-motion";
+ import { COIN_SRC } from "./coin";
+ 
+-const VISIBLE_FPS = 30;
+-const QUIET_FPS = 10;
++const VISIBLE_FPS = 60;
++const QUIET_FPS = 20;
+ const IDLE_AFTER_SECONDS = 60;
+ 
+ // Relative on-screen length per species (renderer detail, not biology data).
+@@ -35,6 +36,7 @@ interface Swimmer {
+   ty: number;
+   facing: number; // -1 left … 1 right, eased for smooth turns
+   phase: number;
++  tail: number; // tail-beat phase, faster when the fish swims faster
+   speed: number;
+ }
+ 
+@@ -93,6 +95,7 @@ function resize() {
+   canvas.width = Math.round(width * dpr);
+   canvas.height = Math.round(height * dpr);
+   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
++  baked.clear();
+   background.width = canvas.width;
+   background.height = canvas.height;
+   const bg = background.getContext("2d")!;
+@@ -137,6 +140,7 @@ function syncSwimmers(fish: Fish[]) {
+       ty: 0,
+       facing: 1,
+       phase: Math.random() * Math.PI * 2,
++      tail: Math.random() * Math.PI * 2,
+       speed: 0.9 + Math.random() * 0.3,
+     };
+     pickTarget(s);
+@@ -180,8 +184,10 @@ function step(dt: number) {
+     s.x += s.vx * dt;
+     s.y += s.vy * dt;
+     s.phase += dt * (2 + Math.abs(s.vx) / 40);
+-    const want = s.vx >= 0 ? 1 : -1;
+-    s.facing += (want - s.facing) * Math.min(1, dt * 3);
++    s.tail += dt * (3.2 + Math.hypot(s.vx, s.vy) / 22);
++    // Dead zone: a fish that is nearly still keeps its heading instead of flip-flopping.
++    const want = s.vx > 4 ? 1 : s.vx < -4 ? -1 : Math.sign(s.facing) || 1;
++    s.facing += (want - s.facing) * Math.min(1, dt * 4);
+   }
+   if (!state?.settings.meeting_mode) {
+     if (bubbles.length < 18 && Math.random() < dt * 1.5) {
+@@ -197,6 +203,46 @@ function step(dt: number) {
+   }
+ }
+ 
++// Fish art is a still PNG, so the body is drawn as thin vertical slices whose
++// vertical offset follows a travelling wave: calm at the head, wide at the tail.
++// The shadow is baked once per size (shadowBlur every frame is slow on big screens).
++const SLICES = 18;
++const baked = new Map<string, { canvas: HTMLCanvasElement; pad: number }>();
++
++function bakeFish(id: string, img: HTMLImageElement, len: number) {
++  const dpr = window.devicePixelRatio || 1;
++  const key = `${id}|${Math.round(len * dpr)}`;
++  let hit = baked.get(key);
++  if (hit) return hit;
++  if (baked.size > 160) baked.clear();
++  const w = len, h = len * (img.height / img.width), pad = Math.ceil(len * 0.12);
++  const canvas = document.createElement("canvas");
++  canvas.width = Math.ceil((w + pad * 2) * dpr);
++  canvas.height = Math.ceil((h + pad * 2) * dpr);
++  const g = canvas.getContext("2d")!;
++  g.shadowColor = "rgba(0, 20, 25, 0.35)";
++  g.shadowBlur = len * 0.08 * dpr;
++  g.shadowOffsetY = len * 0.05 * dpr;
++  g.drawImage(img, pad * dpr, pad * dpr, w * dpr, h * dpr);
++  hit = { canvas, pad };
++  baked.set(key, hit);
++  return hit;
++}
++
++function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
++  const { canvas: src, pad } = bakeFish(s.fish.species_id, img, len);
++  const h = len * (img.height / img.width);
++  const totalW = len + pad * 2, totalH = h + pad * 2;
++  const sliceW = src.width / SLICES, destW = totalW / SLICES;
++  const amp = reducedMotion.matches ? 0 : len * 0.04;
++  for (let i = 0; i < SLICES; i++) {
++    const cx = -totalW / 2 + (i + 0.5) * destW;
++    const u = Math.min(1, Math.max(0, (cx + len / 2) / len)); // 0 = tail, 1 = head (sprites face right)
++    const dy = Math.sin(s.tail - (1 - u) * 3.4) * amp * Math.pow(1 - u, 1.5);
++    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, -totalW / 2 + i * destW, -totalH / 2 + dy, destW + 0.8, totalH);
++  }
++}
++
+ function drawFallbackFish(len: number) {
+   ctx.fillStyle = "#f2b36b";
+   ctx.beginPath();
+@@ -371,17 +417,12 @@ function draw() {
+     const len = fishLength(s.fish);
+     const img = sprites.get(s.fish.species_id);
+     const bob = Math.sin(s.phase * 0.7) * len * 0.02;
+-    const wiggle = 1 + Math.sin(s.phase * 2.2) * 0.025;
+     ctx.save();
+     ctx.translate(s.x, s.y + bob);
+     ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
+-    ctx.scale(s.facing * wiggle, 1);
+-    ctx.shadowColor = "rgba(0, 20, 25, 0.35)";
+-    ctx.shadowBlur = len * 0.08;
+-    ctx.shadowOffsetY = len * 0.05;
++    ctx.scale(s.facing, 1);
+     if (img) {
+-      const h = len * (img.height / img.width);
+-      ctx.drawImage(img, -len / 2, -h / 2, len, h);
++      drawUndulating(s, img, len);
+     } else {
+       drawFallbackFish(len);
+     }
+@@ -405,7 +446,9 @@ function frame(now: number) {
+   requestAnimationFrame(frame); // browsers stop rAF while the window is hidden
+   const fps = !huntActive() && (quiet || state?.settings.meeting_mode) ? QUIET_FPS : VISIBLE_FPS;
+   const elapsed = now - lastFrame;
+-  if (elapsed < 1000 / fps - 1) return;
++  const interval = 1000 / fps;
++  // At 60 FPS follow the display's own refresh; lower caps keep an even cadence.
++  if (fps < 60 && elapsed < interval - 2) return;
+   lastFrame = now;
+   const dt = Math.min(elapsed, 250) / 1000;
+   step(dt);
+-- 
+2.43.0
+

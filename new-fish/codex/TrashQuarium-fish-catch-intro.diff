@@ -1,0 +1,1433 @@
+diff --git a/README.md b/README.md
+index 9d718e9..6e21685 100644
+--- a/README.md
++++ b/README.md
+@@ -6,6 +6,8 @@ earn **CBCoin** (in-game points) by hunting shells with the boat and buy real
+ fish species from a 64-species shop. See `docs/economy-growth.md`. In the UI
+ CBCoin is shown as the CB logo (`public/art/cb-coin.png`, `src/coin.ts`).
+ 
++Test files: `scripts/tao-file-rac.ps1` makes 100 random 20 MB junk files for feeding tests.
++
+ Player guides: `docs/how-to-play.md` (English), `docs/huong-dan-nguoi-moi.md`
+ (Vietnamese) and `docs/how-to-play.zh.md` (Chinese); the same guide opens in-game from the **?** button.
+ 
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 570586d..2f4deb2 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -13,11 +13,11 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ - Mỗi mốc 5 level (50 EXP), cá nghỉ 7.200 giây. EXP dư của file đã ăn được giữ trong `pending_exp`, không vứt đi. Hết nghỉ, phần dư được tiêu hóa đến mốc nghỉ tiếp theo; nếu lại đủ 5 level thì nghỉ tiếp 2 tiếng. Không tiếp tục nhận file lúc nghỉ. Phần EXP vượt tổng 1.000 không ghi nhận.
+ - Thời hạn nghỉ được lưu để sống qua restart; manager/tank kiểm tra lại khoảng 15 giây khi app mở. Đồng hồ hệ thống được dùng cho thời hạn; chưa có cơ chế chống người dùng chỉnh đồng hồ.
+ - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
+-- Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
++- **Bán cá trưởng thành bằng cách gắp:** manager không còn nút bán cá Lv.100. Trên desktop cá Lv.100 hiện chữ "Cá béo lắm rồi, bắt điii! 🎣". Khi gọi thuyền, mọi cá Lv.100 được lõi game (Rust) cho bơi qua lại theo làn ngang trong khung trục vớt và tính va chạm với móc giống sò (bán kính trúng lớn hơn với cá to, kéo về chậm hơn). Gắp trúng thì phiên chuyển sang `deciding`: người chơi chọn ở nút nhanh (hoặc tab Trục vớt) "Cá gầy quá nuôi thêm chút vậyyyy" (`keep`, cá bơi đi và không được mời lại trong chuyến này) hoặc "Yehh nay có cơm ăn rồiiii" (`sell`). Bán ghi tiền, xóa cá và biên nhận `last_sale` trong cùng một save atomic, chống bán lặp; desktop hiện "+2.000 CBCoin · <tên cá> lên thuyền!". Có cá trưởng thành thì gọi thuyền được kể cả khi chưa có sò hoặc đã hết hạn 60 sò; gắp cá không tính vào hạn này. Giá bán = giá mua ×100 trừ trứng đã đẻ như cũ.
+ - **Bán lại cá chưa trưởng thành:** cá dưới Lv.100 (mua nhầm, bể đầy) bán lại được 1/2 giá mua, làm tròn xuống (`sale_value`). Cá con nở từ trứng cũng vậy; vì mỗi trứng đã trừ 2 lần giá mua vào giá bán của bố mẹ mà chỉ nở 5–20%, nên không thể đẻ trứng rồi bán cá con để kiếm lời.
+ - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
+ - **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
+-- Giữ quà khởi đầu 40 CBCoin, giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
++- Quà khởi đầu cho người chơi mới: **300 CBCoin** (`welcome_shells`); save cũ không được cộng lại. Giữ giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
+ 
+ ## Sinh sản (bản dùng thử)
+ 
+diff --git a/docs/how-to-play.md b/docs/how-to-play.md
+index 8f8d815..141db21 100644
+--- a/docs/how-to-play.md
++++ b/docs/how-to-play.md
+@@ -6,7 +6,7 @@ In the game, click the **?** button in the top right to open this guide any time
+ 
+ ## 🎁 Getting started
+ 
+-You get **1 guppy at Lv.0** and **40 CBCoin** as a welcome gift. Your fish doesn't beg for food yet, but it loves… files you no longer need.
++You get **1 guppy at Lv.0** and **300 CBCoin** as a welcome gift. Your fish doesn't beg for food yet, but it loves… files you no longer need.
+ 
+ Turn on **Settings → Desktop aquarium** so your fish swim right under your desktop icons. In a meeting? Turn on **Meeting mode** for slower fish, no chat bubbles and the boat on hold.
+ 
+@@ -41,7 +41,7 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
+ 
+ ## ⛵ Sell or 🥚 breed? (at Lv.100)
+ 
+-**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
++**Sell by catching:** a Lv.100 fish shows **"So fat, catch me nowww! 🎣"** above its head on the desktop. Call the boat: grown fish swim back and forth, so time your drop. When the claw brings one up you choose **"Too skinny, let it grow a bit moreee"** (it swims off) or **"Yayyy dinner's sorted tonighttt"** — then the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000) and you see "+2,000 CBCoin · Guppy is on board!". Bigger fish are easier to hit but slower to haul up. Catching fish doesn't count toward the 60-shell daily limit. Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
+ 
+ **Breed:** press **Breed**, pick a partner of the **same species** that is also Lv.100, and choose how many eggs.
+ 
+diff --git a/docs/how-to-play.zh.md b/docs/how-to-play.zh.md
+index f08845a..938c22e 100644
+--- a/docs/how-to-play.zh.md
++++ b/docs/how-to-play.zh.md
+@@ -6,7 +6,7 @@
+ 
+ ## 🎁 开始
+ 
+-你会收到 **1 条 Lv.0 的孔雀鱼** 和 **40 CBCoin** 作为见面礼。鱼还不会讨吃的，但它超爱……你不再需要的文件。
++你会收到 **1 条 Lv.0 的孔雀鱼** 和 **300 CBCoin** 作为见面礼。鱼还不会讨吃的，但它超爱……你不再需要的文件。
+ 
+ 打开 **设置 → 桌面鱼缸**，鱼就会在桌面图标下方游动。开会中？打开 **会议模式**，鱼游得慢一些、不显示气泡，小船也会暂停。
+ 
+@@ -41,7 +41,7 @@
+ 
+ ## ⛵ 卖掉还是 🥚 繁殖？（Lv.100 时）
+ 
+-**卖出：** 点 **⛵ 卖出**，小船付你 **购买价 × 100 CBCoin**（20 CBCoin 的孔雀鱼能卖 2000）。鱼肚子里的文件依然安全。买错了鱼或鱼缸满了？未成年的鱼有 **卖回** 按钮，按 **购买价的一半** 卖出。
++**抓鱼来卖：** Lv.100 的鱼在桌面上头顶会显示 **“肥得不行啦，快来抓～ 🎣”**。叫船后成年鱼会来回游，要看准时机放钩。钩子把鱼抓上船后，选择 **“太瘦了，再养养吧～”**（鱼游走）或 **“耶～今晚有饭吃啦！”** —— 小船付你 **购买价 × 100 CBCoin**（20 CBCoin 的孔雀鱼能卖 2000），并显示“+2,000 CBCoin · 孔雀鱼 上船啦！”。鱼越大越容易抓中，但拉上来更慢。抓鱼不计入每天 60 个贝壳的上限。鱼肚子里的文件依然安全。买错了鱼或鱼缸满了？未成年的鱼有 **卖回** 按钮，按 **购买价的一半** 卖出。
+ 
+ **繁殖：** 点 **繁殖**，选一条同样 Lv.100 的 **同种** 配对鱼，再选鱼卵数量。
+ 
+diff --git a/docs/hunt-features.md b/docs/hunt-features.md
+index 627e417..f9f3e17 100644
+--- a/docs/hunt-features.md
++++ b/docs/hunt-features.md
+@@ -6,6 +6,7 @@
+ 
+ ## Đã triển khai
+ 
++- Gắp cá trưởng thành: cá Lv.100 bơi qua lại theo làn do Rust tính (`FishTarget`), móc gắp trúng thì cá treo trên móc giãy giãy, lên thuyền thì chờ người chơi chọn nuôi thêm hoặc bán (pha `deciding`). Xem [economy-growth.md](economy-growth.md).
+ - Khi gọi thuyền, phần trên bể desktop thành mặt biển: bầu trời có mặt trời và mây trôi, đường mặt nước gợn sóng; thuyền nổi trên mặt nước (nửa thân dưới chìm) và nhấp nhô theo sóng (`src/hunt-sky.ts`). Rời thuyền thì bầu trời mờ dần. Chế độ giảm chuyển động giữ mây và sóng đứng yên.
+ - Sò rải ngẫu nhiên khắp vùng móc với tới được (góc ±60°, tầm 0,42–0,84 tính từ trục móc), không xếp hàng; hai sò luôn cách nhau đủ xa để một lần gắp không chạm hai sò.
+ 
+diff --git a/docs/huong-dan-nguoi-moi.md b/docs/huong-dan-nguoi-moi.md
+index ca31563..34e0887 100644
+--- a/docs/huong-dan-nguoi-moi.md
++++ b/docs/huong-dan-nguoi-moi.md
+@@ -6,7 +6,7 @@ Trong game, bấm nút **?** ở góc trên bên phải để mở lại hướn
+ 
+ ## 🎁 Bắt đầu
+ 
+-Bạn nhận **1 chú cá bảy màu Lv.0** và **40 CBCoin** làm quà. Cá chưa biết đòi ăn, nhưng rất mê… file bạn không cần nữa.
++Bạn nhận **1 chú cá bảy màu Lv.0** và **300 CBCoin** làm quà. Cá chưa biết đòi ăn, nhưng rất mê… file bạn không cần nữa.
+ 
+ Bật **Cài đặt → Bể cá desktop** để cá bơi ngay dưới biểu tượng màn hình nền. Đang họp? Bật **Chế độ họp** để cá bơi chậm, tắt bong bóng chat và tạm khóa thuyền.
+ 
+@@ -41,7 +41,7 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
+ 
+ ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
+ 
+-**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn. Lỡ mua nhầm hoặc bể đầy? Cá chưa lớn có nút **Bán lại** với giá **1/2 giá mua**.
++**Gắp cá để bán:** cá Lv.100 hiện chữ **"Cá béo lắm rồi, bắt điii! 🎣"** trên đầu ngoài desktop. Gọi thuyền: cá trưởng thành bơi qua lại, phải canh đúng lúc thả móc. Gắp được cá lên thuyền thì chọn **"Cá gầy quá nuôi thêm chút vậyyyy"** (cá bơi đi) hoặc **"Yehh nay có cơm ăn rồiiii"** — thuyền trả **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000) và hiện "+2.000 CBCoin · Cá bảy màu lên thuyền!". Cá càng to càng dễ gắp trúng nhưng kéo lên chậm hơn. Gắp cá không tính vào hạn 60 sò/ngày. File trong Bụng cá vẫn an toàn. Lỡ mua nhầm hoặc bể đầy? Cá chưa lớn có nút **Bán lại** với giá **1/2 giá mua**.
+ 
+ **Sinh sản:** bấm **Sinh sản**, chọn một bạn đời **cùng loài** cũng Lv.100 và số trứng.
+ 
+diff --git a/scripts/tao-file-rac.ps1 b/scripts/tao-file-rac.ps1
+new file mode 100644
+index 0000000..1eabff0
+--- /dev/null
++++ b/scripts/tao-file-rac.ps1
+@@ -0,0 +1,58 @@
++﻿# Tạo file rác để test cho cá ăn (Windows PowerShell 5.1 hoặc PowerShell 7).
++#
++# Mặc định: 100 file, mỗi file 20 MB (20.000.000 byte), nội dung ngẫu nhiên nên không file nào
++# trùng nhau (game chặn file trùng nội dung). Tổng cộng khoảng 2 GB, đặt trong
++# Documents\TrashQuarium-FileRac. Đuôi .tmp được game nhận (nhóm Nén/log/bộ cài).
++#
++# Mỗi file 20 MB cho 40 EXP (= 4 level). Cá nghỉ 2 tiếng sau mỗi 5 level, nên một lượt chỉ
++# ăn được vài file; phần còn lại vẫn nằm nguyên chỗ cũ.
++#
++# Chạy:
++#   powershell -ExecutionPolicy Bypass -File scripts\tao-file-rac.ps1
++#   powershell -ExecutionPolicy Bypass -File scripts\tao-file-rac.ps1 -Count 10 -SizeMB 5
++#   powershell -ExecutionPolicy Bypass -File scripts\tao-file-rac.ps1 -Folder "D:\Rac"
++#
++# Lưu ý: thư mục phải cùng ổ đĩa với dữ liệu game (thường là ổ C:), vì game không chuyển file
++# khác ổ. Xóa thư mục này khi test xong nếu không cần nữa.
++
++param(
++    [int]$Count = 100,
++    [int]$SizeMB = 20,
++    [string]$Folder = (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "TrashQuarium-FileRac")
++)
++
++$ErrorActionPreference = "Stop"
++$bytes = [int64]$SizeMB * 1000 * 1000
++$totalGB = [math]::Round($bytes * $Count / 1e9, 2)
++
++$drive = [System.IO.Path]::GetPathRoot([System.IO.Path]::GetFullPath($Folder))
++$free = (New-Object System.IO.DriveInfo($drive)).AvailableFreeSpace
++if ($free -lt ($bytes * $Count + 1e9)) {
++    Write-Host "Ổ $drive không đủ chỗ trống: cần khoảng $totalGB GB (+1 GB dự phòng)." -ForegroundColor Red
++    exit 1
++}
++
++New-Item -ItemType Directory -Force -Path $Folder | Out-Null
++Write-Host "Tạo $Count file x $SizeMB MB (khoảng $totalGB GB) trong $Folder ..."
++
++$rng = New-Object System.Security.Cryptography.RNGCryptoServiceProvider
++$chunk = New-Object byte[] (1MB)
++for ($i = 1; $i -le $Count; $i++) {
++    $path = Join-Path $Folder ("rac-{0:D3}.tmp" -f $i)
++    $stream = [System.IO.File]::Open($path, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
++    try {
++        $left = $bytes
++        while ($left -gt 0) {
++            $rng.GetBytes($chunk)
++            $n = [int][math]::Min($chunk.Length, $left)
++            $stream.Write($chunk, 0, $n)
++            $left -= $n
++        }
++    } finally {
++        $stream.Dispose()
++    }
++    Write-Progress -Activity "Đang tạo file rác" -Status "$i / $Count" -PercentComplete ($i * 100 / $Count)
++}
++$rng.Dispose()
++Write-Progress -Activity "Đang tạo file rác" -Completed
++Write-Host "Xong! Vào tab Cho cá ăn, bấm Chọn file… và chọn file trong $Folder" -ForegroundColor Green
+diff --git a/src-tauri/config/balance.json b/src-tauri/config/balance.json
+index e2a64fa..8e3b415 100644
+--- a/src-tauri/config/balance.json
++++ b/src-tauri/config/balance.json
+@@ -9,7 +9,7 @@
+   "stage_exp": { "juvenile": 500, "adult": 1000 },
+   "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300, "incubate_min_s": 7200, "incubate_max_s": 10800, "den_capacity": 100 },
+   "economy": {
+-    "welcome_shells": 40,
++    "welcome_shells": 300,
+     "base_shells": 2,
+     "base_exp": 10,
+     "daily_shell_cap": 100,
+diff --git a/src-tauri/src/engine/app.rs b/src-tauri/src/engine/app.rs
+index 14d93f9..ea882ff 100644
+--- a/src-tauri/src/engine/app.rs
++++ b/src-tauri/src/engine/app.rs
+@@ -262,7 +262,7 @@ mod tests {
+         assert!(report.files[0].ok);
+         assert_eq!(report.files[1].code, "extension");
+         assert_eq!(report.reward.unwrap().exp, 20);
+-        assert_eq!(c.view().cbcoins, 40);
++        assert_eq!(c.view().cbcoins, 300);
+         assert!(!a.exists() && b.exists());
+         // Restore does not claw back the reward; feeding the same bytes again pays nothing.
+         let id = c.held_entries()[0].id.clone();
+@@ -271,7 +271,7 @@ mod tests {
+         let again = c.preview(&[a.to_string_lossy().into()]);
+         let r = c.feed(&again, &fish).unwrap().reward.unwrap();
+         assert_eq!((r.shells, r.duplicates), (0, 1));
+-        assert_eq!(c.view().cbcoins, 40);
++        assert_eq!(c.view().cbcoins, 300);
+         assert!(a.exists(), "duplicate stays in its original location");
+     }
+ 
+@@ -292,7 +292,7 @@ mod tests {
+         fs::remove_dir(s.policy.data_root.join("game_save.json")).unwrap();
+         fs::rename(s.root.join("moved-save.json"), s.policy.data_root.join("game_save.json")).unwrap();
+         let c = core(&s);
+-        assert_eq!(c.view().cbcoins, 40);
++        assert_eq!(c.view().cbcoins, 300);
+         assert_eq!(c.view().fish[0].exp, 20);
+         drop(c);
+         assert_eq!(core(&s).view().fish[0].exp, 20, "paid exactly once");
+diff --git a/src-tauri/src/engine/game.rs b/src-tauri/src/engine/game.rs
+index d26f3bb..c9988c8 100644
+--- a/src-tauri/src/engine/game.rs
++++ b/src-tauri/src/engine/game.rs
+@@ -574,7 +574,7 @@ impl GameStore {
+ 
+     pub fn hunt_view(&self) -> super::hunt::HuntView {
+         let h = &self.state.shell_hunt;
+-        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
++        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none(), last_sale: h.last_sale.clone() }
+     }
+ 
+     pub fn start_hunt(&mut self, today: &str) -> Result<super::hunt::HuntView, Failure> {
+@@ -583,20 +583,59 @@ impl GameStore {
+         let mut next = self.state.clone();
+         next.shell_hunt.roll_day(today);
+         let room = self.catalog.balance.shell_hunt.daily_cap.saturating_sub(next.shell_hunt.earned);
+-        if room == 0 { return Err(Failure::new("hunt_cap", "daily shell hunt limit")); }
+-        if !next.shell_hunt.tutorial_granted {
++        let fish = self.catchable_fish();
++        // Adult fish can always be caught; shells need a batch and room under the daily limit.
++        if room == 0 && fish.is_empty() { return Err(Failure::new("hunt_cap", "daily shell hunt limit")); }
++        if room > 0 && !next.shell_hunt.tutorial_granted {
+             next.shell_hunt.tutorial_granted = true;
+             if next.shell_hunt.batch.is_none() { next.shell_hunt.batch = Some(super::hunt::Batch::generate(room.min(3) as usize)); }
+         }
+-        if next.shell_hunt.batch.is_none() { return Err(Failure::new("hunt_waiting", "no shells yet")); }
++        if next.shell_hunt.batch.is_none() && fish.is_empty() { return Err(Failure::new("hunt_waiting", "no shells yet")); }
+         self.commit(next)?;
+         if self.hunt_session.is_none() {
+-            self.hunt_session = Some(super::hunt::HuntSession::new(self.state.shell_hunt.batch.as_ref().unwrap()));
++            let batch_id = self.state.shell_hunt.batch.as_ref().map(|b| b.id.clone()).unwrap_or_default();
++            self.hunt_session = Some(super::hunt::HuntSession::start(batch_id, fish));
+         }
+         Ok(self.hunt_view())
+     }
+ 
++    /// Every adult (Lv.100) fish in the tank, ready to be caught from the boat.
++    fn catchable_fish(&self) -> Vec<super::hunt::FishTarget> {
++        self.state.fish.iter().filter(|f| f.exp >= MAX_EXP).enumerate()
++            .map(|(lane, f)| super::hunt::FishTarget::new(&f.id, &f.species_id, self.slots_for(&f.species_id), lane))
++            .collect()
++    }
++
++    /// "Yay, dinner's sorted": sells the fish waiting on deck at its normal sale value.
++    fn sell_caught_fish(&mut self, session_id: &str, seq: u64) -> Result<(), Failure> {
++        let s = self.hunt_session.as_ref().ok_or_else(|| Failure::new("hunt_stale", "no session"))?;
++        if s.id != session_id { return Err(Failure::new("hunt_stale", "session changed")); }
++        if seq <= s.last_command { return Ok(()); }
++        if s.phase != "deciding" { return Err(Failure::new("hunt_busy", "nothing on deck")); }
++        let fish_id = s.caught_fish.clone().ok_or_else(|| Failure::new("hunt_busy", "nothing on deck"))?;
++        // Coins, the fish leaving the tank and the sale notice are one atomic save.
++        let mut next = self.state.clone();
++        let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", &fish_id))?;
++        let coins = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
++        next.wallet.cbcoins = next.wallet.cbcoins.checked_add(coins).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
++        let sold = next.fish.remove(i);
++        next.shell_hunt.last_sale = Some(super::hunt::FishSale { fish_id: fish_id.clone(), species_id: sold.species_id, coins });
++        self.commit(next)?;
++        if let Some(s) = &mut self.hunt_session {
++            s.fish.retain(|f| f.id != fish_id);
++            s.caught_fish = None;
++            s.phase = "swinging".into();
++            s.last_command = seq;
++        }
++        Ok(())
++    }
++
+     pub fn hunt_action(&mut self, session_id: &str, seq: u64, action: &str) -> Result<super::hunt::HuntView, Failure> {
++        if action == "sell" {
++            if self.state.settings.meeting_mode { return Err(Failure::new("hunt_meeting", "meeting mode")); }
++            self.sell_caught_fish(session_id, seq)?;
++            return Ok(self.hunt_view());
++        }
+         if action == "leave" {
+             if self.hunt_session.as_ref().is_some_and(|s| s.id == session_id) { self.hunt_session = None; }
+             return Ok(self.hunt_view());
+@@ -627,9 +666,13 @@ impl GameStore {
+             }
+         }
+         if let Some(s) = &mut self.hunt_session {
+-            if let Some(b) = &next.shell_hunt.batch {
+-                if s.batch_id == b.id && room > 0 {
+-                    s.step(elapsed_ms as f64 / 1000.0, b);
++            // A fish-only trip picks up a batch that turns up while the boat is out.
++            if s.batch_id.is_empty() { if let Some(b) = &next.shell_hunt.batch { s.batch_id = b.id.clone(); } }
++            // Fish can be caught any time; shells only from the session's batch, under the daily limit.
++            let batch = next.shell_hunt.batch.as_ref().filter(|b| s.batch_id == b.id && room > 0);
++            s.step_with(elapsed_ms as f64 / 1000.0, batch.map(|b| b.shells.as_slice()).unwrap_or(&[]));
++            if let Some(b) = batch {
++                {
+                     if s.phase == "settling" {
+                         if let Some(shell) = b.shells.iter().find(|sh| Some(&sh.id) == s.caught_id.as_ref() && !sh.collected) {
+                             let id = shell.id.clone();
+@@ -651,6 +694,10 @@ impl GameStore {
+         }
+         let finished = next.shell_hunt.batch.as_ref().is_some_and(|b| b.remaining() == 0);
+         if finished { next.shell_hunt.batch = None; next.shell_hunt.remaining_wait_ms = cfg.next_wait(); changed = true; }
++        // The trip ends when nothing is left to catch: no shells and no fish (none on deck either).
++        let fish_left = self.hunt_session.as_ref().is_some_and(|s| !s.fish.is_empty());
++        let shells_left = next.shell_hunt.batch.as_ref().is_some_and(|b| self.hunt_session.as_ref().is_some_and(|s| s.batch_id == b.id) && room > 0);
++        let trip_over = self.hunt_session.is_some() && !fish_left && !shells_left;
+         self.hunt_checkpoint_ms += elapsed_ms;
+         if changed || self.hunt_checkpoint_ms >= 60_000 {
+             if let Err(e) = self.commit(next) {
+@@ -658,14 +705,16 @@ impl GameStore {
+                 return Err(e);
+             }
+             self.hunt_checkpoint_ms = 0;
+-            if finished { self.hunt_session = None; }
++            if trip_over { self.hunt_session = None; }
+             else if let Some(s) = &mut self.hunt_session {
++                if finished { s.batch_id.clear(); }
+                 if s.phase == "settling" && changed { s.phase = "swinging".into(); s.caught_id = None; s.error = None; }
+             }
+         } else {
+             // Countdown is in memory until checkpoint; wallet/collected change only via commit.
+             self.state.shell_hunt.remaining_wait_ms = next.shell_hunt.remaining_wait_ms;
+         }
++        if trip_over && self.hunt_session.is_some() { self.hunt_session = None; changed = true; }
+         Ok(changed)
+     }
+ 
+@@ -783,10 +832,10 @@ mod tests {
+         assert_eq!(s.can_feed(&id,NOW+14400).unwrap_err().code,"fish_adult");
+         let paid = s.state.fish[0].purchase_price;
+         let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
+-        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,40);
+-        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,40+paid*100);
++        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,300);
++        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,300+paid*100);
+         assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_found");
+-        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,40+paid*100);
++        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,300+paid*100);
+     }
+ 
+     #[test]
+@@ -796,9 +845,9 @@ mod tests {
+             let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
+             let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.kind=kind; shell.pearl=false; let id=shell.id.clone();
+             let session=s.hunt_session.as_mut().unwrap(); session.phase="settling".into();session.caught_id=Some(id.clone());
+-            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,40+value);
++            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,300+value);
+             let session=s.hunt_session.as_mut().unwrap();session.phase="settling".into();session.caught_id=Some(id);
+-            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,40+value);
++            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,300+value);
+         }
+     }
+ 
+@@ -1032,6 +1081,60 @@ mod tests {
+         assert_eq!(s.sell(&starter).unwrap(), 10); // a Lv.99 guppy is still "young"
+     }
+ 
++    fn adult_starter(s: &mut GameStore) -> String {
++        let mut next = s.state.clone();
++        next.fish[0].exp = MAX_EXP; next.fish[0].stage = Stage::Adult;
++        s.commit(next).unwrap();
++        s.state.fish[0].id.clone()
++    }
++
++    #[test]
++    fn adult_fish_can_be_caught_without_shells_and_sold_from_the_boat() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let id = adult_starter(&mut s);
++        s.state.shell_hunt.tutorial_granted = true; s.state.shell_hunt.batch = None;
++        s.state.shell_hunt.earned = s.catalog.balance.shell_hunt.daily_cap; // shell limit reached
++        let view = s.start_hunt("2026-10-06").unwrap();
++        let session = view.session.unwrap();
++        assert_eq!((session.fish.len(), session.fish[0].id.clone(), session.batch_id.as_str()), (1, id.clone(), ""));
++        // Put the fish on deck as if the claw had brought it up.
++        { let s2 = s.hunt_session.as_mut().unwrap(); s2.phase = "deciding".into(); s2.caught_fish = Some(id.clone()); }
++        let before = s.state.wallet.cbcoins;
++        let sid = s.hunt_session.as_ref().unwrap().id.clone();
++        let view = s.hunt_action(&sid, 5, "sell").unwrap();
++        assert_eq!(s.state.wallet.cbcoins, before + 2000); // guppy: 20 x 100
++        assert!(s.state.fish.is_empty());
++        assert_eq!(view.last_sale.unwrap().coins, 2000);
++        assert_eq!(s.hunt_action(&sid, 5, "sell").unwrap().last_sale.unwrap().fish_id, id, "a replayed sell is ignored");
++        assert_eq!(store(dir.path()).state.shell_hunt.last_sale.unwrap().species_id, "poecilia_reticulata");
++        // Nothing left to catch: the trip ends on the next tick.
++        s.tick_hunt(100, "2026-10-06").unwrap();
++        assert!(s.hunt_session.is_none());
++    }
++
++    #[test]
++    fn keeping_a_caught_fish_lets_it_go_and_sells_nothing() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let id = adult_starter(&mut s);
++        s.start_hunt("2026-10-06").unwrap();
++        let sid = s.hunt_session.as_ref().unwrap().id.clone();
++        { let s2 = s.hunt_session.as_mut().unwrap(); s2.phase = "deciding".into(); s2.caught_fish = Some(id.clone()); }
++        assert_eq!(s.hunt_action(&sid, 1, "drop").unwrap_err().code, "hunt_busy");
++        let before = s.state.wallet.cbcoins;
++        s.hunt_action(&sid, 2, "keep").unwrap();
++        assert_eq!((s.state.wallet.cbcoins, s.state.fish.len()), (before, 1));
++        let session = s.hunt_session.as_ref().unwrap();
++        assert_eq!((session.phase.as_str(), session.fish.len()), ("swinging", 0));
++        assert_eq!(s.hunt_action(&sid, 3, "sell").unwrap_err().code, "hunt_busy");
++    }
++
++    #[test]
++    fn young_fish_are_not_offered_to_the_claw() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        s.start_hunt("2026-10-06").unwrap(); // tutorial shells, starter guppy is Lv.0
++        assert!(s.hunt_session.as_ref().unwrap().fish.is_empty());
++    }
++
+     fn store(dir: &Path) -> GameStore {
+         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
+     }
+@@ -1060,13 +1163,13 @@ mod tests {
+     fn new_profile_gets_starter_and_welcome_once() {
+         let dir = tempfile::tempdir().unwrap();
+         let mut s = store(dir.path());
+-        assert_eq!(s.state.wallet.cbcoins, 40);
++        assert_eq!(s.state.wallet.cbcoins, 300);
+         assert_eq!(s.state.fish.len(), 1);
+         assert_eq!(s.state.fish[0].origin, Origin::Starter);
+         assert!(s.state.fish[0].parent_ids.is_empty());
+         s.purchase("danio_rerio", 20, NOW).unwrap();
+         let s = store(dir.path());
+-        assert_eq!(s.state.wallet.cbcoins, 20, "welcome credit must not be granted again");
++        assert_eq!(s.state.wallet.cbcoins, 280, "welcome credit must not be granted again");
+         assert_eq!(s.state.fish.len(), 2);
+     }
+ 
+@@ -1076,12 +1179,12 @@ mod tests {
+         let mut s = store(dir.path());
+         assert_eq!(s.purchase("nope", 1, NOW).unwrap_err().code, "unknown_species");
+         assert_eq!(s.purchase("danio_rerio", 19, NOW).unwrap_err().code, "price_changed");
+-        assert_eq!(s.purchase("symphysodon_aequifasciatus", 80, NOW).unwrap_err().code, "not_enough_shells");
++        s.state.wallet.cbcoins = 10; assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "not_enough_shells"); s.state.wallet.cbcoins = 300;
+         let f = s.purchase("danio_rerio", 20, NOW).unwrap();
+         assert_eq!(f.origin, Origin::Shop);
+         assert_eq!(f.name, "Cá ngựa vằn");
+         assert_eq!(f.stage, Stage::Fry);
+-        assert_eq!(s.state.wallet.cbcoins, 20);
++        assert_eq!(s.state.wallet.cbcoins, 280);
+         assert!(s.state.dex["danio_rerio"].owned);
+     }
+ 
+@@ -1105,7 +1208,7 @@ mod tests {
+         let mut s = store(dir.path());
+         s.path = dir.path().join("missing-dir/game.json");
+         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "save_failed");
+-        assert_eq!(s.state.wallet.cbcoins, 40);
++        assert_eq!(s.state.wallet.cbcoins, 300);
+         assert_eq!(s.state.fish.len(), 1);
+     }
+ 
+@@ -1120,7 +1223,7 @@ mod tests {
+         assert!(first.exp > 0);
+         let replay = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
+         assert_eq!(replay, RewardSummary::default());
+-        assert_eq!(s.state.wallet.cbcoins, 40);
++        assert_eq!(s.state.wallet.cbcoins, 300);
+     }
+ 
+     #[test]
+@@ -1162,7 +1265,7 @@ mod tests {
+         let good = s.path.clone();
+         s.path = dir.path().join("missing-dir/game.json");
+         assert!(s.apply_receipts(&entries, "2026-09-29", NOW).is_err());
+-        assert_eq!(s.state.wallet.cbcoins, 40);
++        assert_eq!(s.state.wallet.cbcoins, 300);
+         s.path = good;
+         assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().exp, 20);
+     }
+@@ -1210,7 +1313,7 @@ mod tests {
+         drop(s);
+         let s = store(dir.path());
+         assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, SCHEMA_VERSION);
+-        assert_eq!(s.state.wallet.cbcoins, 20); assert_eq!(s.state.fish.len(), 2);
++        assert_eq!(s.state.wallet.cbcoins, 280); assert_eq!(s.state.fish.len(), 2);
+         assert_eq!(s.state.fish[0].id, id); assert!(s.state.ledger.receipts.contains("paid"));
+         assert!(s.state.settings.quick_dock_enabled);
+     }
+@@ -1225,13 +1328,13 @@ mod tests {
+         session.phase = "settling".into(); session.caught_id = Some(id.clone());
+         let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
+         assert!(s.tick_hunt(100, "2026-10-03").is_err());
+-        assert_eq!(s.state.wallet.cbcoins, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
++        assert_eq!(s.state.wallet.cbcoins, 300); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+         s.path = good;
+         assert!(s.tick_hunt(100, "2026-10-03").unwrap());
+-        assert_eq!(s.state.wallet.cbcoins, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
++        assert_eq!(s.state.wallet.cbcoins, 301); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
+         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+-        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 41);
+-        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 41);
++        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 301);
++        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 301);
+         assert_eq!(loaded.state.shell_hunt.batch.as_ref().unwrap().remaining(), 2);
+         assert!(loaded.hunt_session.is_none());
+     }
+@@ -1264,7 +1367,7 @@ mod tests {
+         assert!(s.tick_hunt(100, "2026-10-05").is_err());
+         assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty()); assert!(s.state.shell_hunt.last_catch.is_none());
+         s.path = good; s.tick_hunt(100, "2026-10-05").unwrap();
+-        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 50);
++        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 310);
+         let entry = &s.state.shell_hunt.collection[&ShellKind::Queen]; assert_eq!((entry.count, entry.rare_count), (1,1));
+         assert!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind);
+         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+@@ -1297,7 +1400,7 @@ mod tests {
+             assert!(!shell.rare && !shell.pearl);
+             assert_eq!(shell.kind, match shell.size {1=>ShellKind::Queen,2=>ShellKind::Variegated,_=>ShellKind::Great});
+         }
+-        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 40); assert!(loaded.state.shell_hunt.collection.is_empty());
++        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 300); assert!(loaded.state.shell_hunt.collection.is_empty());
+     }
+ 
+     #[test]
+@@ -1326,6 +1429,6 @@ mod tests {
+         assert!(s.state.shell_hunt.batch.is_none()); assert!(s.hunt_session.is_none());
+         assert_eq!(s.hunt_view().collection[&ShellKind::Great].count, 3);
+         drop(s); let loaded = store(dir.path()); assert_eq!(loaded.hunt_view().collection[&ShellKind::Great].count, 3);
+-        assert_eq!(loaded.state.wallet.cbcoins, 43); assert_eq!(loaded.state.wallet.pearls, 0);
++        assert_eq!(loaded.state.wallet.cbcoins, 303); assert_eq!(loaded.state.wallet.pearls, 0);
+     }
+ }
+diff --git a/src-tauri/src/engine/hunt.rs b/src-tauri/src/engine/hunt.rs
+index e8aa6f9..fa680f4 100644
+--- a/src-tauri/src/engine/hunt.rs
++++ b/src-tauri/src/engine/hunt.rs
+@@ -118,10 +118,11 @@ pub struct HuntState {
+     pub batch: Option<Batch>,
+     #[serde(default)] pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
+     #[serde(default)] pub last_catch: Option<CatchReceipt>,
++    #[serde(default)] pub last_sale: Option<FishSale>,
+ }
+ impl Default for HuntState {
+     fn default() -> Self {
+-        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None }
++        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None, last_sale: None }
+     }
+ }
+ impl HuntState {
+@@ -150,14 +151,58 @@ impl HuntState {
+     }
+ }
+ 
++/// An adult fish swimming back and forth in the hunt frame while the boat is out. The engine
++/// owns these positions (the desktop draws the fish where they are), so a catch is decided
++/// here exactly like a shell.
++#[derive(Serialize, Clone, Debug, PartialEq)]
++pub struct FishTarget {
++    pub id: String,
++    pub species_id: String,
++    pub x: f64,
++    pub y: f64,
++    /// 1 = swimming right, -1 = left.
++    pub dir: f64,
++    /// Catch radius around the body centre (bigger fish are easier to hit).
++    pub radius: f64,
++    #[serde(skip)] pub speed: f64,
++}
++const FISH_X: (f64, f64) = (0.1, 0.9);
++
++impl FishTarget {
++    /// `slots` 1–3 (fish size). Lanes are spread over the reachable water, away from the boat.
++    pub fn new(id: &str, species_id: &str, slots: usize, lane: usize) -> Self {
++        let y = 0.36 + ((lane as f64 * 0.137 + random() * 0.05) % 0.46);
++        let size = slots.clamp(1, 3) as f64;
++        FishTarget {
++            id: id.into(), species_id: species_id.into(),
++            x: FISH_X.0 + random() * (FISH_X.1 - FISH_X.0),
++            y,
++            dir: if random() < 0.5 { -1.0 } else { 1.0 },
++            radius: 0.03 + 0.012 * size,
++            speed: 0.11 - 0.015 * size + random() * 0.03,
++        }
++    }
++    fn swim(&mut self, dt: f64) {
++        self.x += self.dir * self.speed * dt;
++        if self.x > FISH_X.1 { self.x = FISH_X.1; self.dir = -1.0; }
++        if self.x < FISH_X.0 { self.x = FISH_X.0; self.dir = 1.0; }
++    }
++}
++
+ #[derive(Serialize, Clone, Debug)]
+ pub struct HuntSession {
+     pub id: String,
++    /// Empty when only fish are out (no shell batch).
+     pub batch_id: String,
++    /// swinging → extending → retracting → settling (shell) or deciding (fish) → swinging
+     pub phase: String,
+     pub angle: f64,
+     pub length: f64,
+     pub caught_id: Option<String>,
++    /// Adult fish that can be caught this trip.
++    #[serde(default)] pub fish: Vec<FishTarget>,
++    /// The fish on the claw (or on deck, waiting for keep/sell while `phase == "deciding"`).
++    pub caught_fish: Option<String>,
+     pub paused: bool,
+     pub error: Option<String>,
+     #[serde(skip)] pub last_command: u64,
+@@ -165,13 +210,21 @@ pub struct HuntSession {
+ }
+ impl HuntSession {
+     pub fn new(batch: &Batch) -> Self {
+-        Self { id: uuid::Uuid::new_v4().to_string(), batch_id: batch.id.clone(), phase: "swinging".into(), angle: -65.0, length: 0.0, caught_id: None, paused: false, error: None, last_command: 0, swing_ms: 0.0 }
++        Self::start(batch.id.clone(), Vec::new())
++    }
++    pub fn start(batch_id: String, fish: Vec<FishTarget>) -> Self {
++        Self { id: uuid::Uuid::new_v4().to_string(), batch_id, phase: "swinging".into(), angle: -65.0, length: 0.0, caught_id: None, fish, caught_fish: None, paused: false, error: None, last_command: 0, swing_ms: 0.0 }
+     }
+     pub fn action(&mut self, id: &str, seq: u64, action: &str) -> Result<(), Failure> {
+         if id != self.id { return Err(Failure::new("hunt_stale", "session changed")); }
+         if seq <= self.last_command { return Ok(()); }
+         match action {
+-            "drop" if self.phase == "swinging" && !self.paused => { self.phase = "extending".into(); self.caught_id = None; }
++            "drop" if self.phase == "swinging" && !self.paused => { self.phase = "extending".into(); self.caught_id = None; self.caught_fish = None; }
++            // "Too skinny, let it grow a bit": the fish swims off and isn't offered again this trip.
++            "keep" if self.phase == "deciding" => {
++                if let Some(id) = self.caught_fish.take() { self.fish.retain(|f| f.id != id); }
++                self.phase = "swinging".into();
++            }
+             "pause" => self.paused = true,
+             "resume" => self.paused = false,
+             _ => return Err(Failure::new("hunt_busy", "action unavailable")),
+@@ -184,11 +237,17 @@ impl HuntSession {
+         (PIVOT.0 + angle.sin() * self.length, PIVOT.1 + angle.cos() * self.length)
+     }
+     pub fn step(&mut self, seconds: f64, batch: &Batch) {
++        self.step_with(seconds, &batch.shells);
++    }
++    /// `shells` is empty when no batch is out or the daily shell limit is reached; fish can still be caught.
++    pub fn step_with(&mut self, seconds: f64, shells: &[Shell]) {
+         if self.paused { return; }
+         // Fixed substeps prevent tunnelling, including when the webview renders slowly.
+         let steps = (seconds * 120.0).ceil().max(1.0) as usize;
+         let dt = seconds / steps as f64;
+         for _ in 0..steps {
++            let caught = self.caught_fish.clone();
++            for f in self.fish.iter_mut().filter(|f| Some(&f.id) != caught.as_ref()) { f.swim(dt); }
+             match self.phase.as_str() {
+                 "swinging" => {
+                     self.swing_ms += dt * 40.0;
+@@ -198,16 +257,26 @@ impl HuntSession {
+                 "extending" => {
+                     self.length += dt * 0.55;
+                     let (x, y) = self.tip();
+-                    if let Some(s) = batch.shells.iter().filter(|s| !s.collected).find(|s| (s.x - x).hypot(s.y - y) <= 0.026) {
++                    if let Some(f) = self.fish.iter().find(|f| (f.x - x).hypot(f.y - y) <= f.radius) {
++                        self.caught_fish = Some(f.id.clone()); self.phase = "retracting".into();
++                    } else if let Some(s) = shells.iter().filter(|s| !s.collected).find(|s| (s.x - x).hypot(s.y - y) <= 0.026) {
+                         self.caught_id = Some(s.id.clone()); self.phase = "retracting".into();
+                     } else if self.length >= 0.88 || !(0.02..=0.98).contains(&x) || y >= 0.96 {
+                         self.phase = "retracting".into();
+                     }
+                 }
+                 "retracting" => {
+-                    let weight = self.caught_id.as_ref().and_then(|id| batch.shells.iter().find(|s| &s.id == id)).map(|s| [0.9, 0.75, 0.6][s.size as usize]).unwrap_or(1.0);
++                    // Heavier catches come up slower: big shells, and fish by size.
++                    let fish_weight = self.caught_fish.as_ref().and_then(|id| self.fish.iter().find(|f| &f.id == id)).map(|f| (0.95 - (f.radius - 0.03) * 12.0).clamp(0.45, 0.85));
++                    let weight = fish_weight.or_else(|| self.caught_id.as_ref().and_then(|id| shells.iter().find(|s| &s.id == id)).map(|s| [0.9, 0.75, 0.6][s.size as usize])).unwrap_or(1.0);
+                     self.length = (self.length - dt * 0.7 * weight).max(0.0);
+-                    if self.length == 0.0 { self.phase = if self.caught_id.is_some() { "settling" } else { "swinging" }.into(); }
++                    if let Some(id) = &self.caught_fish {
++                        let (tx, ty) = self.tip();
++                        if let Some(f) = self.fish.iter_mut().find(|f| &f.id == id) { f.x = tx; f.y = ty; }
++                    }
++                    if self.length == 0.0 {
++                        self.phase = if self.caught_fish.is_some() { "deciding" } else if self.caught_id.is_some() { "settling" } else { "swinging" }.into();
++                    }
+                 }
+                 _ => {}
+             }
+@@ -225,6 +294,15 @@ pub struct HuntView {
+     pub daily_cap: u64,
+     pub session: Option<HuntSession>,
+     pub waiting: bool,
++    pub last_sale: Option<FishSale>,
++}
++
++/// The last fish sold from the boat, for the "+2,000 CBCoin · … on board!" notice.
++#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
++pub struct FishSale {
++    pub fish_id: String,
++    pub species_id: String,
++    pub coins: u64,
+ }
+ 
+ #[cfg(test)]
+@@ -249,6 +327,29 @@ mod tests {
+         for _ in 0..20 { for s in &Batch::generate(10).shells { rows.insert((s.y * 100.0).round() as i64); } }
+         assert!(rows.len() > 15, "shell heights should vary, got {rows:?}");
+     }
++    #[test] fn fish_swim_their_lane_and_a_catch_waits_for_a_decision() {
++        let mut fish = FishTarget::new("f1", "carcharodon_carcharias", 3, 0);
++        fish.x = 0.5; fish.y = 0.6; fish.dir = 1.0; fish.speed = 0.0; // parked under the boat
++        let mut s = HuntSession::start(String::new(), vec![fish]);
++        s.angle = 0.0;
++        let id = s.id.clone(); s.action(&id, 1, "drop").unwrap();
++        s.swing_ms = 0.0;
++        for _ in 0..40 { s.step_with(0.05, &[]); if s.phase != "extending" { break; } }
++        assert_eq!((s.phase.as_str(), s.caught_fish.as_deref()), ("retracting", Some("f1")));
++        for _ in 0..200 { s.step_with(0.05, &[]); if s.phase != "retracting" { break; } }
++        assert_eq!(s.phase, "deciding");
++        let (x, y) = (s.fish[0].x, s.fish[0].y);
++        s.step_with(1.0, &[]); // nothing moves while the player decides
++        assert_eq!((s.fish[0].x, s.fish[0].y, s.phase.as_str()), (x, y, "deciding"));
++        assert_eq!(s.action(&id, 2, "drop").unwrap_err().code, "hunt_busy");
++        s.action(&id, 3, "keep").unwrap();
++        assert_eq!((s.phase.as_str(), s.caught_fish.clone(), s.fish.len()), ("swinging", None, 0));
++    }
++    #[test] fn free_fish_bounce_inside_the_frame() {
++        let mut f = FishTarget::new("f", "x", 1, 2);
++        for _ in 0..2000 { f.swim(0.05); assert!((FISH_X.0..=FISH_X.1).contains(&f.x)); }
++        assert!((0.36..=0.82).contains(&f.y));
++    }
+     #[test] fn a_catch_requires_retraction_and_replayed_drop_is_ignored() {
+         let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false, kind: ShellKind::Great, rare: false, pearl: false }] };
+         let mut s = HuntSession::new(&b); s.angle = 0.0;
+diff --git a/src/api.ts b/src/api.ts
+index 4400926..e470c94 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -152,9 +152,13 @@ export type ShellKind = "great" | "queen" | "variegated";
+ export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean; kind: ShellKind; rare: boolean; pearl: boolean }
+ export interface ShellEntry { count: number; rare_count: number; first_found: string }
+ export interface CatchReceipt { shell_id: string; kind: ShellKind; rare: boolean; pearl: boolean; first_of_kind: boolean }
++export interface FishTarget { id: string; species_id: string; x: number; y: number; dir: number; radius: number }
++export interface FishSale { fish_id: string; species_id: string; coins: number }
+ export interface HuntSession {
+   id: string; batch_id: string; phase: string; angle: number; length: number;
+   caught_id: string | null; paused: boolean; error: string | null;
++  /** Adult fish swimming in the hunt frame; `caught_fish` is on the claw or on deck ("deciding"). */
++  fish: FishTarget[]; caught_fish: string | null;
+ }
+ export interface HuntView {
+   pearls: number;
+@@ -162,6 +166,7 @@ export interface HuntView {
+   last_catch: CatchReceipt | null;
+   batch: { id: string; shells: HuntShell[] } | null;
+   earned: number; daily_cap: number; session: HuntSession | null; waiting: boolean;
++  last_sale: FishSale | null;
+ }
+ 
+ export const api = {
+@@ -184,7 +189,7 @@ export const api = {
+   quit: () => invoke<void>("quit_app"),
+   huntStatus: () => invoke<HuntView>("hunt_status"),
+   startHunt: () => invoke<HuntView>("start_hunt"),
+-  huntAction: (sessionId: string, seq: number, action: "drop" | "pause" | "resume" | "leave") => invoke<HuntView>("hunt_action", { sessionId, seq, action }),
++  huntAction: (sessionId: string, seq: number, action: "drop" | "pause" | "resume" | "leave" | "keep" | "sell") => invoke<HuntView>("hunt_action", { sessionId, seq, action }),
+   openTab: (tab: string) => invoke<void>("open_manager_tab", { tab }),
+   takeRoute: () => invoke<string | null>("take_manager_route"),
+   setDock: (enabled: boolean) => invoke<StateView>("set_quick_dock", { enabled }),
+diff --git a/src/hud.ts b/src/hud.ts
+index dbb7b99..f22912f 100644
+--- a/src/hud.ts
++++ b/src/hud.ts
+@@ -21,7 +21,7 @@ function button(label: string, run: () => Promise<unknown>) {
+ }
+ async function toggle() { await api.resizeDock(!expanded); expanded = !expanded; more = false; }
+ const nextSeq = () => (seq = Math.max(seq + 1, Date.now()));
+-const huntAction = (action: "drop" | "pause" | "resume" | "leave") => () => {
++const huntAction = (action: "drop" | "pause" | "resume" | "leave" | "keep" | "sell") => () => {
+   const id = hunt?.session?.id;
+   return id ? api.huntAction(id, nextSeq(), action).then((v) => { hunt = v; }) : Promise.resolve();
+ };
+@@ -30,6 +30,7 @@ function huntStatus(v: HuntView): string {
+   const left = v.batch?.shells.filter((x) => !x.collected).length ?? 0;
+   if (s.error) return reason(s.error);
+   if (s.paused) return t("Đã tạm dừng");
++  if (s.phase === "deciding") return t("🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?");
+   if (s.phase === "swinging") return t("{left} sò đang chờ · Hôm nay {earned}/{cap}", { left, earned: v.earned, cap: v.daily_cap });
+   return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
+ }
+@@ -41,7 +42,14 @@ function renderHunt(v: HuntView) {
+   sound.setAttribute("aria-label", sound.title); sound.setAttribute("aria-pressed", String(soundEnabled()));
+   header.append(sound); dock.append(header);
+   const status = document.createElement("p"); status.textContent = huntStatus(v); status.setAttribute("role", "status"); dock.append(status);
+-  const canDrop = s.phase === "swinging" && !s.paused && v.earned < v.daily_cap;
++  if (s.phase === "deciding" && !s.paused) {
++    const keep = button(t("🐟 Cá gầy quá nuôi thêm chút vậyyyy"), huntAction("keep"));
++    const sell = button(t("💰 Yehh nay có cơm ăn rồiiii"), huntAction("sell"));
++    sell.className = "primary";
++    dock.append(sell, keep, button(t("Rời thuyền"), huntAction("leave")));
++    return;
++  }
++  const canDrop = s.phase === "swinging" && !s.paused && (v.earned < v.daily_cap || s.fish.length > 0);
+   const main = s.paused ? button(t("▶  Tiếp tục"), huntAction("resume")) : button(t("⚓  Thả móc"), huntAction("drop"));
+   main.className = "primary"; if (!s.paused) main.disabled = working || !canDrop; dock.append(main);
+   if (!s.paused) dock.append(button(t("⏸  Tạm dừng"), huntAction("pause")));
+diff --git a/src/hunt-motion.ts b/src/hunt-motion.ts
+index e7e5842..998fbae 100644
+--- a/src/hunt-motion.ts
++++ b/src/hunt-motion.ts
+@@ -1,6 +1,6 @@
+ export function closureStep(current: number, phase: string | undefined, dt: number, paused: boolean, reduced: boolean): number {
+   if (paused) return current;
+-  const target = phase === "retracting" || phase === "settling" ? 1 : 0;
++  const target = phase === "retracting" || phase === "settling" || phase === "deciding" ? 1 : 0;
+   return reduced ? target : current + (target - current) * Math.min(1, Math.max(0, dt) * 12);
+ }
+ 
+diff --git a/src/locales/en.ts b/src/locales/en.ts
+index 5569f26..5ba9988 100644
+--- a/src/locales/en.ts
++++ b/src/locales/en.ts
+@@ -128,7 +128,6 @@ export const EN: Record<string, string> = {
+   "{exp} / {next} EXP · {pending} EXP đang tiêu hóa": "{exp} / {next} EXP · {pending} EXP digesting",
+   "Level 100 · đã trưởng thành": "Level 100 · fully grown",
+   "🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.": "🫧 My tummy is a balloon! Resting until {time}, okay?",
+-  "⛵ Gọi thuyền bán · {price} CBCoin": "⛵ Sell · {price} CBCoin",
+   "Đã đẻ {n} trứng": "{n} eggs laid",
+   "Fishdex: đã sở hữu {owned}/{total} loài": "Fishdex: {owned}/{total} species owned",
+   "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100).": "Fish never die or leave when you take a break. Feed them to grow from fry → juvenile (Lv.50) → adult (Lv.100).",
+@@ -157,14 +156,8 @@ export const EN: Record<string, string> = {
+   "Thoát hẳn": "Quit completely",
+   "Đóng cửa sổ chỉ ẩn game xuống khay/menu bar. Thoát hẳn sẽ tắt cả bể desktop.": "Closing the window only hides the game to the tray / menu bar. Quitting completely also turns off the desktop aquarium.",
+   "Thoát": "Quit",
+-  "Chào mừng tới TrashQuarium": "Welcome to TrashQuarium",
+-  "Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.": "You get {name} and {coins} CBCoin to open the shop.",
+   "một chú cá": "a little fish",
+-  "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.": "• The desktop aquarium (optional) swims under your desktop icons and doesn't cover your apps. Turn it on in Settings.",
+-  "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.": "• Feed your fish files you no longer need: they go into the Belly, can always be released again and are never deleted.",
+-  "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.": "You don't have to use real files — try a sample file, or just look after your fish and buy more with your gift.",
+   "Thử với file mẫu": "Try a sample file",
+-  "Bắt đầu": "Get started",
+   "Ẩn TrashQuarium?": "Hide TrashQuarium?",
+   "Game vẫn chạy ở khay hệ thống (Windows) hoặc menu bar (macOS) — bấm biểu tượng cá để mở lại. Bể desktop vẫn bơi nếu đang bật.": "The game keeps running in the system tray (Windows) or menu bar (macOS) — click the fish icon to open it again. The desktop aquarium keeps swimming if it's on.",
+   "Ẩn cửa sổ": "Hide window",
+@@ -295,12 +288,11 @@ export const EN: Record<string, string> = {
+   "Shopping cho bể": "Shopping for the tank",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank has 20 slots: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 — big sharks need their elbow room!",
+   "Bán hay cho đẻ?": "Sell or breed?",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat (bought the wrong one? a younger fish sells back for half the price). Or pair two of the same species and breed: each egg takes value off both fish's sale price, then incubates in the Egg den for 2–3 hours with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
++  "Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 fish get chubby and shout \"catch me!\" — call the boat, grab one with the claw, then sell it on the spot (purchase price ×100) or let it keep growing (bought the wrong one? a younger fish sells back for half the price). Or pair two of the same species and breed: each egg takes value off both fish's sale price, then incubates in the Egg den for 2–3 hours with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
+   "Yên tâm": "Relax",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "No real money, no account, no network. Fish never die — they just get a bit lazy sometimes.",
+   "Đã hiểu!": "Got it!",
+   "Cách chơi": "How to play",
+-  "Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.": "Need a quick guide? Click the ? button in the top right any time.",
+   "Code không đúng. Kiểm tra lại từng ký tự nhé.": "That code isn't valid. Check it character by character.",
+   "Ví CBCoin đã quá đầy, không cộng thêm được.": "Your CBCoin wallet is too full to add more.",
+   "Nhập code…": "Enter code…",
+@@ -333,4 +325,45 @@ export const EN: Record<string, string> = {
+   "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "This fish isn't grown yet (Lv.{lv}), so it sells back for half its purchase price: {price} CBCoin. Raise it to Lv.100 to sell for purchase price ×100.",
+   "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "Bought by mistake or tank full? Sell it back for half the purchase price.",
+   "Bán lại · {price} CBCoin": "Sell back · {price} CBCoin",
++  "🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?": "🎣 Fish on board! Keep it or sell it?",
++  "🐟 Cá gầy quá nuôi thêm chút vậyyyy": "🐟 Too skinny, let it grow a bit moreee",
++  "💰 Yehh nay có cơm ăn rồiiii": "💰 Yayyy dinner's sorted tonighttt",
++  "Gọi thuyền ra bể desktop rồi gắp con cá này để bán.": "Call the boat to the desktop aquarium and grab this fish with the claw to sell it.",
++  "🎣 Béo rồi · gắp được {price} CBCoin": "🎣 Nice and fat · worth {price} CBCoin",
++  "Cá Lv.100 hiện chữ \"Cá béo lắm rồi, bắt điii!\" trên desktop. Gắp được cá lên thuyền thì chọn nuôi thêm hoặc bán luôn với giá mua ×100. Cá bơi qua lại nên phải canh đúng lúc.": "Lv.100 fish show \"So fat, catch me nowww!\" on the desktop. Grab one with the claw, then choose to keep it or sell it for its purchase price ×100. Fish swim back and forth, so time your drop.",
++  " · {n} cá béo chờ gắp": " · {n} fat fish to catch",
++  "🎣 Cá lên thuyền! Chọn ở nút nhanh góc phải dưới": "🎣 Fish on board! Choose in the quick buttons, bottom right",
++  "{left} sò · {fish} cá béo · {key} để thả móc": "{left} shells · {fish} fat fish · {key} to drop the claw",
++  "{name} đã lên thuyền · bán được {price} CBCoin": "{name} is on board · worth {price} CBCoin",
++  "Chọn ở nút nhanh: nuôi thêm hay bán luôn?": "Pick in the quick buttons: keep it or sell now?",
++  "+{coins} CBCoin · {name} lên thuyền!": "+{coins} CBCoin · {name} is on board!",
++  "Cá béo lắm rồi, bắt điii! 🎣": "So fat, catch me nowww! 🎣",
++  "Chào mừng tới TrashQuarium!": "Welcome to TrashQuarium!",
++  "Bể cá sống ngay trên màn hình nền của bạn — và thức ăn của cá là… những file bạn không cần nữa.": "An aquarium that lives right on your desktop — and the fish food is… files you no longer need.",
++  "Bạn được tặng {name} và {coins} CBCoin để bắt đầu.": "You get {name} and {coins} CBCoin to get started.",
++  "Lướt nhanh qua các tính năng chính nhé.": "Here's a quick tour of the main features.",
++  "Cho cá ăn file rác": "Feed the fish your junk files",
++  "Thả file vào tab Cho cá ăn. File chui vào Bụng cá: không bị xóa, nhả ra lúc nào cũng được.": "Drop files into the Feed tab. They slip into the Belly: never deleted, and you can release them any time.",
++  "Mỗi file cho EXP theo dung lượng; 10 EXP = 1 level.": "Each file gives EXP by size; 10 EXP = 1 level.",
++  "Cá lớn từng ngày": "Fish grow day by day",
++  "Lv.0 cá non → Lv.50 thành niên → Lv.100 trưởng thành. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng.": "Lv.0 fry → Lv.50 juvenile → Lv.100 adult. Every 5 levels the fish is stuffed and naps for 2 hours.",
++  "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi.": "Fish never die or leave when you take a break.",
++  "Gọi thuyền gắp sò": "Call the boat, grab shells",
++  "Thuyền ra ngay bể desktop. Canh móc đung đưa rồi bấm Space để thả.": "The boat sails right onto the desktop aquarium. Time the swinging claw and press Space to drop it.",
++  "Sò trắng 1, đỏ 10, tím 100 CBCoin. Sò hiếm có thể giấu ngọc trai.": "White shells are 1 CBCoin, red 10, purple 100. Rare shells may hide a pearl.",
++  "Cá béo thì gắp lên thuyền": "Fat fish? Hook them onto the boat",
++  "Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm.": "Lv.100 fish show “So fat, catch me nowww!”. Hook one onto the boat, then sell it right away (purchase price ×100) or let it keep growing.",
++  "Cá bơi qua lại, phải canh đúng lúc mới trúng.": "Fish swim back and forth, so time your drop.",
++  "Mua cá và cho sinh sản": "Buy fish and breed them",
++  "Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "The shop has 64 real fish species. The tank has 20 slots; bigger fish take more.",
++  "Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở.": "Pair two Lv.100 fish of the same species to lay eggs; eggs incubate for 2–3 hours in the Egg den before hatching.",
++  "Sẵn sàng rồi!": "You're all set!",
++  "Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền.": "Turn on Desktop aquarium in Settings so your fish swim right under your desktop icons.",
++  "Bấm nút ? ở góc trên bất cứ lúc nào để xem lại phần giới thiệu này.": "Click the ? button at the top any time to see this tour again.",
++  "Trang {n}": "Page {n}",
++  "Bỏ qua": "Skip",
++  "← Trước": "← Back",
++  "Xem bảng tóm tắt": "See the cheat sheet",
++  "Bắt đầu chơi": "Start playing",
++  "Tiếp →": "Next →",
+ };
+diff --git a/src/locales/zh.ts b/src/locales/zh.ts
+index 7b6d347..a569509 100644
+--- a/src/locales/zh.ts
++++ b/src/locales/zh.ts
+@@ -128,7 +128,6 @@ export const ZH: Record<string, string> = {
+   "{exp} / {next} EXP · {pending} EXP đang tiêu hóa": "{exp} / {next} EXP · {pending} EXP 消化中",
+   "Level 100 · đã trưởng thành": "Level 100 · 已成年",
+   "🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.": "🫧 肚子撑成气球啦！休息到 {time} 好吗？",
+-  "⛵ Gọi thuyền bán · {price} CBCoin": "⛵ 卖出 · {price} CBCoin",
+   "Đã đẻ {n} trứng": "已产 {n} 颗卵",
+   "Fishdex: đã sở hữu {owned}/{total} loài": "鱼图鉴：已拥有 {owned}/{total} 种",
+   "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100).": "你休息时鱼不会死也不会离开。喂食让鱼从鱼苗 → 少年鱼（Lv.50）→ 成年鱼（Lv.100）。",
+@@ -157,14 +156,8 @@ export const ZH: Record<string, string> = {
+   "Thoát hẳn": "完全退出",
+   "Đóng cửa sổ chỉ ẩn game xuống khay/menu bar. Thoát hẳn sẽ tắt cả bể desktop.": "关闭窗口只会把游戏隐藏到托盘/菜单栏。完全退出会同时关闭桌面鱼缸。",
+   "Thoát": "退出",
+-  "Chào mừng tới TrashQuarium": "欢迎来到 TrashQuarium",
+-  "Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.": "送你 {name} 和 {coins} CBCoin，开张商店吧。",
+   "một chú cá": "一条小鱼",
+-  "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.": "• 桌面鱼缸（可选）在桌面图标下游动，不遮挡程序。在设置中开启。",
+-  "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.": "• 用不再需要的文件喂鱼：文件进鱼肚子，随时能吐出来，永远不会被删除。",
+-  "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.": "不必用真实文件 — 可以先用示例文件试试，或者只养鱼并用礼物买鱼。",
+   "Thử với file mẫu": "用示例文件试试",
+-  "Bắt đầu": "开始",
+   "Ẩn TrashQuarium?": "隐藏 TrashQuarium？",
+   "Game vẫn chạy ở khay hệ thống (Windows) hoặc menu bar (macOS) — bấm biểu tượng cá để mở lại. Bể desktop vẫn bơi nếu đang bật.": "游戏会在系统托盘（Windows）或菜单栏（macOS）继续运行 — 点击小鱼图标重新打开。若桌面鱼缸已开启，鱼会继续游。",
+   "Ẩn cửa sổ": "隐藏窗口",
+@@ -295,12 +288,11 @@ export const ZH: Record<string, string> = {
+   "Shopping cho bể": "给鱼缸购物",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "便宜的鱼小小只，贵的鱼大大只：鲸鲨（300 CBCoin）差不多是孔雀鱼（20 CBCoin）的 4 倍长。鱼缸有 20 个位置：100 CBCoin 以下的鱼占 1 个，100–199 占 2 个，200 及以上占 3 个 — 大鲨鱼当然要多占点地方！",
+   "Bán hay cho đẻ?": "卖掉还是繁殖？",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100（买错了？未成年的鱼可按半价卖回）。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，然后在鱼卵洞里孵 2–3 小时，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
++  "Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼会胖嘟嘟地喊“快来抓～”——叫船用钩子抓上来，再选择马上卖（购买价 ×100）或继续养（买错了？未成年的鱼可按半价卖回）。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，然后在鱼卵洞里孵 2–3 小时，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
+   "Yên tâm": "放轻松",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "没有真钱、没有账号、不联网。鱼永远不会死，只是偶尔有点懒。",
+   "Đã hiểu!": "知道了！",
+   "Cách chơi": "玩法说明",
+-  "Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.": "需要快速指南？随时点击右上角的 ? 按钮。",
+   "Code không đúng. Kiểm tra lại từng ký tự nhé.": "代码无效，请逐个字符检查一下。",
+   "Ví CBCoin đã quá đầy, không cộng thêm được.": "CBCoin 钱包太满，无法再增加。",
+   "Nhập code…": "输入代码…",
+@@ -333,4 +325,45 @@ export const ZH: Record<string, string> = {
+   "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "这条鱼还没成年（Lv.{lv}），只能按购买价的一半卖回：{price} CBCoin。养到 Lv.100 就能卖购买价 ×100。",
+   "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "买错了或鱼缸满了？按购买价的一半卖回。",
+   "Bán lại · {price} CBCoin": "卖回 · {price} CBCoin",
++  "🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?": "🎣 鱼上船了！继续养还是卖掉？",
++  "🐟 Cá gầy quá nuôi thêm chút vậyyyy": "🐟 太瘦了，再养养吧～",
++  "💰 Yehh nay có cơm ăn rồiiii": "💰 耶～今晚有饭吃啦！",
++  "Gọi thuyền ra bể desktop rồi gắp con cá này để bán.": "叫船到桌面鱼缸，用钩子抓住这条鱼就能卖掉。",
++  "🎣 Béo rồi · gắp được {price} CBCoin": "🎣 养肥啦 · 抓到值 {price} CBCoin",
++  "Cá Lv.100 hiện chữ \"Cá béo lắm rồi, bắt điii!\" trên desktop. Gắp được cá lên thuyền thì chọn nuôi thêm hoặc bán luôn với giá mua ×100. Cá bơi qua lại nên phải canh đúng lúc.": "Lv.100 的鱼会在桌面上显示“肥得不行啦，快来抓～”。用钩子把鱼抓上船后，可以选择继续养或按购买价 ×100 卖掉。鱼会来回游，要看准时机。",
++  " · {n} cá béo chờ gắp": " · {n} 条肥鱼等你抓",
++  "🎣 Cá lên thuyền! Chọn ở nút nhanh góc phải dưới": "🎣 鱼上船了！在右下角快捷按钮里选择",
++  "{left} sò · {fish} cá béo · {key} để thả móc": "{left} 个贝壳 · {fish} 条肥鱼 · 按 {key} 放钩",
++  "{name} đã lên thuyền · bán được {price} CBCoin": "{name} 已上船 · 可卖 {price} CBCoin",
++  "Chọn ở nút nhanh: nuôi thêm hay bán luôn?": "在快捷按钮里选：继续养还是马上卖？",
++  "+{coins} CBCoin · {name} lên thuyền!": "+{coins} CBCoin · {name} 上船啦！",
++  "Cá béo lắm rồi, bắt điii! 🎣": "肥得不行啦，快来抓～ 🎣",
++  "Chào mừng tới TrashQuarium!": "欢迎来到 TrashQuarium！",
++  "Bể cá sống ngay trên màn hình nền của bạn — và thức ăn của cá là… những file bạn không cần nữa.": "一个就在你桌面上的鱼缸——而鱼粮是……你不再需要的文件。",
++  "Bạn được tặng {name} và {coins} CBCoin để bắt đầu.": "送你 {name} 和 {coins} CBCoin，开始吧。",
++  "Lướt nhanh qua các tính năng chính nhé.": "快速看一下主要功能吧。",
++  "Cho cá ăn file rác": "用垃圾文件喂鱼",
++  "Thả file vào tab Cho cá ăn. File chui vào Bụng cá: không bị xóa, nhả ra lúc nào cũng được.": "把文件拖进“喂鱼”页。文件会钻进鱼肚子：不会被删除，随时都能吐出来。",
++  "Mỗi file cho EXP theo dung lượng; 10 EXP = 1 level.": "每个文件按大小给 EXP；10 EXP = 1 级。",
++  "Cá lớn từng ngày": "鱼一天天长大",
++  "Lv.0 cá non → Lv.50 thành niên → Lv.100 trưởng thành. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng.": "Lv.0 鱼苗 → Lv.50 少年鱼 → Lv.100 成年鱼。每 5 级鱼会吃撑并午睡 2 小时。",
++  "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi.": "你休息时鱼不会死也不会离开。",
++  "Gọi thuyền gắp sò": "叫船捞贝壳",
++  "Thuyền ra ngay bể desktop. Canh móc đung đưa rồi bấm Space để thả.": "小船直接开到桌面鱼缸。看准摆动的钩子，按 Space 放钩。",
++  "Sò trắng 1, đỏ 10, tím 100 CBCoin. Sò hiếm có thể giấu ngọc trai.": "白贝 1、红贝 10、紫贝 100 CBCoin。稀有贝壳里可能藏着珍珠。",
++  "Cá béo thì gắp lên thuyền": "鱼养肥了就抓上船",
++  "Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm.": "Lv.100 的鱼会显示“肥得不行啦，快来抓～”。抓上船后，选择马上卖（购买价 ×100）或继续养。",
++  "Cá bơi qua lại, phải canh đúng lúc mới trúng.": "鱼会来回游，要看准时机才抓得到。",
++  "Mua cá và cho sinh sản": "买鱼和繁殖",
++  "Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn.": "商店有 64 种真实的鱼。鱼缸有 20 个位置，大鱼占得更多。",
++  "Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở.": "让两条同种的 Lv.100 鱼配对产卵；卵会在鱼卵洞里孵 2–3 小时才孵化。",
++  "Sẵn sàng rồi!": "准备好啦！",
++  "Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền.": "在设置里打开“桌面鱼缸”，鱼就会在桌面图标下游动。",
++  "Bấm nút ? ở góc trên bất cứ lúc nào để xem lại phần giới thiệu này.": "随时点击上方的 ? 按钮，可以再看一遍这个介绍。",
++  "Trang {n}": "第 {n} 页",
++  "Bỏ qua": "跳过",
++  "← Trước": "← 上一页",
++  "Xem bảng tóm tắt": "查看速览",
++  "Bắt đầu chơi": "开始玩",
++  "Tiếp →": "下一页 →",
+ };
+diff --git a/src/manager.ts b/src/manager.ts
+index 65a42c2..6e915c9 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -168,7 +168,7 @@ function showGuide() {
+       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
+       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
+       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
+-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
++      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
+     ),
+     [{ label: t("Đã hiểu!"), kind: "primary" }],
+@@ -184,7 +184,7 @@ function renderStats() {
+       "🌐",
+       h("select", { "aria-label": t("Ngôn ngữ"), onchange: (e: Event) => setLang((e.currentTarget as HTMLSelectElement).value as Lang) },
+         ...LANGS.map((l) => h("option", { value: l.id, selected: getLang() === l.id }, l.label)))),
+-    h("button", { class: "pill help", title: t("Cách chơi"), "aria-label": t("Cách chơi"), onclick: showGuide }, "?"),
++    h("button", { class: "pill help", title: t("Cách chơi"), "aria-label": t("Cách chơi"), onclick: () => showIntro() }, "?"),
+   );
+ }
+ 
+@@ -593,7 +593,7 @@ function renderTank(): Node {
+         h("span", { class: "fine" }, next ? t("{exp} / {next} EXP · {pending} EXP đang tiêu hóa", { exp: f.exp, next, pending: f.pending_exp }) : t("Level 100 · đã trưởng thành")),
+         f.resting_until > Date.now()/1000 ? h("p", {}, t("🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.", { time: formatDate(f.resting_until) })) : null,
+         f.stage === "adult" ? h("div", { class: "tags" },
+-          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, t("⛵ Gọi thuyền bán · {price} CBCoin", { price: saleValue(f) })),
++          h("span", { class: "tag big", title: t("Gọi thuyền ra bể desktop rồi gắp con cá này để bán.") }, t("🎣 Béo rồi · gắp được {price} CBCoin", { price: saleValue(f) })),
+           h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, t("🥚 Sinh sản")),
+         ) : h("div", { class: "tags" },
+           h("button", { class: "ghost small", disabled: working || !!state.read_only, title: t("Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua."), onclick: () => confirmSell(f) }, t("Bán lại · {price} CBCoin", { price: saleValue(f) })),
+@@ -680,15 +680,24 @@ function announceHatches() {
+ 
+ function renderHunt(): Node {
+   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
++  const fat = state.fish.filter(isAdult).length;
++  const session = state.hunt.session;
++  const act = (action: "keep" | "sell") => () => api.huntAction(session!.id, Date.now(), action).then(refresh, fail);
+   return h("section", { class: "settings" },
+     h("h2", {}, t("Trục vớt Vỏ sò")),
+     h("p", { class: "lead" }, t("Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100).")),
++    h("p", {}, t("Cá Lv.100 hiện chữ \"Cá béo lắm rồi, bắt điii!\" trên desktop. Gắp được cá lên thuyền thì chọn nuôi thêm hoặc bán luôn với giá mua ×100. Cá bơi qua lại nên phải canh đúng lúc.")),
++    session?.phase === "deciding" ? h("div", { class: "banner info" },
++      h("span", {}, t("🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?")),
++      h("button", { class: "small primary", onclick: act("sell") }, t("💰 Yehh nay có cơm ăn rồiiii")),
++      h("button", { class: "small ghost", onclick: act("keep") }, t("🐟 Cá gầy quá nuôi thêm chút vậyyyy")),
++    ) : null,
+     h("div", { class: "setting" }, h("div", {},
+-      h("h3", {}, remaining ? t("{n} sò đang chờ dưới đáy", { n: remaining }) : t("Chưa thấy sò mới")),
++      h("h3", {}, (remaining ? t("{n} sò đang chờ dưới đáy", { n: remaining }) : t("Chưa thấy sò mới")) + (fat ? t(" · {n} cá béo chờ gắp", { n: fat }) : "")),
+       h("p", {}, t("Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn."))),
+       state.hunt.session
+         ? h("button", { onclick: () => api.huntAction(state.hunt.session!.id, Date.now(), "leave").then(refresh, fail) }, t("Rời thuyền"))
+-        : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
++        : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || (state.hunt.earned >= state.hunt.daily_cap && fat === 0),
+             onclick: () => api.startHunt().then(refresh, fail) }, t("Gọi thuyền"))),
+     h("p", {}, t("Đã nhặt hôm nay: {earned}/{cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.", { earned: state.hunt.earned, cap: state.hunt.daily_cap })),
+     h("p", { class: "fine" }, t("Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt.")),
+@@ -778,31 +787,111 @@ function renderSettings(): Node {
+ 
+ // ---------- first run & window lifecycle ----------
+ 
+-function onboarding() {
++// ---------- intro ----------
++
++/** Bump to show the intro again to everyone after big gameplay changes. */
++const INTRO_VERSION = "3";
++const INTRO_KEY = "tq.intro";
++
++function introSeen(): boolean {
++  try { return localStorage.getItem(INTRO_KEY) === INTRO_VERSION; } catch { return false; }
++}
++function markIntroSeen() {
++  try { localStorage.setItem(INTRO_KEY, INTRO_VERSION); } catch { /* storage unavailable */ }
++}
++
++/** A little stage of game art for each intro slide (ocean background + sprites). */
++function introArt(kind: string): HTMLElement {
++  const img = (src: string, cls: string, alt = "") => h("img", { src, class: cls, alt });
++  const fish = (id: string) => `/fish/${id}.png`;
++  const bubble = (text: string, cls: string) => h("span", { class: `intro-bubble ${cls}` }, text);
++  const stage = h("div", { class: `intro-stage ${kind}`, "aria-hidden": "true" });
++  const parts: Record<string, () => Node[]> = {
++    welcome: () => [img(fish("poecilia_reticulata"), "swim a"), img(fish("amphiprion_ocellaris"), "swim b"), img(fish("pterophyllum_scalare"), "swim c")],
++    feed: () => [h("span", { class: "intro-file f1" }, "📄"), h("span", { class: "intro-file f2" }, "🗂️"), h("span", { class: "intro-file f3" }, "📄"), img(fish("carassius_auratus"), "eat")],
++    grow: () => [img(fish("poecilia_reticulata"), "g1"), img(fish("poecilia_reticulata"), "g2"), img(fish("poecilia_reticulata"), "g3"),
++      h("span", { class: "intro-lv l1" }, "Lv.0"), h("span", { class: "intro-lv l2" }, "Lv.50"), h("span", { class: "intro-lv l3" }, "Lv.100")],
++    hunt: () => [img("/art/hunt/boat.png", "boat"), h("span", { class: "rope" }), img("/art/hunt/claw.png", "claw"),
++      img("/art/hunt/shell_0.png", "sh s0"), img("/art/hunt/shell_1.png", "sh s1"), img("/art/hunt/shell_2.png", "sh s2")],
++    catch: () => [img("/art/hunt/boat.png", "boat"), h("span", { class: "rope long" }), img(fish("carcharodon_carcharias"), "shark"),
++      bubble(t("Cá béo lắm rồi, bắt điii! 🎣"), "fat")],
++    breed: () => [img(fish("betta_splendens"), "p1"), img(fish("betta_splendens"), "p2"),
++      h("span", { class: "intro-egg e1" }), h("span", { class: "intro-egg e2" }), h("span", { class: "intro-egg e3" }), bubble("2:41:08", "timer")],
++    ready: () => [img(fish("rhincodon_typus"), "swim big"), img(fish("poecilia_reticulata"), "swim a"), img(fish("thunnus_albacares"), "swim c")],
++  };
++  stage.append(...(parts[kind] ?? parts.welcome)());
++  return stage;
++}
++
++/** Picture slides introducing the game. Shown on first run, once more after big updates, and from the ? button. */
++function showIntro(firstRun = false) {
++  const dialog = $("modal") as HTMLDialogElement;
+   const starter = state.fish[0];
+-  modal(
+-    h("div", {},
+-      h("h2", {}, t("Chào mừng tới TrashQuarium")),
+-      h("p", { style: "margin-top:8px" }, t("Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.", { name: starter ? fishLabel(starter) : t("một chú cá"), coins: state.cbcoins })),
+-      h("p", {}, t("• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.")),
+-      h("p", {}, t("• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.")),
+-      h("p", { class: "fine" }, t("Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.")),
+-      h("p", { class: "fine" }, t("Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.")),
+-    ),
+-    [
+-      { label: t("Thử với file mẫu"), kind: "ghost", run: async () => {
+-        await api.finishOnboarding().catch(fail);
+-        tab = "feed";
+-        const path = await api.createSample().catch((e) => (fail(e), null));
+-        await refresh();
+-        if (path) await previewPaths([path]);
+-      } },
+-      { label: t("Bắt đầu"), kind: "primary", run: async () => {
+-        await api.finishOnboarding().catch(fail);
+-        await refresh();
+-      } },
+-    ],
+-  );
++  const slides: { art: string; title: string; text: string[] }[] = [
++    { art: "welcome", title: t("Chào mừng tới TrashQuarium!"), text: [
++      t("Bể cá sống ngay trên màn hình nền của bạn — và thức ăn của cá là… những file bạn không cần nữa."),
++      firstRun ? t("Bạn được tặng {name} và {coins} CBCoin để bắt đầu.", { name: starter ? fishLabel(starter) : t("một chú cá"), coins: state.cbcoins }) : t("Lướt nhanh qua các tính năng chính nhé."),
++    ] },
++    { art: "feed", title: t("Cho cá ăn file rác"), text: [
++      t("Thả file vào tab Cho cá ăn. File chui vào Bụng cá: không bị xóa, nhả ra lúc nào cũng được."),
++      t("Mỗi file cho EXP theo dung lượng; 10 EXP = 1 level."),
++    ] },
++    { art: "grow", title: t("Cá lớn từng ngày"), text: [
++      t("Lv.0 cá non → Lv.50 thành niên → Lv.100 trưởng thành. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng."),
++      t("Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi."),
++    ] },
++    { art: "hunt", title: t("Gọi thuyền gắp sò"), text: [
++      t("Thuyền ra ngay bể desktop. Canh móc đung đưa rồi bấm Space để thả."),
++      t("Sò trắng 1, đỏ 10, tím 100 CBCoin. Sò hiếm có thể giấu ngọc trai."),
++    ] },
++    { art: "catch", title: t("Cá béo thì gắp lên thuyền"), text: [
++      t("Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm."),
++      t("Cá bơi qua lại, phải canh đúng lúc mới trúng."),
++    ] },
++    { art: "breed", title: t("Mua cá và cho sinh sản"), text: [
++      t("Cửa hàng có 64 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
++      t("Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở."),
++    ] },
++    { art: "ready", title: t("Sẵn sàng rồi!"), text: [
++      t("Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền."),
++      t("Bấm nút ? ở góc trên bất cứ lúc nào để xem lại phần giới thiệu này."),
++    ] },
++  ];
++  let i = 0;
++  const finish = async (sample: boolean) => {
++    dialog.close();
++    markIntroSeen();
++    if (!state.settings.onboarding_done) await api.finishOnboarding().catch(fail);
++    if (sample) {
++      tab = "feed";
++      const path = await api.createSample().catch((e) => (fail(e), null));
++      await refresh();
++      if (path) await previewPaths([path]);
++    } else await refresh();
++  };
++  const show = () => {
++    const slide = slides[i];
++    const last = i === slides.length - 1;
++    const dots = h("div", { class: "intro-dots" }, ...slides.map((_, k) => h("button", {
++      class: k === i ? "on" : "", "aria-label": t("Trang {n}", { n: k + 1 }), onclick: () => { i = k; show(); },
++    })));
++    const nav = h("div", { class: "modal-actions" },
++      !last ? h("button", { class: "ghost", onclick: () => void finish(false) }, t("Bỏ qua")) : null,
++      i > 0 ? h("button", { class: "ghost", onclick: () => { i--; show(); } }, t("← Trước")) : null,
++      last && firstRun ? h("button", { class: "ghost", onclick: () => void finish(true) }, t("Thử với file mẫu")) : null,
++      last ? h("button", { class: "ghost", onclick: () => { dialog.close(); markIntroSeen(); showGuide(); } }, t("Xem bảng tóm tắt")) : null,
++      h("button", { class: "primary", onclick: () => { if (last) void finish(false); else { i++; show(); } } }, last ? t("Bắt đầu chơi") : t("Tiếp →")),
++    );
++    dialog.replaceChildren(
++      h("div", { class: "intro" },
++        introArt(slide.art),
++        h("div", { class: "modal-body" }, h("h2", {}, slide.title), ...slide.text.map((p) => h("p", {}, p)), dots),
++      ),
++      nav,
++    );
++  };
++  show();
++  if (!dialog.open) dialog.showModal();
+ }
+ 
+ function askClose() {
+@@ -857,7 +946,8 @@ async function main() {
+     else hint.hidden = true;
+     if (event.payload.type === "drop") previewPaths(event.payload.paths);
+   });
+-  if (!state.settings.onboarding_done) onboarding();
++  if (!state.settings.onboarding_done) showIntro(true);
++  else if (!introSeen()) showIntro();
+ }
+ 
+ main();
+diff --git a/src/style.css b/src/style.css
+index bb643c1..744c5e8 100644
+--- a/src/style.css
++++ b/src/style.css
+@@ -780,3 +780,86 @@ dialog::backdrop {
+ .egg-timer.due {
+   background: #b5661b;
+ }
++
++/* Intro slides */
++dialog:has(.intro) {
++  width: min(640px, calc(100% - 32px));
++}
++.intro-stage {
++  position: relative;
++  height: 230px;
++  overflow: hidden;
++  border-radius: 18px 18px 0 0;
++  background: url("/art/ocean.jpg") center 70% / cover;
++}
++.intro-stage img {
++  position: absolute;
++  filter: drop-shadow(0 6px 8px rgba(0, 20, 25, 0.35));
++}
++.intro-stage .swim { animation: intro-swim 7s ease-in-out infinite alternate; }
++.intro-stage .swim.a { width: 90px; left: 12%; top: 38%; }
++.intro-stage .swim.b { width: 90px; left: 55%; top: 22%; animation-duration: 9s; }
++.intro-stage .swim.c { width: 120px; left: 30%; top: 55%; animation-duration: 8s; }
++.intro-stage .swim.big { width: 230px; left: 40%; top: 18%; animation-duration: 11s; }
++@keyframes intro-swim {
++  from { transform: translate(-20px, 0) rotate(-2deg); }
++  to { transform: translate(40px, -8px) rotate(2deg); }
++}
++.intro-file { position: absolute; font-size: 34px; animation: intro-drop 2.4s ease-in infinite; }
++.intro-file.f1 { left: 18%; animation-delay: 0s; }
++.intro-file.f2 { left: 30%; animation-delay: 0.8s; }
++.intro-file.f3 { left: 42%; animation-delay: 1.6s; }
++@keyframes intro-drop {
++  from { top: -40px; opacity: 1; }
++  80% { opacity: 1; }
++  to { top: 60%; opacity: 0; transform: translateX(80px) scale(0.4); }
++}
++.intro-stage .eat { width: 160px; left: 52%; top: 40%; animation: intro-gulp 0.8s ease-in-out infinite; }
++@keyframes intro-gulp { 50% { transform: scale(1.05, 0.95); } }
++.intro-stage .g1 { width: 60px; left: 10%; top: 55%; }
++.intro-stage .g2 { width: 95px; left: 36%; top: 48%; }
++.intro-stage .g3 { width: 140px; left: 66%; top: 40%; }
++.intro-lv {
++  position: absolute; top: 18%; padding: 3px 10px; border-radius: 999px;
++  background: rgba(255, 244, 220, 0.92); color: #4a3a1a; font-weight: 700; font-size: 13px;
++}
++.intro-lv.l1 { left: 11%; } .intro-lv.l2 { left: 39%; } .intro-lv.l3 { left: 72%; }
++.intro-stage .boat { width: 150px; left: calc(50% - 75px); top: -18px; }
++.intro-stage .rope {
++  position: absolute; left: 50%; top: 92px; width: 2px; height: 70px; background: #ecdfb8;
++  transform-origin: top center; animation: intro-swing 2.6s ease-in-out infinite alternate;
++}
++.intro-stage .claw {
++  width: 44px; left: calc(50% - 22px); top: 150px; transform-origin: 22px -58px;
++  animation: intro-swing 2.6s ease-in-out infinite alternate;
++}
++@keyframes intro-swing { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
++.intro-stage .sh { width: 44px; top: 76%; }
++.intro-stage .s0 { left: 20%; } .intro-stage .s1 { left: 47%; top: 82%; } .intro-stage .s2 { left: 72%; }
++.intro-stage .rope.long { height: 40px; animation: none; }
++.intro-stage .shark { width: 220px; left: calc(50% - 110px); top: 42%; animation: intro-hook 1.4s ease-in-out infinite; }
++@keyframes intro-hook { 50% { transform: translateY(-14px) rotate(-6deg); } }
++.intro-bubble {
++  position: absolute; padding: 4px 12px; border-radius: 10px; font-weight: 700; font-size: 13px;
++  background: rgba(255, 233, 170, 0.96); color: #6b4100; white-space: nowrap;
++}
++.intro-bubble.fat { left: calc(50% + 40px); top: 30%; }
++.intro-stage .p1 { width: 120px; left: 12%; top: 18%; }
++.intro-stage .p2 { width: 120px; right: 12%; top: 22%; transform: scaleX(-1); }
++.intro-egg {
++  position: absolute; bottom: 14%; width: 30px; height: 40px;
++  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
++  background: radial-gradient(circle at 35% 25%, #fffdf6, #ead1a2 70%);
++  animation: egg-wobble 0.9s ease-in-out infinite;
++}
++.intro-egg.e1 { left: 40%; } .intro-egg.e2 { left: 48%; animation-delay: 0.3s; } .intro-egg.e3 { left: 56%; animation-delay: 0.6s; }
++.intro-bubble.timer { left: calc(48% - 18px); bottom: 38%; background: #17434b; color: #fff4dc; }
++.intro-dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
++.intro-dots button {
++  width: 9px; height: 9px; padding: 0; border-radius: 50%; border: 0;
++  background: var(--line); cursor: pointer;
++}
++.intro-dots button.on { background: var(--accent, #e07a5f); width: 22px; border-radius: 5px; }
++@media (prefers-reduced-motion: reduce) {
++  .intro-stage * { animation: none !important; }
++}
+diff --git a/src/tank.ts b/src/tank.ts
+index bed3089..a6ad14e 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -3,7 +3,7 @@
+ // the window is hidden.
+ import { listen } from "@tauri-apps/api/event";
+ import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
+-import { reason, t } from "./i18n";
++import { locale, reason, speciesName, t } from "./i18n";
+ import { closureStep, drawClaw } from "./hunt-motion";
+ import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
+ import { drawDen } from "./egg-den";
+@@ -39,6 +39,7 @@ interface Swimmer {
+   burst: number; // 0 = gliding, 1 = fast tail beats
+   gulp: number; // 1 right after snapping at food, fades to 0
+   chasing: boolean; // heading for a food pellet
++  hanging: boolean; // on the claw or on deck during a fish catch
+   speed: number;
+ }
+ 
+@@ -93,6 +94,7 @@ let prevLength = 0;
+ let ripples: { x: number; y: number; age: number }[] = [];
+ let notice = { text: "", until: 0 };
+ let seenReceipt: string | null | undefined;
++let seenSale: string | null | undefined;
+ 
+ function loadImage(src: string): Promise<HTMLImageElement | null> {
+   return new Promise((resolve) => {
+@@ -160,6 +162,7 @@ function syncSwimmers(fish: Fish[]) {
+       burst: 0,
+       gulp: 0,
+       chasing: false,
++      hanging: false,
+       speed: 0.9 + Math.random() * 0.3,
+     };
+     pickTarget(s);
+@@ -212,7 +215,28 @@ function step(dt: number) {
+   pellets = pellets.filter((p) => p.bottomFor < 20);
+   huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
+   const calm = state?.settings.meeting_mode ? 0.4 : 1;
++  // While the boat is out, adult fish swim the lanes the engine moves them along (so a catch is
++  // decided there), and the caught one hangs from the claw.
++  const session = huntActive() ? hunt?.session : null;
++  const lanes = new Map((session?.fish ?? []).map((f) => [f.id, f]));
++  const frame = huntFrame();
+   for (const s of swimmers) {
++    const lane = lanes.get(s.fish.id);
++    s.hanging = !!lane && session?.caught_fish === s.fish.id;
++    if (lane) {
++      const len = fishLength(s.fish);
++      const tx = frame.ox + lane.x * frame.side;
++      const ty = frame.oy + lane.y * frame.side + (s.hanging ? len * 0.42 : 0);
++      const k = Math.min(1, dt * (s.hanging ? 25 : 4));
++      const nx = s.x + (tx - s.x) * k, ny = s.y + (ty - s.y) * k;
++      s.vx = (nx - s.x) / Math.max(dt, 1e-3); s.vy = (ny - s.y) / Math.max(dt, 1e-3);
++      s.x = nx; s.y = ny;
++      if (!s.hanging) s.facing += ((lane.dir >= 0 ? 1 : -1) - s.facing) * Math.min(1, dt * 11);
++      s.tail += dt * (s.hanging ? 16 : 6); // a hooked fish thrashes
++      s.fin += dt * 9;
++      s.chasing = false;
++      continue;
++    }
+     const len = fishLength(s.fish);
+     const cruise = (len * 0.35 + 18) * s.speed * calm * (0.75 + 0.7 * s.burst);
+     // Hungry fish go after the nearest pellet; full (resting) fish ignore food.
+@@ -398,7 +422,13 @@ function huntMessage(): string {
+   if (s.error) return reason(s.error);
+   if (s.paused) return t("Đã tạm dừng — nhấn {key} để tiếp tục", { key: HUNT_KEY });
+   const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
+-  if (s.phase === "swinging") return t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
++  if (s.phase === "deciding") return t("🎣 Cá lên thuyền! Chọn ở nút nhanh góc phải dưới");
++  if (s.phase === "swinging") {
++    const fish = s.fish.length;
++    return fish
++      ? t("{left} sò · {fish} cá béo · {key} để thả móc", { left, fish, key: HUNT_KEY })
++      : t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
++  }
+   return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
+ }
+ 
+@@ -474,6 +504,21 @@ function drawHunt(e: number) {
+   ctx.beginPath(); ctx.roundRect(x, 18, w, 34, 17); ctx.fill();
+   ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+   ctx.fillText(text, width / 2, 36);
++  const onDeck = s.phase === "deciding" ? state?.fish.find((f) => f.id === s.caught_fish) : undefined;
++  if (onDeck) {
++    const sp = state?.species.find((x) => x.id === onDeck.species_id);
++    const name = sp ? speciesName(sp) : onDeck.name;
++    const price = onDeck.purchase_price * Math.max(1, 100 - (onDeck.eggs_used ?? 0));
++    const lines = [t("{name} đã lên thuyền · bán được {price} CBCoin", { name, price }), t("Chọn ở nút nhanh: nuôi thêm hay bán luôn?")];
++    ctx.font = "600 15px system-ui, sans-serif";
++    const pw = Math.max(...lines.map((l) => richWidth(l))) + 40;
++    ctx.fillStyle = "rgba(255, 244, 220, 0.95)";
++    // Below the boat and the fish hanging from it.
++    const top = huntFrame().oy + huntFrame().side * 0.34;
++    ctx.beginPath(); ctx.roundRect(width / 2 - pw / 2, top, pw, 60, 16); ctx.fill();
++    ctx.fillStyle = "#4a3a1a"; drawRich(lines[0], width / 2, top + 20);
++    ctx.font = "500 13px system-ui, sans-serif"; ctx.fillStyle = "#6b5a3a"; drawRich(lines[1], width / 2, top + 44);
++  }
+   if (performance.now() < notice.until) {
+     const nw = richWidth(notice.text) + 36;
+     ctx.fillStyle = "rgba(22, 70, 76, 0.9)";
+@@ -509,6 +554,13 @@ function huntTick(dt: number) {
+   const s = hunt?.session;
+   closure = closureStep(closure, s?.phase, dt, !!s?.paused, reducedMotion.matches);
+   const receipt = hunt?.last_catch ?? null;
++  const sale = hunt?.last_sale ?? null;
++  if (seenSale === undefined) { if (hunt) seenSale = sale?.fish_id ?? null; }
++  else if (sale && sale.fish_id !== seenSale) {
++    seenSale = sale.fish_id;
++    const sp = state?.species.find((x) => x.id === sale.species_id);
++    notice = { text: t("+{coins} CBCoin · {name} lên thuyền!", { coins: sale.coins.toLocaleString(locale()), name: sp ? speciesName(sp) : sale.species_id }), until: performance.now() + 7000 };
++  }
+   if (seenReceipt === undefined) { if (hunt) seenReceipt = receipt?.shell_id ?? null; return; }
+   if (receipt && receipt.shell_id !== seenReceipt) {
+     seenReceipt = receipt.shell_id;
+@@ -559,8 +611,9 @@ function draw() {
+     const img = sprites.get(s.fish.species_id);
+     const bob = Math.sin(s.phase * 0.7) * len * 0.02;
+     ctx.save();
+-    ctx.translate(s.x, s.y + bob);
+-    ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
++    ctx.translate(s.x, s.y + (s.hanging ? 0 : bob));
++    if (s.hanging) ctx.rotate(-Math.PI / 2 * Math.sign(s.facing || 1) + Math.sin(clock * 13) * 0.18); // head up, wriggling
++    else ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
+     // Mid-turn the body is seen end-on: narrower but never paper thin, and a little taller.
+     const turn = Math.abs(s.facing);
+     ctx.scale((Math.sign(s.facing) || 1) * Math.max(0.22, turn), 1 + 0.08 * (1 - turn));
+@@ -570,7 +623,17 @@ function draw() {
+       drawFallbackFish(len);
+     }
+     ctx.restore();
+-    if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
++    const adult = s.fish.exp >= (state?.stage_exp.adult ?? 1000);
++    if (adult && !hunt?.session && !state?.settings.meeting_mode) {
++      // A grown fish advertises itself for the boat.
++      const text = t("Cá béo lắm rồi, bắt điii! 🎣");
++      ctx.save(); ctx.font = "600 13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
++      const bubbleWidth = ctx.measureText(text).width + 20;
++      const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
++      const by = Math.max(4, s.y - len * 0.55 - 28);
++      ctx.fillStyle = "rgba(255, 233, 170, 0.95)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
++      ctx.fillStyle = "#6b4100"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
++    } else if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+       // Fed to the next 5-level mark: the fish naps and says so.
+       const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
+       const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length]; // a new joke every 5 levels

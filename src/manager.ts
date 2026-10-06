@@ -168,7 +168,7 @@ function showGuide() {
       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
     ),
     [{ label: t("Đã hiểu!"), kind: "primary" }],
@@ -184,7 +184,7 @@ function renderStats() {
       "🌐",
       h("select", { "aria-label": t("Ngôn ngữ"), onchange: (e: Event) => setLang((e.currentTarget as HTMLSelectElement).value as Lang) },
         ...LANGS.map((l) => h("option", { value: l.id, selected: getLang() === l.id }, l.label)))),
-    h("button", { class: "pill help", title: t("Cách chơi"), "aria-label": t("Cách chơi"), onclick: showGuide }, "?"),
+    h("button", { class: "pill help", title: t("Cách chơi"), "aria-label": t("Cách chơi"), onclick: () => showIntro() }, "?"),
   );
 }
 
@@ -354,7 +354,9 @@ const freeSlots = () => Math.max(0, state.capacity - state.used_slots);
 
 const levelOf = (f: Fish) => Math.floor((f.exp * 100) / state.stage_exp.adult);
 
-const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
+/** Same rule as the engine: adults sell for price ×100 minus eggs laid, younger fish for half the price. */
+const isAdult = (f: Fish) => f.exp >= state.stage_exp.adult;
+const saleValue = (f: Fish) => (isAdult(f) ? f.purchase_price * Math.max(1, 100 - f.eggs_used) : Math.floor(f.purchase_price / 2));
 
 // ---------- breeding ----------
 
@@ -419,7 +421,9 @@ function confirmBreed(fish: Fish) {
 function confirmSell(fish: Fish) {
   modal(h("div", {},
     h("h2", {}, t("Gọi thuyền bán {name}?", { name: fishLabel(fish) })),
-    h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ")."),
+    isAdult(fish)
+      ? h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ").")
+      : h("p", {}, t("Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.", { lv: levelOf(fish), price: saleValue(fish) })),
     h("p", { class: "fine" }, t("Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục."))
   ), [{ label: t("Để sau"), kind: "ghost" }, { label: t("Gọi thuyền"), kind: "primary", run: async () => {
     if (working) return;
@@ -589,9 +593,11 @@ function renderTank(): Node {
         h("span", { class: "fine" }, next ? t("{exp} / {next} EXP · {pending} EXP đang tiêu hóa", { exp: f.exp, next, pending: f.pending_exp }) : t("Level 100 · đã trưởng thành")),
         f.resting_until > Date.now()/1000 ? h("p", {}, t("🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.", { time: formatDate(f.resting_until) })) : null,
         f.stage === "adult" ? h("div", { class: "tags" },
-          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, t("⛵ Gọi thuyền bán · {price} CBCoin", { price: saleValue(f) })),
+          h("span", { class: "tag big", title: t("Gọi thuyền ra bể desktop rồi gắp con cá này để bán.") }, t("🎣 Béo rồi · gắp được {price} CBCoin", { price: saleValue(f) })),
           h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, t("🥚 Sinh sản")),
-        ) : null,
+        ) : h("div", { class: "tags" },
+          h("button", { class: "ghost small", disabled: working || !!state.read_only, title: t("Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua."), onclick: () => confirmSell(f) }, t("Bán lại · {price} CBCoin", { price: saleValue(f) })),
+        ),
         f.eggs_used ? h("span", { class: "fine" }, t("Đã đẻ {n} trứng", { n: f.eggs_used })) : null,
       ),
     );
@@ -674,15 +680,24 @@ function announceHatches() {
 
 function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
+  const fat = state.fish.filter(isAdult).length;
+  const session = state.hunt.session;
+  const act = (action: "keep" | "sell") => () => api.huntAction(session!.id, Date.now(), action).then(refresh, fail);
   return h("section", { class: "settings" },
     h("h2", {}, t("Trục vớt Vỏ sò")),
     h("p", { class: "lead" }, t("Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100).")),
+    h("p", {}, t("Cá Lv.100 hiện chữ \"Cá béo lắm rồi, bắt điii!\" trên desktop. Gắp được cá lên thuyền thì chọn nuôi thêm hoặc bán luôn với giá mua ×100. Cá bơi qua lại nên phải canh đúng lúc.")),
+    session?.phase === "deciding" ? h("div", { class: "banner info" },
+      h("span", {}, t("🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?")),
+      h("button", { class: "small primary", onclick: act("sell") }, t("💰 Yehh nay có cơm ăn rồiiii")),
+      h("button", { class: "small ghost", onclick: act("keep") }, t("🐟 Cá gầy quá nuôi thêm chút vậyyyy")),
+    ) : null,
     h("div", { class: "setting" }, h("div", {},
-      h("h3", {}, remaining ? t("{n} sò đang chờ dưới đáy", { n: remaining }) : t("Chưa thấy sò mới")),
+      h("h3", {}, (remaining ? t("{n} sò đang chờ dưới đáy", { n: remaining }) : t("Chưa thấy sò mới")) + (fat ? t(" · {n} cá béo chờ gắp", { n: fat }) : "")),
       h("p", {}, t("Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn."))),
       state.hunt.session
         ? h("button", { onclick: () => api.huntAction(state.hunt.session!.id, Date.now(), "leave").then(refresh, fail) }, t("Rời thuyền"))
-        : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
+        : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || (state.hunt.earned >= state.hunt.daily_cap && fat === 0),
             onclick: () => api.startHunt().then(refresh, fail) }, t("Gọi thuyền"))),
     h("p", {}, t("Đã nhặt hôm nay: {earned}/{cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.", { earned: state.hunt.earned, cap: state.hunt.daily_cap })),
     h("p", { class: "fine" }, t("Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt.")),
@@ -772,31 +787,111 @@ function renderSettings(): Node {
 
 // ---------- first run & window lifecycle ----------
 
-function onboarding() {
+// ---------- intro ----------
+
+/** Bump to show the intro again to everyone after big gameplay changes. */
+const INTRO_VERSION = "3";
+const INTRO_KEY = "tq.intro";
+
+function introSeen(): boolean {
+  try { return localStorage.getItem(INTRO_KEY) === INTRO_VERSION; } catch { return false; }
+}
+function markIntroSeen() {
+  try { localStorage.setItem(INTRO_KEY, INTRO_VERSION); } catch { /* storage unavailable */ }
+}
+
+/** A little stage of game art for each intro slide (ocean background + sprites). */
+function introArt(kind: string): HTMLElement {
+  const img = (src: string, cls: string, alt = "") => h("img", { src, class: cls, alt });
+  const fish = (id: string) => `/fish/${id}.png`;
+  const bubble = (text: string, cls: string) => h("span", { class: `intro-bubble ${cls}` }, text);
+  const stage = h("div", { class: `intro-stage ${kind}`, "aria-hidden": "true" });
+  const parts: Record<string, () => Node[]> = {
+    welcome: () => [img(fish("poecilia_reticulata"), "swim a"), img(fish("amphiprion_ocellaris"), "swim b"), img(fish("pterophyllum_scalare"), "swim c")],
+    feed: () => [h("span", { class: "intro-file f1" }, "📄"), h("span", { class: "intro-file f2" }, "🗂️"), h("span", { class: "intro-file f3" }, "📄"), img(fish("carassius_auratus"), "eat")],
+    grow: () => [img(fish("poecilia_reticulata"), "g1"), img(fish("poecilia_reticulata"), "g2"), img(fish("poecilia_reticulata"), "g3"),
+      h("span", { class: "intro-lv l1" }, "Lv.0"), h("span", { class: "intro-lv l2" }, "Lv.50"), h("span", { class: "intro-lv l3" }, "Lv.100")],
+    hunt: () => [img("/art/hunt/boat.png", "boat"), h("span", { class: "rope" }), img("/art/hunt/claw.png", "claw"),
+      img("/art/hunt/shell_0.png", "sh s0"), img("/art/hunt/shell_1.png", "sh s1"), img("/art/hunt/shell_2.png", "sh s2")],
+    catch: () => [img("/art/hunt/boat.png", "boat"), h("span", { class: "rope long" }), img(fish("carcharodon_carcharias"), "shark"),
+      bubble(t("Cá béo lắm rồi, bắt điii! 🎣"), "fat")],
+    breed: () => [img(fish("betta_splendens"), "p1"), img(fish("betta_splendens"), "p2"),
+      h("span", { class: "intro-egg e1" }), h("span", { class: "intro-egg e2" }), h("span", { class: "intro-egg e3" }), bubble("2:41:08", "timer")],
+    ready: () => [img(fish("rhincodon_typus"), "swim big"), img(fish("poecilia_reticulata"), "swim a"), img(fish("thunnus_albacares"), "swim c")],
+  };
+  stage.append(...(parts[kind] ?? parts.welcome)());
+  return stage;
+}
+
+/** Picture slides introducing the game. Shown on first run, once more after big updates, and from the ? button. */
+function showIntro(firstRun = false) {
+  const dialog = $("modal") as HTMLDialogElement;
   const starter = state.fish[0];
-  modal(
-    h("div", {},
-      h("h2", {}, t("Chào mừng tới TrashQuarium")),
-      h("p", { style: "margin-top:8px" }, t("Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.", { name: starter ? fishLabel(starter) : t("một chú cá"), coins: state.cbcoins })),
-      h("p", {}, t("• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.")),
-      h("p", {}, t("• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.")),
-      h("p", { class: "fine" }, t("Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.")),
-      h("p", { class: "fine" }, t("Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.")),
-    ),
-    [
-      { label: t("Thử với file mẫu"), kind: "ghost", run: async () => {
-        await api.finishOnboarding().catch(fail);
-        tab = "feed";
-        const path = await api.createSample().catch((e) => (fail(e), null));
-        await refresh();
-        if (path) await previewPaths([path]);
-      } },
-      { label: t("Bắt đầu"), kind: "primary", run: async () => {
-        await api.finishOnboarding().catch(fail);
-        await refresh();
-      } },
-    ],
-  );
+  const slides: { art: string; title: string; text: string[] }[] = [
+    { art: "welcome", title: t("Chào mừng tới TrashQuarium!"), text: [
+      t("Bể cá sống ngay trên màn hình nền của bạn — và thức ăn của cá là… những file bạn không cần nữa."),
+      firstRun ? t("Bạn được tặng {name} và {coins} CBCoin để bắt đầu.", { name: starter ? fishLabel(starter) : t("một chú cá"), coins: state.cbcoins }) : t("Lướt nhanh qua các tính năng chính nhé."),
+    ] },
+    { art: "feed", title: t("Cho cá ăn file rác"), text: [
+      t("Thả file vào tab Cho cá ăn. File chui vào Bụng cá: không bị xóa, nhả ra lúc nào cũng được."),
+      t("Mỗi file cho EXP theo dung lượng; 10 EXP = 1 level."),
+    ] },
+    { art: "grow", title: t("Cá lớn từng ngày"), text: [
+      t("Lv.0 cá non → Lv.50 thành niên → Lv.100 trưởng thành. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng."),
+      t("Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi."),
+    ] },
+    { art: "hunt", title: t("Gọi thuyền gắp sò"), text: [
+      t("Thuyền ra ngay bể desktop. Canh móc đung đưa rồi bấm Space để thả."),
+      t("Sò trắng 1, đỏ 10, tím 100 CBCoin. Sò hiếm có thể giấu ngọc trai."),
+    ] },
+    { art: "catch", title: t("Cá béo thì gắp lên thuyền"), text: [
+      t("Cá Lv.100 hiện chữ “Cá béo lắm rồi, bắt điii!”. Gắp lên thuyền rồi chọn bán luôn (giá mua ×100) hay nuôi thêm."),
+      t("Cá bơi qua lại, phải canh đúng lúc mới trúng."),
+    ] },
+    { art: "breed", title: t("Mua cá và cho sinh sản"), text: [
+      t("Cửa hàng có 114 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
+      t("Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở."),
+    ] },
+    { art: "ready", title: t("Sẵn sàng rồi!"), text: [
+      t("Bật Bể cá desktop trong Cài đặt để cá bơi ngay dưới biểu tượng màn hình nền."),
+      t("Bấm nút ? ở góc trên bất cứ lúc nào để xem lại phần giới thiệu này."),
+    ] },
+  ];
+  let i = 0;
+  const finish = async (sample: boolean) => {
+    dialog.close();
+    markIntroSeen();
+    if (!state.settings.onboarding_done) await api.finishOnboarding().catch(fail);
+    if (sample) {
+      tab = "feed";
+      const path = await api.createSample().catch((e) => (fail(e), null));
+      await refresh();
+      if (path) await previewPaths([path]);
+    } else await refresh();
+  };
+  const show = () => {
+    const slide = slides[i];
+    const last = i === slides.length - 1;
+    const dots = h("div", { class: "intro-dots" }, ...slides.map((_, k) => h("button", {
+      class: k === i ? "on" : "", "aria-label": t("Trang {n}", { n: k + 1 }), onclick: () => { i = k; show(); },
+    })));
+    const nav = h("div", { class: "modal-actions" },
+      !last ? h("button", { class: "ghost", onclick: () => void finish(false) }, t("Bỏ qua")) : null,
+      i > 0 ? h("button", { class: "ghost", onclick: () => { i--; show(); } }, t("← Trước")) : null,
+      last && firstRun ? h("button", { class: "ghost", onclick: () => void finish(true) }, t("Thử với file mẫu")) : null,
+      last ? h("button", { class: "ghost", onclick: () => { dialog.close(); markIntroSeen(); showGuide(); } }, t("Xem bảng tóm tắt")) : null,
+      h("button", { class: "primary", onclick: () => { if (last) void finish(false); else { i++; show(); } } }, last ? t("Bắt đầu chơi") : t("Tiếp →")),
+    );
+    dialog.replaceChildren(
+      h("div", { class: "intro" },
+        introArt(slide.art),
+        h("div", { class: "modal-body" }, h("h2", {}, slide.title), ...slide.text.map((p) => h("p", {}, p)), dots),
+      ),
+      nav,
+    );
+  };
+  show();
+  if (!dialog.open) dialog.showModal();
 }
 
 function askClose() {
@@ -851,7 +946,8 @@ async function main() {
     else hint.hidden = true;
     if (event.payload.type === "drop") previewPaths(event.payload.paths);
   });
-  if (!state.settings.onboarding_done) onboarding();
+  if (!state.settings.onboarding_done) showIntro(true);
+  else if (!introSeen()) showIntro();
 }
 
 main();

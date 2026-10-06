@@ -1,0 +1,406 @@
+{
+  "status": "50 generated concept sprites, alpha present; editorial anatomy and edge review required before release.",
+  "generator": "Built-in image generation via imagegen skill",
+  "roster": [
+    {
+      "id": "copepod",
+      "name": "Chân chèo phù du",
+      "group": "plankton",
+      "subject": "a marine copepod, pear-shaped translucent segmented body, long paired antennae, small forked tail, tiny natural eye, enlarged microscopic view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a marine copepod, pear-shaped translucent segmented body, long paired antennae, small forked tail, tiny natural eye, enlarged microscopic view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/copepod.png"
+    },
+    {
+      "id": "krill",
+      "name": "Nhuyễn thể krill",
+      "group": "plankton",
+      "subject": "a marine krill, translucent pink shrimp-like body, black compound eyes, slender legs and long antennae, lateral view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a marine krill, translucent pink shrimp-like body, black compound eyes, slender legs and long antennae, lateral view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/krill.png"
+    },
+    {
+      "id": "amphipod",
+      "name": "Giáp xác phù du amphipod",
+      "group": "plankton",
+      "subject": "a marine amphipod, laterally flattened curled segmented pale orange body, fine legs and antennae, side view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a marine amphipod, laterally flattened curled segmented pale orange body, fine legs and antennae, side view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/amphipod.png"
+    },
+    {
+      "id": "ostracod",
+      "name": "Giáp xác hai mảnh ostracod",
+      "group": "plankton",
+      "subject": "a marine ostracod, tiny golden translucent oval bivalved carapace with short appendages protruding, magnified view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a marine ostracod, tiny golden translucent oval bivalved carapace with short appendages protruding, magnified view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/ostracod.png"
+    },
+    {
+      "id": "arrow_worm",
+      "name": "Giun mũi tên phù du",
+      "group": "plankton",
+      "subject": "a marine arrow worm, transparent slender elongated body, pointed head with small grasping spines and delicate lateral fins",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: ONE marine chaetognath arrow worm, an unsegmented transparent ribbon-like worm with a tiny round blunt head and tiny curved grasping hooks around mouth. Smooth slender body, one pair of small transparent lateral fins and a small caudal fin. NO fish head, NO jaws resembling a crocodile, NO fish scales or fish eyes. Natural magnified microscope-inspired silhouette..\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.\nCritical framing: transparent empty border at least 15% on all four sides; do not cut any appendage at the image edge.",
+      "file": "sprites/arrow_worm-v2.png"
+    },
+    {
+      "id": "sea_butterfly",
+      "name": "Ốc cánh biển phù du",
+      "group": "plankton",
+      "subject": "a sea butterfly pteropod with thin translucent coiled shell and two broad winglike lobes, no butterfly insect anatomy",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a sea butterfly pteropod with thin translucent coiled shell and two broad winglike lobes, no butterfly insect anatomy.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/sea_butterfly.png"
+    },
+    {
+      "id": "sea_angel",
+      "name": "Thiên thần biển",
+      "group": "plankton",
+      "subject": "a translucent orange-core sea angel, shell-less pteropod, pair of wing-like swimming lobes and two tiny head tentacles",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: a translucent orange-core sea angel, shell-less pteropod, pair of wing-like swimming lobes and two tiny head tentacles.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/sea_angel.png"
+    },
+    {
+      "id": "diatom",
+      "name": "Tảo cát phù du",
+      "group": "plankton",
+      "subject": "one marine centric diatom, round golden glassy microalgal cell, intricate radial perforated silica shell, enlarged microscopic top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine centric diatom, round golden glassy microalgal cell, intricate radial perforated silica shell, enlarged microscopic top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/diatom.png"
+    },
+    {
+      "id": "dinoflagellate",
+      "name": "Tảo giáp phù du",
+      "group": "plankton",
+      "subject": "one horned marine dinoflagellate microalgal cell, golden translucent armored body with three slender horns, magnified microscopic view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one horned marine dinoflagellate microalgal cell, golden translucent armored body with three slender horns, magnified microscopic view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/dinoflagellate.png"
+    },
+    {
+      "id": "radiolarian",
+      "name": "Trùng tia phù du",
+      "group": "plankton",
+      "subject": "one radiolarian, delicate spherical glassy lattice shell with symmetrical radial needle spines, tiny warm amber inner cell, microscopic view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one radiolarian, delicate spherical glassy lattice shell with symmetrical radial needle spines, tiny warm amber inner cell, microscopic view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/radiolarian.png"
+    },
+    {
+      "id": "red_sea_star",
+      "name": "Sao biển đỏ",
+      "group": "echinoderm",
+      "subject": "one red sea star, exactly five tapering arms, subtly granulated orange-red surface, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one red sea star, exactly five tapering arms, subtly granulated orange-red surface, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/red_sea_star.png"
+    },
+    {
+      "id": "blue_sea_star",
+      "name": "Sao biển xanh",
+      "group": "echinoderm",
+      "subject": "one vivid blue sea star, exactly five slender cylindrical arms, mottled azure surface, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one vivid blue sea star, exactly five slender cylindrical arms, mottled azure surface, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/blue_sea_star.png"
+    },
+    {
+      "id": "cushion_star",
+      "name": "Sao biển gối",
+      "group": "echinoderm",
+      "subject": "one cushion sea star, inflated pentagonal orange body with five short blunt arms, tessellated skin, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one cushion sea star, inflated pentagonal orange body with five short blunt arms, tessellated skin, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/cushion_star.png"
+    },
+    {
+      "id": "chocolate_chip_star",
+      "name": "Sao biển gai đen",
+      "group": "echinoderm",
+      "subject": "one chocolate-chip sea star, exactly five thick tan arms with dark brown conical knobs, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one chocolate-chip sea star, exactly five thick tan arms with dark brown conical knobs, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/chocolate_chip_star.png"
+    },
+    {
+      "id": "brittle_star",
+      "name": "Sao biển rắn",
+      "group": "echinoderm",
+      "subject": "one brittle star, small round brown central disc and exactly five extremely slender flexible articulated arms, all arms unclipped",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one brittle star, small round brown central disc and exactly five extremely slender flexible articulated arms, all arms unclipped.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/brittle_star.png"
+    },
+    {
+      "id": "basket_star",
+      "name": "Sao biển giỏ",
+      "group": "echinoderm",
+      "subject": "one basket star, a central disc and five repeatedly branching delicately curled arms forming a broad lace basket, all branches unclipped",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one basket star, a central disc and five repeatedly branching delicately curled arms forming a broad lace basket, all branches unclipped.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/basket_star.png"
+    },
+    {
+      "id": "sunflower_star",
+      "name": "Sao biển hướng dương",
+      "group": "echinoderm",
+      "subject": "one sunflower sea star, broad soft violet-orange central body with many distinct slender radial arms, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one sunflower sea star, broad soft violet-orange central body with many distinct slender radial arms, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/sunflower_star.png"
+    },
+    {
+      "id": "feather_star",
+      "name": "Sao lông biển",
+      "group": "echinoderm",
+      "subject": "one feather star crinoid, many graceful feather-like branched arms arranged around small central disc, no stalk, all unclipped",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one feather star crinoid, many graceful feather-like branched arms arranged around small central disc, no stalk, all unclipped.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/feather_star.png"
+    },
+    {
+      "id": "purple_urchin",
+      "name": "Nhím biển tím",
+      "group": "echinoderm",
+      "subject": "one purple sea urchin, rounded domed test with dense natural purple needle spines, three-quarter view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one purple sea urchin, rounded domed test with dense natural purple needle spines, three-quarter view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/purple_urchin.png"
+    },
+    {
+      "id": "sand_dollar",
+      "name": "Đô la cát",
+      "group": "echinoderm",
+      "subject": "one living sand dollar, flattened round olive-gray disk, five-petal star pattern on upper surface, fine velvet-like texture, top view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living sand dollar, flattened round olive-gray disk, five-petal star pattern on upper surface, fine velvet-like texture, top view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/sand_dollar.png"
+    },
+    {
+      "id": "queen_conch",
+      "name": "Ốc xà cừ hồng",
+      "group": "gastropod",
+      "subject": "one living queen conch, large cream spired shell with flared pink lip, small soft foot and natural eyestalks visible, three-quarter side view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living queen conch, large cream spired shell with flared pink lip, small soft foot and natural eyestalks visible, three-quarter side view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/queen_conch.png"
+    },
+    {
+      "id": "tiger_cowrie",
+      "name": "Ốc sứ hổ",
+      "group": "gastropod",
+      "subject": "one tiger cowrie, polished egg-shaped ivory shell with dark brown leopard speckles, a little natural mantle and foot visible",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one tiger cowrie, polished egg-shaped ivory shell with dark brown leopard speckles, a little natural mantle and foot visible.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/tiger_cowrie.png"
+    },
+    {
+      "id": "cone_snail",
+      "name": "Ốc cối",
+      "group": "gastropod",
+      "subject": "one marine cone snail, cream tapered conical shell with brown geometric pattern, small soft foot visible, no injected prey",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine cone snail, cream tapered conical shell with brown geometric pattern, small soft foot visible, no injected prey.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/cone_snail.png"
+    },
+    {
+      "id": "whelk",
+      "name": "Ốc buccin",
+      "group": "gastropod",
+      "subject": "one living marine whelk, brown spiral elongated shell with raised ribs and siphon, soft foot visible",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living marine whelk, brown spiral elongated shell with raised ribs and siphon, soft foot visible.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/whelk.png"
+    },
+    {
+      "id": "turban_snail",
+      "name": "Ốc xà cừ turbo",
+      "group": "gastropod",
+      "subject": "one marine turban snail, squat rounded green-brown spiral shell, mother-of-pearl at aperture and soft foot",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine turban snail, squat rounded green-brown spiral shell, mother-of-pearl at aperture and soft foot.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/turban_snail.png"
+    },
+    {
+      "id": "top_shell",
+      "name": "Ốc đụn",
+      "group": "gastropod",
+      "subject": "one marine top-shell snail, sharply conical pink-cream banded spiral shell, delicate tentacles and soft foot",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine top-shell snail, sharply conical pink-cream banded spiral shell, delicate tentacles and soft foot.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/top_shell.png"
+    },
+    {
+      "id": "abalone",
+      "name": "Bào ngư",
+      "group": "gastropod",
+      "subject": "one living abalone, flattened oval ridged blue-green shell with a row of breathing holes and broad soft foot",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living abalone, flattened oval ridged blue-green shell with a row of breathing holes and broad soft foot.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/abalone.png"
+    },
+    {
+      "id": "limpet",
+      "name": "Ốc nón",
+      "group": "gastropod",
+      "subject": "one limpet, low conical radial-ribbed beige shell with subtle olive bands, small fleshy foot visible underneath, no rock",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one limpet, low conical radial-ribbed beige shell with subtle olive bands, small fleshy foot visible underneath, no rock.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/limpet.png"
+    },
+    {
+      "id": "moon_snail",
+      "name": "Ốc mặt trăng",
+      "group": "gastropod",
+      "subject": "one marine moon snail, smooth round pale ivory spiral shell and oversized cream fleshy foot",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine moon snail, smooth round pale ivory spiral shell and oversized cream fleshy foot.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/moon_snail.png"
+    },
+    {
+      "id": "murex_snail",
+      "name": "Ốc gai murex",
+      "group": "gastropod",
+      "subject": "one marine murex snail, ornate cream spiral shell with long branching spines and long siphonal canal, soft foot, no clipped spines",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one marine murex snail, ornate cream spiral shell with long branching spines and long siphonal canal, soft foot, no clipped spines.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/murex_snail.png"
+    },
+    {
+      "id": "blue_dragon",
+      "name": "Sên biển rồng xanh",
+      "group": "mollusk_cnidarian",
+      "subject": "one blue dragon nudibranch, silvery-blue elongated body, six clusters of fingerlike cerata, dorsal view, natural small head no cartoon face",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one blue dragon nudibranch, silvery-blue elongated body, six clusters of fingerlike cerata, dorsal view, natural small head no cartoon face.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/blue_dragon.png"
+    },
+    {
+      "id": "spanish_dancer",
+      "name": "Sên biển vũ công",
+      "group": "mollusk_cnidarian",
+      "subject": "one Spanish dancer nudibranch, crimson orange broad frilled mantle, small rhinophores and feathery rear gills",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one Spanish dancer nudibranch, crimson orange broad frilled mantle, small rhinophores and feathery rear gills.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/spanish_dancer.png"
+    },
+    {
+      "id": "leaf_slug",
+      "name": "Sên biển lá",
+      "group": "mollusk_cnidarian",
+      "subject": "one leaf-like green sea slug, folded green leaf-shaped parapodia and two rhinophores, no plants",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one leaf-like green sea slug, folded green leaf-shaped parapodia and two rhinophores, no plants.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/leaf_slug.png"
+    },
+    {
+      "id": "dorid_slug",
+      "name": "Sên biển dorid",
+      "group": "mollusk_cnidarian",
+      "subject": "one cream dorid nudibranch with purple spots and yellow rim, two rhinophores and rear rosette gills",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one cream dorid nudibranch with purple spots and yellow rim, two rhinophores and rear rosette gills.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/dorid_slug.png"
+    },
+    {
+      "id": "giant_clam",
+      "name": "Trai tai tượng",
+      "group": "mollusk_cnidarian",
+      "subject": "one giant clam, heavy deeply fluted paired shells partly open around electric turquoise patterned mantle",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one giant clam, heavy deeply fluted paired shells partly open around electric turquoise patterned mantle.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/giant_clam.png"
+    },
+    {
+      "id": "scallop",
+      "name": "Sò điệp",
+      "group": "mollusk_cnidarian",
+      "subject": "one living scallop, orange fan-shaped ribbed paired shell slightly open, tiny blue eyes along mantle edge",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living scallop, orange fan-shaped ribbed paired shell slightly open, tiny blue eyes along mantle edge.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/scallop.png"
+    },
+    {
+      "id": "oyster",
+      "name": "Hàu biển",
+      "group": "mollusk_cnidarian",
+      "subject": "one living oyster, irregular rough gray layered paired shell partly open, pale soft mantle inside",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living oyster, irregular rough gray layered paired shell partly open, pale soft mantle inside.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/oyster.png"
+    },
+    {
+      "id": "mussel",
+      "name": "Vẹm xanh",
+      "group": "mollusk_cnidarian",
+      "subject": "one living green-lipped mussel, elongated tapered dark blue-green paired shell slightly open, soft flesh subtly visible",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one living green-lipped mussel, elongated tapered dark blue-green paired shell slightly open, soft flesh subtly visible.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/mussel.png"
+    },
+    {
+      "id": "moon_jelly",
+      "name": "Sứa mặt trăng",
+      "group": "mollusk_cnidarian",
+      "subject": "one moon jellyfish, translucent circular pale lavender bell, four horseshoe internal gonad shapes, short fine marginal tentacles and oral arms",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one moon jellyfish, translucent circular pale lavender bell, four horseshoe internal gonad shapes, short fine marginal tentacles and oral arms.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/moon_jelly.png"
+    },
+    {
+      "id": "sea_anemone",
+      "name": "Hải quỳ",
+      "group": "mollusk_cnidarian",
+      "subject": "one sea anemone, fleshy short cylindrical column and crown of many softly tapered orange-pink tentacles around central oral disc, no rock",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one sea anemone, fleshy short cylindrical column and crown of many softly tapered orange-pink tentacles around central oral disc, no rock.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/sea_anemone.png"
+    },
+    {
+      "id": "hermit_crab",
+      "name": "Cua ẩn sĩ",
+      "group": "crustacean_cephalopod",
+      "subject": "one red marine hermit crab, natural claws legs and eyestalks emerging from a single cream spiral shell",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one red marine hermit crab, natural claws legs and eyestalks emerging from a single cream spiral shell.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/hermit_crab.png"
+    },
+    {
+      "id": "ghost_crab",
+      "name": "Cua ma",
+      "group": "crustacean_cephalopod",
+      "subject": "one sand-colored ghost crab, broad square carapace, two prominent eyestalks, two claws and eight walking legs",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one sand-colored ghost crab, broad square carapace, two prominent eyestalks, two claws and eight walking legs.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/ghost_crab.png"
+    },
+    {
+      "id": "fiddler_crab",
+      "name": "Cua violin",
+      "group": "crustacean_cephalopod",
+      "subject": "one male fiddler crab, reddish brown small carapace, one dramatically enlarged orange claw and one tiny claw, eight walking legs",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one male fiddler crab, reddish brown small carapace, one dramatically enlarged orange claw and one tiny claw, eight walking legs.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/fiddler_crab.png"
+    },
+    {
+      "id": "blue_crab",
+      "name": "Cua xanh",
+      "group": "crustacean_cephalopod",
+      "subject": "one blue crab, olive broad spined carapace, two blue claws, rear pair of paddle-like swimming legs, dorsal three-quarter view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one blue crab, olive broad spined carapace, two blue claws, rear pair of paddle-like swimming legs, dorsal three-quarter view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/blue_crab.png"
+    },
+    {
+      "id": "porcelain_crab",
+      "name": "Cua sứ",
+      "group": "crustacean_cephalopod",
+      "subject": "one porcelain crab, small round mottled cream-red body, broad flattened paired claws, natural long antennae",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one porcelain crab, small round mottled cream-red body, broad flattened paired claws, natural long antennae.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/porcelain_crab.png"
+    },
+    {
+      "id": "cleaner_shrimp",
+      "name": "Tôm bác sĩ",
+      "group": "crustacean_cephalopod",
+      "subject": "one cleaner shrimp, slender red body with white longitudinal dorsal stripe, extremely long white antennae, natural translucent legs",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: ONE cleaner shrimp, slender red-and-white striped body, small natural compound eyes, thin transparent legs and long white antennae. CURL ALL antennae inward toward body to fit within canvas; every antenna tip must be visible. Whole animal occupies only 65 percent of canvas..\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.\nCritical framing: transparent empty border at least 15% on all four sides; do not cut any appendage at the image edge.",
+      "file": "sprites/cleaner_shrimp-v2.png"
+    },
+    {
+      "id": "mantis_shrimp",
+      "name": "Tôm tít ngũ sắc",
+      "group": "crustacean_cephalopod",
+      "subject": "one peacock mantis shrimp, green turquoise segmented body with orange accents, stalked compound eyes and folded club-like forelimbs, side three-quarter view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one peacock mantis shrimp, green turquoise segmented body with orange accents, stalked compound eyes and folded club-like forelimbs, side three-quarter view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/mantis_shrimp.png"
+    },
+    {
+      "id": "spiny_lobster",
+      "name": "Tôm hùm gai",
+      "group": "crustacean_cephalopod",
+      "subject": "one spiny lobster, brown-orange thorny carapace, two very long thick antennae, ten natural legs and segmented tail, no large lobster pincers",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: ONE spiny lobster, brown-orange thorny shell, natural small compound eyes, ten legs and segmented fan tail, NO large pincers. TWO long thick antennae gently curled inward entirely inside canvas. Whole animal occupies only 65 percent of canvas..\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.\nCritical framing: transparent empty border at least 15% on all four sides; do not cut any appendage at the image edge.",
+      "file": "sprites/spiny_lobster-v2.png"
+    },
+    {
+      "id": "reef_octopus",
+      "name": "Bạch tuộc rạn san hô",
+      "group": "crustacean_cephalopod",
+      "subject": "one small reef octopus, mottled warm brown rounded mantle and exactly eight curling sucker-lined arms, all arms unclipped",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: ONE reef octopus seen from above, warm brown small rounded mantle with TWO small natural lateral eyes and EXACTLY EIGHT clearly separated curling arms spreading radially. COUNTABLE EIGHT tips visible with no overlapping hidden arms. Two rows of small suckers on undersides. Not six arms, not tentacles with fins..\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.\nCritical framing: transparent empty border at least 15% on all four sides; do not cut any appendage at the image edge.",
+      "file": "sprites/reef_octopus-v2.png"
+    },
+    {
+      "id": "cuttlefish",
+      "name": "Mực nang",
+      "group": "crustacean_cephalopod",
+      "subject": "one cuttlefish, oval striped warm brown mantle with continuous rippling lateral fin, head with two eyes and compact natural arms, side three-quarter view",
+      "prompt": "Use case: stylized-concept. Asset type: single 2D marine creature sprite for TrashQuarium.\nSubject: one cuttlefish, oval striped warm brown mantle with continuous rippling lateral fin, head with two eyes and compact natural arms, side three-quarter view.\nStyle/medium: polished cozy watercolor and gouache, natural recognizable anatomical silhouette, delicate hand-painted texture, crisp clean edges, soft highlights. Match refined painted aquarium animal sprites, no cartoon eyes or smile, not 3D, not pixel art.\nComposition: exactly ONE complete organism centered on square canvas with 12% empty safety margin, all tentacles, arms, antennae, spines and shell tips fully inside frame. Strong readable silhouette at 160px. Microscopic organisms are magnified illustrative sprites, not real scale.\nScene/backdrop: genuinely TRANSPARENT background with actual alpha. No ocean, water, substrate, rocks, scenery, cast shadows, colored haze, glow, halo, bubbles, other organisms, labels, text, logos, borders or painted checkerboard. Preserve delicate semi-transparent animal tissues but keep empty space clear.",
+      "file": "sprites/cuttlefish.png"
+    }
+  ]
+}

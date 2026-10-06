@@ -118,10 +118,11 @@ pub struct HuntState {
     pub batch: Option<Batch>,
     #[serde(default)] pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
     #[serde(default)] pub last_catch: Option<CatchReceipt>,
+    #[serde(default)] pub last_sale: Option<FishSale>,
 }
 impl Default for HuntState {
     fn default() -> Self {
-        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None }
+        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None, last_sale: None }
     }
 }
 impl HuntState {
@@ -150,14 +151,58 @@ impl HuntState {
     }
 }
 
+/// An adult fish swimming back and forth in the hunt frame while the boat is out. The engine
+/// owns these positions (the desktop draws the fish where they are), so a catch is decided
+/// here exactly like a shell.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct FishTarget {
+    pub id: String,
+    pub species_id: String,
+    pub x: f64,
+    pub y: f64,
+    /// 1 = swimming right, -1 = left.
+    pub dir: f64,
+    /// Catch radius around the body centre (bigger fish are easier to hit).
+    pub radius: f64,
+    #[serde(skip)] pub speed: f64,
+}
+const FISH_X: (f64, f64) = (0.1, 0.9);
+
+impl FishTarget {
+    /// `slots` 1–3 (fish size). Lanes are spread over the reachable water, away from the boat.
+    pub fn new(id: &str, species_id: &str, slots: usize, lane: usize) -> Self {
+        let y = 0.36 + ((lane as f64 * 0.137 + random() * 0.05) % 0.46);
+        let size = slots.clamp(1, 3) as f64;
+        FishTarget {
+            id: id.into(), species_id: species_id.into(),
+            x: FISH_X.0 + random() * (FISH_X.1 - FISH_X.0),
+            y,
+            dir: if random() < 0.5 { -1.0 } else { 1.0 },
+            radius: 0.03 + 0.012 * size,
+            speed: 0.11 - 0.015 * size + random() * 0.03,
+        }
+    }
+    fn swim(&mut self, dt: f64) {
+        self.x += self.dir * self.speed * dt;
+        if self.x > FISH_X.1 { self.x = FISH_X.1; self.dir = -1.0; }
+        if self.x < FISH_X.0 { self.x = FISH_X.0; self.dir = 1.0; }
+    }
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct HuntSession {
     pub id: String,
+    /// Empty when only fish are out (no shell batch).
     pub batch_id: String,
+    /// swinging → extending → retracting → settling (shell) or deciding (fish) → swinging
     pub phase: String,
     pub angle: f64,
     pub length: f64,
     pub caught_id: Option<String>,
+    /// Adult fish that can be caught this trip.
+    #[serde(default)] pub fish: Vec<FishTarget>,
+    /// The fish on the claw (or on deck, waiting for keep/sell while `phase == "deciding"`).
+    pub caught_fish: Option<String>,
     pub paused: bool,
     pub error: Option<String>,
     #[serde(skip)] pub last_command: u64,
@@ -165,13 +210,21 @@ pub struct HuntSession {
 }
 impl HuntSession {
     pub fn new(batch: &Batch) -> Self {
-        Self { id: uuid::Uuid::new_v4().to_string(), batch_id: batch.id.clone(), phase: "swinging".into(), angle: -65.0, length: 0.0, caught_id: None, paused: false, error: None, last_command: 0, swing_ms: 0.0 }
+        Self::start(batch.id.clone(), Vec::new())
+    }
+    pub fn start(batch_id: String, fish: Vec<FishTarget>) -> Self {
+        Self { id: uuid::Uuid::new_v4().to_string(), batch_id, phase: "swinging".into(), angle: -65.0, length: 0.0, caught_id: None, fish, caught_fish: None, paused: false, error: None, last_command: 0, swing_ms: 0.0 }
     }
     pub fn action(&mut self, id: &str, seq: u64, action: &str) -> Result<(), Failure> {
         if id != self.id { return Err(Failure::new("hunt_stale", "session changed")); }
         if seq <= self.last_command { return Ok(()); }
         match action {
-            "drop" if self.phase == "swinging" && !self.paused => { self.phase = "extending".into(); self.caught_id = None; }
+            "drop" if self.phase == "swinging" && !self.paused => { self.phase = "extending".into(); self.caught_id = None; self.caught_fish = None; }
+            // "Too skinny, let it grow a bit": the fish swims off and isn't offered again this trip.
+            "keep" if self.phase == "deciding" => {
+                if let Some(id) = self.caught_fish.take() { self.fish.retain(|f| f.id != id); }
+                self.phase = "swinging".into();
+            }
             "pause" => self.paused = true,
             "resume" => self.paused = false,
             _ => return Err(Failure::new("hunt_busy", "action unavailable")),
@@ -184,11 +237,17 @@ impl HuntSession {
         (PIVOT.0 + angle.sin() * self.length, PIVOT.1 + angle.cos() * self.length)
     }
     pub fn step(&mut self, seconds: f64, batch: &Batch) {
+        self.step_with(seconds, &batch.shells);
+    }
+    /// `shells` is empty when no batch is out or the daily shell limit is reached; fish can still be caught.
+    pub fn step_with(&mut self, seconds: f64, shells: &[Shell]) {
         if self.paused { return; }
         // Fixed substeps prevent tunnelling, including when the webview renders slowly.
         let steps = (seconds * 120.0).ceil().max(1.0) as usize;
         let dt = seconds / steps as f64;
         for _ in 0..steps {
+            let caught = self.caught_fish.clone();
+            for f in self.fish.iter_mut().filter(|f| Some(&f.id) != caught.as_ref()) { f.swim(dt); }
             match self.phase.as_str() {
                 "swinging" => {
                     self.swing_ms += dt * 40.0;
@@ -198,16 +257,26 @@ impl HuntSession {
                 "extending" => {
                     self.length += dt * 0.55;
                     let (x, y) = self.tip();
-                    if let Some(s) = batch.shells.iter().filter(|s| !s.collected).find(|s| (s.x - x).hypot(s.y - y) <= 0.026) {
+                    if let Some(f) = self.fish.iter().find(|f| (f.x - x).hypot(f.y - y) <= f.radius) {
+                        self.caught_fish = Some(f.id.clone()); self.phase = "retracting".into();
+                    } else if let Some(s) = shells.iter().filter(|s| !s.collected).find(|s| (s.x - x).hypot(s.y - y) <= 0.026) {
                         self.caught_id = Some(s.id.clone()); self.phase = "retracting".into();
                     } else if self.length >= 0.88 || !(0.02..=0.98).contains(&x) || y >= 0.96 {
                         self.phase = "retracting".into();
                     }
                 }
                 "retracting" => {
-                    let weight = self.caught_id.as_ref().and_then(|id| batch.shells.iter().find(|s| &s.id == id)).map(|s| [0.9, 0.75, 0.6][s.size as usize]).unwrap_or(1.0);
+                    // Heavier catches come up slower: big shells, and fish by size.
+                    let fish_weight = self.caught_fish.as_ref().and_then(|id| self.fish.iter().find(|f| &f.id == id)).map(|f| (0.95 - (f.radius - 0.03) * 12.0).clamp(0.45, 0.85));
+                    let weight = fish_weight.or_else(|| self.caught_id.as_ref().and_then(|id| shells.iter().find(|s| &s.id == id)).map(|s| [0.9, 0.75, 0.6][s.size as usize])).unwrap_or(1.0);
                     self.length = (self.length - dt * 0.7 * weight).max(0.0);
-                    if self.length == 0.0 { self.phase = if self.caught_id.is_some() { "settling" } else { "swinging" }.into(); }
+                    if let Some(id) = &self.caught_fish {
+                        let (tx, ty) = self.tip();
+                        if let Some(f) = self.fish.iter_mut().find(|f| &f.id == id) { f.x = tx; f.y = ty; }
+                    }
+                    if self.length == 0.0 {
+                        self.phase = if self.caught_fish.is_some() { "deciding" } else if self.caught_id.is_some() { "settling" } else { "swinging" }.into();
+                    }
                 }
                 _ => {}
             }
@@ -225,6 +294,15 @@ pub struct HuntView {
     pub daily_cap: u64,
     pub session: Option<HuntSession>,
     pub waiting: bool,
+    pub last_sale: Option<FishSale>,
+}
+
+/// The last fish sold from the boat, for the "+2,000 CBCoin · … on board!" notice.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct FishSale {
+    pub fish_id: String,
+    pub species_id: String,
+    pub coins: u64,
 }
 
 #[cfg(test)]
@@ -248,6 +326,29 @@ mod tests {
         let mut rows = std::collections::BTreeSet::new();
         for _ in 0..20 { for s in &Batch::generate(10).shells { rows.insert((s.y * 100.0).round() as i64); } }
         assert!(rows.len() > 15, "shell heights should vary, got {rows:?}");
+    }
+    #[test] fn fish_swim_their_lane_and_a_catch_waits_for_a_decision() {
+        let mut fish = FishTarget::new("f1", "carcharodon_carcharias", 3, 0);
+        fish.x = 0.5; fish.y = 0.6; fish.dir = 1.0; fish.speed = 0.0; // parked under the boat
+        let mut s = HuntSession::start(String::new(), vec![fish]);
+        s.angle = 0.0;
+        let id = s.id.clone(); s.action(&id, 1, "drop").unwrap();
+        s.swing_ms = 0.0;
+        for _ in 0..40 { s.step_with(0.05, &[]); if s.phase != "extending" { break; } }
+        assert_eq!((s.phase.as_str(), s.caught_fish.as_deref()), ("retracting", Some("f1")));
+        for _ in 0..200 { s.step_with(0.05, &[]); if s.phase != "retracting" { break; } }
+        assert_eq!(s.phase, "deciding");
+        let (x, y) = (s.fish[0].x, s.fish[0].y);
+        s.step_with(1.0, &[]); // nothing moves while the player decides
+        assert_eq!((s.fish[0].x, s.fish[0].y, s.phase.as_str()), (x, y, "deciding"));
+        assert_eq!(s.action(&id, 2, "drop").unwrap_err().code, "hunt_busy");
+        s.action(&id, 3, "keep").unwrap();
+        assert_eq!((s.phase.as_str(), s.caught_fish.clone(), s.fish.len()), ("swinging", None, 0));
+    }
+    #[test] fn free_fish_bounce_inside_the_frame() {
+        let mut f = FishTarget::new("f", "x", 1, 2);
+        for _ in 0..2000 { f.swim(0.05); assert!((FISH_X.0..=FISH_X.1).contains(&f.x)); }
+        assert!((0.36..=0.82).contains(&f.y));
     }
     #[test] fn a_catch_requires_retraction_and_replayed_drop_is_ignored() {
         let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false, kind: ShellKind::Great, rare: false, pearl: false }] };

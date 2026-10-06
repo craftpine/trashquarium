@@ -1,6 +1,6 @@
 export function closureStep(current: number, phase: string | undefined, dt: number, paused: boolean, reduced: boolean): number {
   if (paused) return current;
-  const target = phase === "retracting" || phase === "settling" ? 1 : 0;
+  const target = phase === "retracting" || phase === "settling" || phase === "deciding" ? 1 : 0;
   return reduced ? target : current + (target - current) * Math.min(1, Math.max(0, dt) * 12);
 }
 

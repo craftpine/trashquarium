@@ -262,7 +262,7 @@ mod tests {
         assert!(report.files[0].ok);
         assert_eq!(report.files[1].code, "extension");
         assert_eq!(report.reward.unwrap().exp, 20);
-        assert_eq!(c.view().cbcoins, 40);
+        assert_eq!(c.view().cbcoins, 300);
         assert!(!a.exists() && b.exists());
         // Restore does not claw back the reward; feeding the same bytes again pays nothing.
         let id = c.held_entries()[0].id.clone();
@@ -271,7 +271,7 @@ mod tests {
         let again = c.preview(&[a.to_string_lossy().into()]);
         let r = c.feed(&again, &fish).unwrap().reward.unwrap();
         assert_eq!((r.shells, r.duplicates), (0, 1));
-        assert_eq!(c.view().cbcoins, 40);
+        assert_eq!(c.view().cbcoins, 300);
         assert!(a.exists(), "duplicate stays in its original location");
     }
 
@@ -292,7 +292,7 @@ mod tests {
         fs::remove_dir(s.policy.data_root.join("game_save.json")).unwrap();
         fs::rename(s.root.join("moved-save.json"), s.policy.data_root.join("game_save.json")).unwrap();
         let c = core(&s);
-        assert_eq!(c.view().cbcoins, 40);
+        assert_eq!(c.view().cbcoins, 300);
         assert_eq!(c.view().fish[0].exp, 20);
         drop(c);
         assert_eq!(core(&s).view().fish[0].exp, 20, "paid exactly once");

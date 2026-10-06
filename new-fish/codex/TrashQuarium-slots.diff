@@ -1,0 +1,450 @@
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 9893199..9081560 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -15,7 +15,8 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
+ - Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
+ - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
+-- Giữ quà khởi đầu 40 CBCoin, giá shop hiện có, sức chứa bể và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
++- **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
++- Giữ quà khởi đầu 40 CBCoin, giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
+ 
+ ## Sinh sản (bản dùng thử)
+ 
+@@ -24,7 +25,7 @@ Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặ
+ - **Giá trị bán:** mỗi trứng trừ của *từng* cá bố mẹ đúng một lần giá mua gốc. Giá bán hiện tại = giá mua × (100 − số trứng đã đẻ). Số trứng cộng dồn theo từng cá (`eggs_used`) và tối đa 99, tức giá bán không bao giờ thấp hơn giá mua gốc. Khi một trong hai cá hết hạn mức, chỉ còn đẻ được số trứng còn lại của cá ít hạn mức hơn.
+ - **Tỷ lệ nở mỗi trứng:** giảm tuyến tính theo giá của loài, từ 20% (giá ≤ 20 CBCoin) xuống 5% (giá ≥ 300 CBCoin). Cấu hình trong `balance.json` mục `breeding`. Trứng không nở vẫn bị trừ giá trị.
+ - **Cá con:** nở ra là cá bột Lv.0, `origin = hatched`, có `parent_ids` của hai cá bố mẹ và `generation` = đời lớn nhất của bố mẹ + 1. Giá mua ghi nhận bằng giá catalog của loài, nên cá con nuôi lên Lv.100 bán được như cá mua mới.
+-- **Bể đầy:** trứng được xử lý lần lượt; khi bể đầy, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
++- **Bể đầy:** trứng được xử lý lần lượt, mỗi cá con cần đủ số chỗ của loài; khi bể không còn đủ chỗ, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
+ - Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
+ 
+ ## Code quà tặng (Cài đặt → Nhập code)
+diff --git a/docs/how-to-play.md b/docs/how-to-play.md
+index 155df97..4f2392f 100644
+--- a/docs/how-to-play.md
++++ b/docs/how-to-play.md
+@@ -37,7 +37,7 @@ Each file gives EXP by size: small files give 20 EXP, and every extra 20 MB adds
+ 
+ ## 🛒 Shopping for the tank
+ 
+-Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a whale shark (300) is almost 4 times as long as a guppy (20). New fish always start at Lv.0. The tank holds up to **12 fish**, so buy too many and it gets crowded.
++Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a whale shark (300) is almost 4 times as long as a guppy (20). New fish always start at Lv.0. The tank has **20 slots**: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 (6 whale sharks already fill 18). Big sharks need their elbow room!
+ 
+ ## ⛵ Sell or 🥚 breed? (at Lv.100)
+ 
+diff --git a/docs/how-to-play.zh.md b/docs/how-to-play.zh.md
+index 8197668..0b86495 100644
+--- a/docs/how-to-play.zh.md
++++ b/docs/how-to-play.zh.md
+@@ -37,7 +37,7 @@
+ 
+ ## 🛒 给鱼缸购物
+ 
+-鱼的价格从 **20** 到 **300 CBCoin**。便宜的鱼小小只，贵的鱼大大只：鲸鲨（300）差不多是孔雀鱼（20）的 4 倍长。新买的鱼都从 Lv.0 开始。鱼缸最多 **12 条鱼**，买太多就挤成沙丁鱼罐头了。
++鱼的价格从 **20** 到 **300 CBCoin**。便宜的鱼小小只，贵的鱼大大只：鲸鲨（300）差不多是孔雀鱼（20）的 4 倍长。新买的鱼都从 Lv.0 开始。鱼缸有 **20 个位置**：100 CBCoin 以下的鱼占 1 个，100–199 占 2 个，200 及以上占 3 个（6 条鲸鲨就占了 18 个）。大鲨鱼当然要多占点地方！
+ 
+ ## ⛵ 卖掉还是 🥚 繁殖？（Lv.100 时）
+ 
+diff --git a/docs/huong-dan-nguoi-moi.md b/docs/huong-dan-nguoi-moi.md
+index b1de4e8..2c1336c 100644
+--- a/docs/huong-dan-nguoi-moi.md
++++ b/docs/huong-dan-nguoi-moi.md
+@@ -37,7 +37,7 @@ Mỗi file cho EXP theo dung lượng: file nhỏ 20 EXP, cứ thêm 20 MB thì
+ 
+ ## 🛒 Shopping cho bể
+ 
+-Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300) to gần gấp 4 lần cá bảy màu (20). Cá mua về luôn bắt đầu ở Lv.0. Bể chứa tối đa **12 cá**, mua nhiều quá là cá chen chúc đó.
++Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300) to gần gấp 4 lần cá bảy màu (20). Cá mua về luôn bắt đầu ở Lv.0. Bể có **20 chỗ**: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 (6 con cá mập voi đã chiếm 18 chỗ). Cá mập to thì phải nhường chỗ chứ!
+ 
+ ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
+ 
+diff --git a/src-tauri/config/balance.json b/src-tauri/config/balance.json
+index 8c2887a..0ffc326 100644
+--- a/src-tauri/config/balance.json
++++ b/src-tauri/config/balance.json
+@@ -1,6 +1,7 @@
+ {
+   "shell_hunt": { "wait_min_ms": 480000, "wait_max_ms": 1320000, "daily_cap": 60 },
+-  "tank_capacity": 12,
++  "tank_capacity": 20,
++  "slots": { "medium_price": 100, "large_price": 200 },
+   "starter_species": "poecilia_reticulata",
+   "max_preview_files": 50,
+   "max_file_bytes": 4294967296,
+diff --git a/src-tauri/src/engine/app.rs b/src-tauri/src/engine/app.rs
+index c185265..cd5b34a 100644
+--- a/src-tauri/src/engine/app.rs
++++ b/src-tauri/src/engine/app.rs
+@@ -56,6 +56,8 @@ pub struct StateView {
+     pub disclaimer: String,
+     pub stage_exp: StageExp,
+     pub breeding: super::catalog::Breeding,
++    pub slots: super::catalog::Slots,
++    pub used_slots: usize,
+     pub max_preview_files: usize,
+     pub read_only: Option<Failure>,
+     pub recovered_from_backup: bool,
+@@ -186,6 +188,8 @@ impl AppCore {
+             disclaimer: c.disclaimer.clone(),
+             stage_exp: c.balance.stage_exp.clone(),
+             breeding: c.balance.breeding.clone(),
++            slots: c.balance.slots.clone(),
++            used_slots: self.game.used_slots(),
+             max_preview_files: c.balance.max_preview_files,
+             read_only: self.game.read_only.clone(),
+             recovered_from_backup: self.game.recovered_from_backup,
+diff --git a/src-tauri/src/engine/catalog.rs b/src-tauri/src/engine/catalog.rs
+index ac3b594..8c489d4 100644
+--- a/src-tauri/src/engine/catalog.rs
++++ b/src-tauri/src/engine/catalog.rs
+@@ -71,6 +71,29 @@ pub struct Balance {
+     pub economy: Economy,
+     #[serde(default)]
+     pub breeding: Breeding,
++    #[serde(default)]
++    pub slots: Slots,
++}
++
++/// Tank space: `tank_capacity` counts slots, not fish. Bigger (pricier) fish take more:
++/// below `medium_price` 1 slot, below `large_price` 2 slots, otherwise 3 slots.
++#[derive(Serialize, Deserialize, Clone, Debug)]
++#[serde(default)]
++pub struct Slots {
++    pub medium_price: u64,
++    pub large_price: u64,
++}
++
++impl Default for Slots {
++    fn default() -> Self {
++        Slots { medium_price: 100, large_price: 200 }
++    }
++}
++
++impl Slots {
++    pub fn for_price(&self, price: u64) -> usize {
++        if price >= self.large_price { 3 } else if price >= self.medium_price { 2 } else { 1 }
++    }
+ }
+ 
+ /// Breeding: each egg costs both parents one purchase price of sale value, and
+@@ -148,6 +171,9 @@ impl Catalog {
+         if b.tank_capacity == 0 || b.stage_exp.juvenile >= b.stage_exp.adult {
+             return Err("tank capacity / stage thresholds invalid".into());
+         }
++        if b.slots.medium_price == 0 || b.slots.medium_price >= b.slots.large_price || b.tank_capacity < 3 {
++            return Err("tank slots invalid".into());
++        }
+         let br = &b.breeding;
+         if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high {
+             return Err("breeding balance invalid".into());
+diff --git a/src-tauri/src/engine/game.rs b/src-tauri/src/engine/game.rs
+index d33f4c2..2417f8b 100644
+--- a/src-tauri/src/engine/game.rs
++++ b/src-tauri/src/engine/game.rs
+@@ -337,7 +337,7 @@ impl GameStore {
+         if species.price != expected_price {
+             return Err(Failure::new("price_changed", species.price));
+         }
+-        if self.state.fish.len() >= self.catalog.balance.tank_capacity {
++        if self.used_slots() + self.catalog.balance.slots.for_price(species.price) > self.catalog.balance.tank_capacity {
+             return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity));
+         }
+         if self.state.wallet.cbcoins < species.price {
+@@ -352,6 +352,17 @@ impl GameStore {
+         Ok(fish)
+     }
+ 
++    /// Tank slots a fish of this species takes (1–3, by catalog price).
++    pub fn slots_for(&self, species_id: &str) -> usize {
++        self.catalog.species(species_id).map(|s| self.catalog.balance.slots.for_price(s.price)).unwrap_or(1)
++    }
++
++    /// Slots used by every fish now in the tank. Old saves may exceed the capacity; they keep
++    /// their fish but can't add more until there is room.
++    pub fn used_slots(&self) -> usize {
++        self.state.fish.iter().map(|f| self.slots_for(&f.species_id)).sum()
++    }
++
+     pub fn can_feed(&self, fish_id: &str, now: i64) -> Result<(), Failure> {
+         let f = self.state.fish.iter().find(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
+         if f.exp >= MAX_EXP { return Err(Failure::new("fish_adult", "level 100")); }
+@@ -386,14 +397,15 @@ impl GameStore {
+         if room == 0 { return Err(Failure::new("breed_exhausted", "sale value is back to the purchase price")); }
+         if eggs == 0 || eggs > room { return Err(Failure::new("breed_eggs_invalid", room)); }
+         let species = self.catalog.species(&a.species_id).cloned().ok_or_else(|| Failure::new("unknown_species", a.species_id.clone()))?;
+-        let free = self.catalog.balance.tank_capacity.saturating_sub(self.state.fish.len());
+-        if free == 0 { return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity)); }
++        let free = self.catalog.balance.tank_capacity.saturating_sub(self.used_slots());
++        let kid_slots = self.catalog.balance.slots.for_price(species.price);
++        if free < kid_slots { return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity)); }
+         let rate = self.catalog.balance.breeding.hatch_rate(species.price);
+         let generation = a.generation.max(b.generation) + 1;
+         let parents = vec![a.id.clone(), b.id.clone()];
+         let mut hatched = Vec::new();
+         let mut charged = 0u32;
+-        while charged < eggs && hatched.len() < free {
++        while charged < eggs && (hatched.len() + 1) * kid_slots <= free {
+             charged += 1;
+             if roll() < rate {
+                 let mut kid = self.new_fish(&species, Origin::Hatched, now);
+@@ -874,6 +886,34 @@ mod tests {
+         assert_eq!(s.redeem("TQ-ADMIN-1TY-CB-2610").unwrap_err().code, "wallet_overflow");
+     }
+ 
++    #[test]
++    fn big_fish_take_more_slots() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        assert_eq!((s.slots_for("poecilia_reticulata"), s.slots_for("thunnus_alalunga"), s.slots_for("rhincodon_typus")), (1, 2, 3));
++        s.state.wallet.cbcoins = 100_000;
++        // 1 starter slot + 6 whale sharks × 3 = 19 slots: a 7th whale shark (3) no longer fits, a guppy (1) does.
++        for _ in 0..6 { s.purchase("rhincodon_typus", 300, NOW).unwrap(); }
++        assert_eq!(s.used_slots(), 19);
++        assert_eq!(s.purchase("rhincodon_typus", 300, NOW).unwrap_err().code, "tank_full");
++        s.purchase("poecilia_reticulata", 20, NOW).unwrap();
++        assert_eq!(s.used_slots(), 20);
++    }
++
++    #[test]
++    fn hatching_big_fish_needs_room_for_their_slots() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let sp = s.catalog.species("rhincodon_typus").cloned().unwrap();
++        let mut next = s.state.clone();
++        next.fish.clear();
++        for _ in 0..2 { let mut f = s.new_fish(&sp, Origin::Shop, NOW); f.exp = MAX_EXP; f.stage = Stage::Adult; next.fish.push(f); }
++        s.commit(next).unwrap(); // 6 of 20 slots used: room for 4 whale shark pups
++        let (a, b) = (s.state.fish[0].id.clone(), s.state.fish[1].id.clone());
++        let out = s.breed_with(&a, &b, 10, NOW, &mut || 0.0).unwrap();
++        assert_eq!((out.hatched.len(), out.charged, out.refunded), (4, 4, 6));
++        assert_eq!(s.used_slots(), 18);
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "tank_full"); // 2 free < 3
++    }
++
+     fn store(dir: &Path) -> GameStore {
+         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
+     }
+@@ -932,9 +972,10 @@ mod tests {
+         let dir = tempfile::tempdir().unwrap();
+         let mut s = store(dir.path());
+         s.state.wallet.cbcoins = 10_000;
+-        while s.state.fish.len() < 12 {
++        while s.used_slots() < s.catalog.balance.tank_capacity {
+             s.purchase("danio_rerio", 20, NOW).unwrap();
+         }
++        assert_eq!(s.state.fish.len(), 20); // 20 small fish, 1 slot each
+         let before = s.state.wallet.cbcoins;
+         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "tank_full");
+         assert_eq!(s.state.wallet.cbcoins, before);
+diff --git a/src/api.ts b/src/api.ts
+index 67fc724..ada0a52 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -89,6 +89,8 @@ export interface StateView {
+   disclaimer: string;
+   stage_exp: { juvenile: number; adult: number };
+   breeding: Breeding;
++  slots: { medium_price: number; large_price: number };
++  used_slots: number;
+   max_preview_files: number;
+   read_only: Failure | null;
+   recovered_from_backup: boolean;
+diff --git a/src/locales/en.ts b/src/locales/en.ts
+index 60d8fa5..6b8565a 100644
+--- a/src/locales/en.ts
++++ b/src/locales/en.ts
+@@ -28,7 +28,7 @@ export const EN: Record<string, string> = {
+   "Chỉ xem trước {n} file đầu tiên mỗi lượt.": "Only the first {n} files are previewed each round.",
+   "Có file chưa xác định — đang kiểm tra Bụng cá…": "Some files are unresolved — checking the Belly…",
+   "CBCoin là điểm trong game, không phải tiền thật": "CBCoin are in-game points, not real money",
+-  "cá trong bể": "fish in tank",
++  "chỗ · {n} cá": "slots · {n} fish",
+   "EXP hôm nay": "EXP today",
+   " Thư mục dữ liệu: ": " Data folder: ",
+   "Bụng cá tạm khóa: ": "Belly temporarily locked: ",
+@@ -63,7 +63,7 @@ export const EN: Record<string, string> = {
+   "Nguồn": "Source",
+   "Đóng": "Close",
+   "Đổi {price} CBCoin lấy {name}?": "Trade {price} CBCoin for {name}?",
+-  "Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.": "After the trade you'll have {left} CBCoin left · tank {count}/{cap}.",
++  "Sau khi đổi còn {left} CBCoin · bể dùng {count}/{cap} chỗ.": "After the trade you'll have {left} CBCoin left · tank uses {count}/{cap} slots.",
+   "CBCoin là điểm trong game, không dùng tiền thật.": "CBCoin are in-game points, not real money.",
+   "Để sau": "Later",
+   "Đã đón {name} vào bể!": "{name} joined your tank!",
+@@ -74,8 +74,8 @@ export const EN: Record<string, string> = {
+   "Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ": "Hatch chance per egg: {rate}% · expect about {kids} fry (Lv.0). ",
+   "Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ": "Each parent loses {cost} CBCoin of sale value: {before} → {after} CBCoin ",
+   "(mỗi trứng −{price}, tối thiểu {price}). ": "(−{price} per egg, minimum {price}). ",
+-  "Bể đang đầy — cần chỗ trống để cá con nở.": "The tank is full — fry need a free slot to hatch.",
+-  "Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "{free} free slots left; if the tank fills up first, unused eggs are kept.",
++  "Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.": "Not enough room — each fry of this species needs {kid} free slots.",
++  "Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "{free} free slots, each fry takes {kid}; if the tank fills up first, unused eggs are kept.",
+   "Chọn cá ghép cặp": "Choose a mate",
+   "{name} · Lv.{lv} · giá bán {price} CBCoin": "{name} · Lv.{lv} · sells for {price} CBCoin",
+   "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.": "Pair with an adult of the same species. Each egg takes one original purchase price off the sale value of both fish, so the more they breed, the less they sell for.",
+@@ -298,7 +298,7 @@ export const EN: Record<string, string> = {
+   "Gọi thuyền, gắp sò, ra tiền": "Call the boat, grab shells, make bank",
+   "Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.": "Call the boat, watch the swinging claw and hit Space. White shells are 1 CBCoin, red 10, purple 100 — a purple shell is a jackpot.",
+   "Shopping cho bể": "Shopping for the tank",
+-  "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank holds up to 12 fish — buy too many and it gets crowded.",
++  "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank has 20 slots: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 — big sharks need their elbow room!",
+   "Bán hay cho đẻ?": "Sell or breed?",
+   "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat. Or pair two of the same species and breed: each egg takes value off both fish's sale price, with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
+   "Yên tâm": "Relax",
+@@ -314,4 +314,7 @@ export const EN: Record<string, string> = {
+   "🎉 Code hợp lệ! {n} cá trong bể đã lên Lv.100": "🎉 Code accepted! {n} fish in your tank reached Lv.100",
+   "Có code quà tặng? Nhập vào đây để nhận thưởng.": "Got a gift code? Enter it here to claim your reward.",
+   "Đổi code": "Redeem",
++  "Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.": "Fish under 100 CBCoin take 1 slot, 100–199 take 2 slots, 200 and up take 3 slots.",
++  "Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ": "Not enough room: needs {need} slots, the tank has {free} free",
++  "Chiếm {n} chỗ": "Takes {n} slot(s)",
+ };
+diff --git a/src/locales/zh.ts b/src/locales/zh.ts
+index 6b0071e..b13b52d 100644
+--- a/src/locales/zh.ts
++++ b/src/locales/zh.ts
+@@ -28,7 +28,7 @@ export const ZH: Record<string, string> = {
+   "Chỉ xem trước {n} file đầu tiên mỗi lượt.": "每轮只预览前 {n} 个文件。",
+   "Có file chưa xác định — đang kiểm tra Bụng cá…": "有文件状态未确定 — 正在检查鱼肚子…",
+   "CBCoin là điểm trong game, không phải tiền thật": "CBCoin 是游戏积分，不是真钱",
+-  "cá trong bể": "条鱼在缸里",
++  "chỗ · {n} cá": "个位置 · {n} 条鱼",
+   "EXP hôm nay": "今日 EXP",
+   " Thư mục dữ liệu: ": " 数据文件夹：",
+   "Bụng cá tạm khóa: ": "鱼肚子暂时锁定：",
+@@ -63,7 +63,7 @@ export const ZH: Record<string, string> = {
+   "Nguồn": "来源",
+   "Đóng": "关闭",
+   "Đổi {price} CBCoin lấy {name}?": "用 {price} CBCoin 兑换 {name}？",
+-  "Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.": "兑换后剩余 {left} CBCoin · 鱼缸 {count}/{cap}。",
++  "Sau khi đổi còn {left} CBCoin · bể dùng {count}/{cap} chỗ.": "兑换后剩余 {left} CBCoin · 鱼缸已用 {count}/{cap} 个位置。",
+   "CBCoin là điểm trong game, không dùng tiền thật.": "CBCoin 是游戏积分，不使用真钱。",
+   "Để sau": "稍后",
+   "Đã đón {name} vào bể!": "{name} 来到你的鱼缸啦！",
+@@ -74,8 +74,8 @@ export const ZH: Record<string, string> = {
+   "Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ": "每颗卵孵化率：{rate}% · 预计约 {kids} 条鱼苗（Lv.0）。",
+   "Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ": "每条亲鱼的售价减少 {cost} CBCoin：{before} → {after} CBCoin ",
+   "(mỗi trứng −{price}, tối thiểu {price}). ": "（每颗卵 −{price}，最低 {price}）。",
+-  "Bể đang đầy — cần chỗ trống để cá con nở.": "鱼缸已满 — 需要空位鱼苗才能孵出。",
+-  "Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "还剩 {free} 个空位；如果鱼缸先满了，没用到的鱼卵会保留。",
++  "Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.": "位置不够 — 这种鱼的每条鱼苗需要 {kid} 个空位。",
++  "Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "还剩 {free} 个空位，每条鱼苗占 {kid} 个；如果鱼缸先满了，没用到的鱼卵会保留。",
+   "Chọn cá ghép cặp": "选择配对的鱼",
+   "{name} · Lv.{lv} · giá bán {price} CBCoin": "{name} · Lv.{lv} · 售价 {price} CBCoin",
+   "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.": "与同种的成年鱼配对。每颗卵会让两条鱼的售价各减少一次原始购买价，所以繁殖越多，卖得越便宜。",
+@@ -298,7 +298,7 @@ export const ZH: Record<string, string> = {
+   "Gọi thuyền, gắp sò, ra tiền": "叫船、捞贝、赚钱",
+   "Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.": "叫船，看准摆动的钩子按 Space。白贝 1 CBCoin，红贝 10，紫贝 100 — 紫贝就是中大奖。",
+   "Shopping cho bể": "给鱼缸购物",
+-  "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.": "便宜的鱼小小只，贵的鱼大大只：鲸鲨（300 CBCoin）差不多是孔雀鱼（20 CBCoin）的 4 倍长。鱼缸最多 12 条鱼 — 买太多就挤成沙丁鱼罐头了。",
++  "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "便宜的鱼小小只，贵的鱼大大只：鲸鲨（300 CBCoin）差不多是孔雀鱼（20 CBCoin）的 4 倍长。鱼缸有 20 个位置：100 CBCoin 以下的鱼占 1 个，100–199 占 2 个，200 及以上占 3 个 — 大鲨鱼当然要多占点地方！",
+   "Bán hay cho đẻ?": "卖掉还是繁殖？",
+   "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
+   "Yên tâm": "放轻松",
+@@ -314,4 +314,7 @@ export const ZH: Record<string, string> = {
+   "🎉 Code hợp lệ! {n} cá trong bể đã lên Lv.100": "🎉 代码有效！鱼缸里 {n} 条鱼已升到 Lv.100",
+   "Có code quà tặng? Nhập vào đây để nhận thưởng.": "有礼品代码？在这里输入领取奖励。",
+   "Đổi code": "兑换",
++  "Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.": "100 CBCoin 以下的鱼占 1 个位置，100–199 占 2 个，200 及以上占 3 个。",
++  "Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ": "位置不够：需要 {need} 个位置，鱼缸只剩 {free} 个",
++  "Chiếm {n} chỗ": "占 {n} 个位置",
+ };
+diff --git a/src/manager.ts b/src/manager.ts
+index 8c88c8e..c2a0871 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -164,7 +164,7 @@ function showGuide() {
+       item("🗑️", t("Cho cá ăn rác (an toàn!)"), t("Thả file bạn không cần nữa vào game. File chui vào Bụng cá — không bị xóa, nhả ra lúc nào cũng được — còn cá thì nhận EXP. Lỡ cho ăn nhầm? Cá chỉ hơi tiếc thôi.")),
+       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
+       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
+-      item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.")),
++      item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
+       item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
+     ),
+@@ -175,7 +175,7 @@ function showGuide() {
+ function renderStats() {
+   $("stats").replaceChildren(
+     h("span", { class: "pill shells", title: t("CBCoin là điểm trong game, không phải tiền thật") }, h("b", {}, String(state.cbcoins)), "CBCoin"),
+-    h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), t("cá trong bể")),
++    h("span", { class: "pill", title: t("Cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ.") }, h("b", {}, `${state.used_slots}/${state.capacity}`), t("chỗ · {n} cá", { n: state.fish.length })),
+     h("span", { class: "pill" }, t("EXP hôm nay"), h("b", {}, String(state.daily.exp))),
+     h("label", { class: "pill lang", title: t("Ngôn ngữ") },
+       "🌐",
+@@ -254,13 +254,14 @@ function fishArt(species: Species | undefined) {
+ }
+ 
+ function renderShop(): Node {
+-  const full = state.fish.length >= state.capacity;
+   const cards = state.species.map((s) => {
++    const need = slotsOf(s.price);
++    const full = need > freeSlots();
+     const short = s.price - state.cbcoins;
+     const buy = h("button", {
+       class: "primary small",
+       disabled: working || full || short > 0 || !!state.read_only,
+-      title: full ? t("Bể đã đầy") : short > 0 ? t("Còn thiếu {n} CBCoin", { n: short }) : undefined,
++      title: full ? t("Không đủ chỗ: cần {need} chỗ, bể còn {free} chỗ", { need, free: freeSlots() }) : short > 0 ? t("Còn thiếu {n} CBCoin", { n: short }) : undefined,
+       onclick: () => confirmBuy(s),
+     }, full ? t("Bể đầy") : short > 0 ? t("Thiếu {n}", { n: short }) : t("Đổi"));
+     return h("article", { class: "card" },
+@@ -271,6 +272,7 @@ function renderShop(): Node {
+         h("div", { class: "tags" },
+           h("span", { class: "tag" }, t("Có thật")),
+           h("span", { class: "tag" }, s.reproduction === "live_birth" ? t("Đẻ con") : t("Đẻ trứng")),
++          h("span", { class: `tag${need > 1 ? " big" : ""}` }, t("Chiếm {n} chỗ", { n: need })),
+           state.dex[s.id]?.owned ? h("span", { class: "tag" }, t("Đã có")) : null,
+         ),
+         h("div", { class: "actions" },
+@@ -315,7 +317,7 @@ function confirmBuy(s: Species) {
+   modal(
+     h("div", {},
+       h("h2", {}, t("Đổi {price} CBCoin lấy {name}?", { price: s.price, name: speciesName(s) })),
+-      h("p", { style: "margin-top:8px" }, t("Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.", { left: state.cbcoins - s.price, count: state.fish.length + 1, cap: state.capacity })),
++      h("p", { style: "margin-top:8px" }, t("Sau khi đổi còn {left} CBCoin · bể dùng {count}/{cap} chỗ.", { left: state.cbcoins - s.price, count: state.used_slots + slotsOf(s.price), cap: state.capacity })),
+       h("p", { class: "fine" }, t("CBCoin là điểm trong game, không dùng tiền thật.")),
+     ),
+     [
+@@ -342,6 +344,10 @@ function confirmBuy(s: Species) {
+ }
+ 
+ /** Lv.100 is `stage_exp.adult` EXP (10 EXP per level since save schema 5). */
++/** Tank slots a species takes: 1 below medium_price, 2 below large_price, else 3 (same rule as the engine). */
++const slotsOf = (price: number) => (price >= state.slots.large_price ? 3 : price >= state.slots.medium_price ? 2 : 1);
++const freeSlots = () => Math.max(0, state.capacity - state.used_slots);
++
+ const levelOf = (f: Fish) => Math.floor((f.exp * 100) / state.stage_exp.adult);
+ 
+ const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
+@@ -362,7 +368,8 @@ function confirmBreed(fish: Fish) {
+   }
+   let partner = partners[0];
+   let eggs = 1;
+-  const free = Math.max(0, state.capacity - state.fish.length);
++  const free = freeSlots();
++  const kidSlots = slotsOf(sp?.price ?? fish.purchase_price);
+   const b = state.breeding;
+   const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
+   const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
+@@ -376,7 +383,7 @@ function confirmBreed(fish: Fish) {
+       t("Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ", { rate: (r * 100).toFixed(1), kids: (eggs * r).toFixed(1) }),
+       t("Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ", { cost: fish.purchase_price * eggs, before: saleValue(fish), after: fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs) }),
+       t("(mỗi trứng −{price}, tối thiểu {price}). ", { price: fish.purchase_price }),
+-      free === 0 ? t("Bể đang đầy — cần chỗ trống để cá con nở.") : t("Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.", { free }),
++      free < kidSlots ? t("Bể không đủ chỗ — mỗi cá con loài này cần {kid} chỗ trống.", { kid: kidSlots }) : t("Bể còn {free} chỗ, mỗi cá con chiếm {kid} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.", { free, kid: kidSlots }),
+     ].join("")));
+   };
+   const select = h("select", { "aria-label": t("Chọn cá ghép cặp"), onchange: (ev: Event) => {
+diff --git a/src/style.css b/src/style.css
+index e87c9b2..a39111c 100644
+--- a/src/style.css
++++ b/src/style.css
+@@ -714,3 +714,8 @@ dialog::backdrop {
+ .code-input::placeholder {
+   text-transform: none;
+ }
++
++.tag.big {
++  background: #fde3c8;
++  color: #8a4a12;
++}

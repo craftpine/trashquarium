@@ -1,0 +1,315 @@
+{
+  "TQ1000-0151": {
+    "sources": [
+      "https://www.marlin.ac.uk/species/detail/1194"
+    ],
+    "knowledge_note": "Sao biển da gai, không phải cá; thường năm tay thuôn và màu cam/nâu/tím. Các hàng gai và tỷ lệ tay vẫn cần rà trên ảnh cuối.",
+    "taxon_notes": "Tên loài được đối chiếu MarLIN; concept không được phê duyệt giải phẫu.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0152": {
+    "sources": [
+      "https://www.nhm.ac.uk/take-part/monitor-and-encourage-nature/project-archive/have-you-seen-this-starfish-wanted-alive-and-in-colour.html",
+      "https://lifg.australian.museum/Group.html?groupId=RtcVGxAf&hierarchyId="
+    ],
+    "knowledge_note": "Mẫu lấy dạng xanh lam của Linckia; màu/tư thế mới không tạo một loài mới. Không diễn giải tái sinh thành mechanic khoa học.",
+    "taxon_notes": "Nguồn bảo tàng xác nhận loài/dạng xanh, không định danh từng cấu trúc nhỏ.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0153": {
+    "sources": [
+      "https://www.cmar.csiro.au/caab/taxon_report.cfm?caab_code=25127051",
+      "https://collections.museumsvictoria.com.au/specimens/621695"
+    ],
+    "knowledge_note": "Sao biển nút gai có tay dày và các nút lớn trên mặt lưng; không phải sao biển gai với hàng trăm gai mảnh.",
+    "taxon_notes": "CSIRO/AFD/WoRMS và specimen bảo tàng hỗ trợ tên; anatomy ảnh cần duyệt riêng.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0154": {
+    "sources": [
+      "https://www.marinespecies.org/aphia.php?id=213464&p=taxdetails"
+    ],
+    "knowledge_note": "Sao biển giòn: đĩa rõ và tay mảnh; khoang tím/đen trên nền vàng-cam. Gai bên nhỏ ép sát, không giác hút kiểu bạch tuộc.",
+    "taxon_notes": "WoRMS accepted qua bản lập chỉ mục; mở trực tiếp thất bại. Ghi chú mô tả của nguồn mang nhãn unreviewed.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0155": {
+    "sources": [
+      "https://www.marinespecies.org/aphia.php?id=213385&p=taxdetails",
+      "https://aquarium.org/animals/pencil-urchin/"
+    ],
+    "knowledge_note": "Nhím biển bút chì có gai chính dày đầu tù và gai phụ ngắn; không dùng toàn gai kim mảnh.",
+    "taxon_notes": "Tên accepted là Heterocentrotus mamillatus. Mammillatus bị WoRMS đánh dấu lỗi viết tên sau này.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0156": {
+    "sources": [
+      "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=31178",
+      "https://www.marinespecies.org/aphia.php?p=taxlist&tName=Echinometra+mathaei",
+      "https://journals.australian.museum/media/Uploads/Journals/17142/810_complete.pdf"
+    ],
+    "knowledge_note": "Nhím biển có gai nhọn chắc và test hơi bầu dục; nhóm Echinometra có phức tạp phân loại nên màu đơn thuần không định danh.",
+    "taxon_notes": "Tên được đối chiếu NCBI và danh sách WoRMS; trang taxdetails trực tiếp trả 403, chưa rà toàn bộ.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0157": {
+    "sources": [
+      "https://www.montereybayaquarium.org/animals-the-ocean/animals-a-to-z/sand-dollar",
+      "https://www.marinespecies.org/aphia.php?p=image&pic=145924&tid=513215"
+    ],
+    "knowledge_note": "Con sống có gai cực nhỏ và màu xám/tím; test trắng trơ ở bãi biển là sau khi mất mô. Hệ đỉnh lệch rõ.",
+    "taxon_notes": "Dendraster excentricus là cách viết cần giữ; không eccentricus.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0158": {
+    "sources": [
+      "https://lifg.australian.museum/Group.html?groupId=7UQOQa5x",
+      "https://museum.wa.gov.au/online-collections/names/Holothuria-Halodeima-atra"
+    ],
+    "knowledge_note": "Hải sâm đen mềm dạng trụ; lớp cát có thể phủ da nhưng không vảy cá/chân khớp. Không đưa cát nền vào sprite.",
+    "taxon_notes": "Holothuria (Halodeima) atra là dạng tên có phân chi của cùng loài.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0159": {
+    "sources": [
+      "https://www.aims.gov.au/information-centre/news-and-stories/playing-fears-exploring-use-pacific-triton-mitigating-crown-thorns-starfish-outbreaks",
+      "https://www.cmar.csiro.au/data/caab/taxon_report.cfm?caab_code=24176013"
+    ],
+    "knowledge_note": "Ốc biển lớn Indo-Pacific, vỏ cao dạng thoi; không nhầm với Charonia variegata hoặc biến vỏ thành kèn đạo cụ.",
+    "taxon_notes": "Nguồn cơ quan nghiên cứu hỗ trợ tên/ecology; tỷ lệ vòng vỏ và anatomy nhỏ cần artist đối chiếu mẫu.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0160": {
+    "sources": [
+      "https://australian.museum/learn/animals/molluscs/cone-shells-conus/",
+      "https://collections.museumsvictoria.com.au/specimens/616343"
+    ],
+    "knowledge_note": "Ốc cối có vỏ nón hoa văn mạng lưới; đây là động vật có nọc. Không dùng kiến thức game để khuyến khích nhặt con thật.",
+    "taxon_notes": "Trang cone-shells mô tả cả chi: không áp số đo loài nhỏ cho Conus textile.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0161": {
+    "sources": [
+      "https://www.si.edu/object/tiger-cowrie-tiger-cowrie-shell%3Anmnheducation_10007106",
+      "https://qrius.si.edu/browse/object/10795225"
+    ],
+    "knowledge_note": "Ốc sứ trưởng thành có vỏ bầu dục bóng với đốm và khe bụng có răng; không biến đốm thành mắt thật.",
+    "taxon_notes": "Specimen Smithsonian hỗ trợ tên/vỏ; không xác nhận mọi màu mô mềm của concept.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0162": {
+    "sources": [
+      "https://wildlife.ca.gov/Conservation/Marine/Invertebrates/Abalone/Abalone-ID",
+      "https://marine.ucsc.edu/target/haliotis-rufescens/",
+      "https://www.fisheries.noaa.gov/west-coast/science-data/abalone-research-southwest"
+    ],
+    "knowledge_note": "Bào ngư đỏ vỏ thấp dạng tai, thường 3–4 lỗ hô hấp mở nhô trên vỏ; không vỏ cao hay nhiều lỗ ngẫu nhiên.",
+    "taxon_notes": "Số lỗ là điển hình, không luật tuyệt đối mọi cá thể; rà số lỗ trên PNG trước dùng giáo dục.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0163": {
+    "sources": [
+      "https://www.marlin.ac.uk/species/detail/1398"
+    ],
+    "knowledge_note": "Sò điệp có hai van quạt với tai bản lề, van trái phẳng hơn van phải và khoảng 15–17 gờ; mắt nhỏ ở mép áo.",
+    "taxon_notes": "Tư thế/độ mở van mới là thiết kế mới, không thêm loài mới.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0164": {
+    "sources": [
+      "https://lifg.australian.museum/Group.html?groupId=ZXlLbbF4&hierarchyId=PVWrQCLG",
+      "https://www.aciar.gov.au/sites/default/files/legacy/node/2269/mn9_pdf_81079.pdf"
+    ],
+    "knowledge_note": "Tridacna maxima có scute sát nhau, profile phía byssal bất đối xứng và màu áo đa dạng. Mẫu con non vẫn cùng loài.",
+    "taxon_notes": "Không dùng tỷ lệ vỏ Tridacna gigas thay cho maxima; nguồn mô tả không phê duyệt anatomy ảnh.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0165": {
+    "sources": [
+      "https://www.montereybayaquarium.org/animals-the-ocean/animals-a-to-z/chambered-nautilus"
+    ],
+    "knowledge_note": "Nautilus có nhiều xúc tu nhỏ không giác hút kiểu bạch tuộc, vỏ sọc cuộn và hood; buồng trong không hở ra ở con sống.",
+    "taxon_notes": "Không nói loài hiện sinh là sinh vật không tiến hóa hay tổ tiên trực tiếp của mọi cephalopod.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0166": {
+    "sources": [
+      "https://www.fisheries.noaa.gov/species/american-lobster"
+    ],
+    "knowledge_note": "Tôm hùm Mỹ có một đôi càng lớn, bốn đôi chân đi và quạt đuôi; màu con sống không chỉ đỏ như tôm đã nấu.",
+    "taxon_notes": "Concept con non cùng loài, không ảnh định danh giai đoạn ấu trùng chuẩn.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0167": {
+    "sources": [
+      "https://museum.wa.gov.au/online-collections/names/panulirus-versicolor"
+    ],
+    "knowledge_note": "Tôm hùm gai có râu dài, chân sọc, bụng xanh dải trắng/đen, gai giáp/rễ râu và không đôi càng lớn kiểu Homarus.",
+    "taxon_notes": "Nguồn WA Museum được mở trực tiếp; abdominal segments smooth, thiếu rãnh ngang như nhiều loài tôm hùm gai khác.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0168": {
+    "sources": [
+      "https://www.chesapeakebay.net/fieldguide/critter/blue_crab",
+      "https://www.fisheries.noaa.gov/species/blue-crab"
+    ],
+    "knowledge_note": "Cua xanh có giáp rộng với gai bên lớn và đôi chân sau mái chèo; không phải tất cả chân đều mái chèo.",
+    "taxon_notes": "Tên được cơ quan quản lý đối chiếu; màu chóp càng thay đổi theo giới/cá thể.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0169": {
+    "sources": [
+      "https://www.marinespecies.org/aphia.php?id=217271&p=taxdetails",
+      "https://museum.wa.gov.au/explore/blogs/andrew-hosie/creature-feature-neopetrolisthes-maculatus",
+      "https://research.nhm.org/pdfs/25601/25601.pdf"
+    ],
+    "knowledge_note": "Cua sứ Anomura, không cua thật Brachyura; ba đôi chân đi nhìn rõ và đôi cuối giảm nhỏ/ẩn, càng dẹt, đốm đỏ trên trắng.",
+    "taxon_notes": "WoRMS accepted qua bản lập chỉ mục. Nguồn họ Porcellanidae hỗ trợ số chân đi; không kết luận cơ thể chỉ có 8 pereiopods.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0170": {
+    "sources": [
+      "https://media.australian.museum/media/Uploads/Journals/17907/1333_complete.pdf",
+      "https://lifg.australian.museum/Group.html?groupId=a6HkPlCX&hierarchyId=PVWrQCLG"
+    ],
+    "knowledge_note": "Stomatopod có mắt cuống và đôi chân bắt mồi chùy kiểu smashing; không càng tôm hùm hoặc chân spearing thay thế.",
+    "taxon_notes": "Australian Museum revision p. 85 hỗ trợ taxon/raptorial dactyl/telson; anatomy ảnh vẫn pending.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0186": {
+    "sources": [
+      "https://www.si.edu/object/isotelus-sp%3Anmnhpaleobiology_3021089",
+      "https://australian.museum/learn/australia-over-time/fossils/what-are-trilobites/"
+    ],
+    "knowledge_note": "Trilobite Ordovician có ba thùy dọc, đầu/thorax/pygidium, không cua hai càng lớn. Màu/chi dưới là diễn giải.",
+    "taxon_notes": "Ở cấp chi Isotelus; specimen hỗ trợ phân loại/thời đại không đủ certify mọi chi tiết.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0187": {
+    "sources": [
+      "https://www.amnh.org/content/download/432038/6245021/file/trilobites-hall-of-fame.pdf"
+    ],
+    "knowledge_note": "Hai cuống mắt dài là reconstruction kiểu Asaphus kowalewskii; không đặc điểm mọi loài Asaphus.",
+    "taxon_notes": "Genus-level concept với đặc điểm tham chiếu loài cụ thể; màu/mô mềm diễn giải.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0188": {
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9942788/",
+      "https://pubmed.ncbi.nlm.nih.gov/36649420/"
+    ],
+    "knowledge_note": "Trident trước đầu là một phần giáp trilobite, không vũ khí rời; thường ba chạc. Chức năng là giả thuyết nghiên cứu.",
+    "taxon_notes": "Chi Walliserops có nhiều loài/dị hình; không coi mọi chạc hay công dụng là đã xác nhận.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0189": {
+    "sources": [
+      "https://www.nysm.nysed.gov/exhibitions/windows/eurypterid",
+      "https://www.nps.gov/articles/fossils-of-the-2013-national-fossil-day-artwork.htm",
+      "https://peabody.yale.edu/explore/collections/invertebrate-paleontology/eurypterids-sea-scorpions"
+    ],
+    "knowledge_note": "Eurypterid chelicerate với mái chèo chi bơi và telson dài; telson giống gai không chứng minh có nọc/sting.",
+    "taxon_notes": "Concept cấp chi Eurypterus; các nguồn mẫu remipes không chứng nhận mọi loài trong chi.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0190": {
+    "sources": [
+      "https://peabody.yale.edu/explore/collections/invertebrate-paleontology/eurypterids-sea-scorpions",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC4571687/",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC9745958/"
+    ],
+    "knowledge_note": "Pterygotid có chelicerae có răng và đôi chi bơi; không lobster-claw hay đuôi có bầu nọc. Anatomy telson/chelicera cần loài cụ thể.",
+    "taxon_notes": "Concept chi Pterygotus, màu/mô mềm diễn giải; không một tỷ lệ tuyệt đối cho mọi loài.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0191": {
+    "sources": [
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC2412931/"
+    ],
+    "knowledge_note": "Jaekelopterus lớn là reconstruction; locality rhenaniae có thể nước lợ/ngọt, không hệ fauna hoàn toàn marine. Size giant là ngoại suy từ càng.",
+    "taxon_notes": "Concept cấp chi; tránh gọi mọi eurypterid là đáy biển nước mặn và tránh số đo chắc từ cơ thể hoàn chỉnh.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0192": {
+    "sources": [
+      "https://www.nhm.ac.uk/discover/how-to-make-a-salt-dough-ammonite-fossil.html",
+      "https://data.nhm.ac.uk/dataset/collection-specimens/resource/05ff2255-c38a-40c9-b657-4ccb55ab2feb/record/4312933/1788426154778"
+    ],
+    "knowledge_note": "Ammonite vỏ cuộn phẳng gờ rõ; xúc tu/màu/soft parts là reconstruction, buồng trong không hở ở con sống.",
+    "taxon_notes": "Concept cấp chi Asteroceras; không dùng lẫn tuổi/tỷ lệ giữa các loài.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0193": {
+    "sources": [
+      "https://www.nhm.ac.uk/discover/how-to-make-a-salt-dough-ammonite-fossil.html",
+      "https://science.mnhn.fr/taxon/species/dactylioceras/holandrei"
+    ],
+    "knowledge_note": "Ammonite vỏ gờ đều thường branching; giữ khác Asteroceras. Soft parts và số tay/xúc tu không được xác nhận từ vỏ.",
+    "taxon_notes": "Concept cấp chi Dactylioceras; nguồn hỗ trợ mẫu vỏ/taxon, không phê duyệt soft reconstruction.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0194": {
+    "sources": [
+      "https://www.si.edu/object/nmnhpaleobiology_3588562",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC12371081/"
+    ],
+    "knowledge_note": "Endocerid vỏ thẳng dài là hướng concept; tình trạng genus và kích thước khổng lồ còn cần clarification. Không nêu 10 m hoặc soft anatomy như sự kiện chắc.",
+    "taxon_notes": "Cameroceras genus label interpretive; specimen Smithsonian mang dấu hỏi và primary paper 2025 lưu ý taxonomy/size uncertainty.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0195": {
+    "sources": [
+      "https://www.nhm.ac.uk/our-science/research/projects/echinoderm.html",
+      "https://www.bgs.ac.uk/discovering-geology/fossils-and-geological-time/crinoids/",
+      "https://bioone.org/journals/paleontological-research/volume-15/issue-1/1342-8144-15.1.012/The-occurrence-of-the-pseudoplanktonic-crinoids-Pentacrinites-and-Seirocrinus-from/10.2517/1342-8144-15.1.012.pdf"
+    ],
+    "knowledge_note": "Crinoid có cuống columnal/cirri/tán tay lọc; thường diễn giải bám vật nổi, không mặc định cây đáy biển. Không thêm mặt cá/chân cua.",
+    "taxon_notes": "Pentacrinites cấp chi; lối sống pseudoplanktonic có độ bất định theo mẫu/locality.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0196": {
+    "sources": [
+      "https://www.crabmuseum.org/blog/hercules-and-the-crab",
+      "https://www.theoi.com/Ther/Karkinos.html"
+    ],
+    "knowledge_note": "Cảm hứng cua Karkinos giúp Hydra trong truyện Heracles. Giáp đồng/họa tiết sao là sáng tạo game, không morphology kinh điển.",
+    "taxon_notes": "Cultural inspired variant, không species thật hay thần thoại mới được phát hiện.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0197": {
+    "sources": [
+      "https://www.spurlock.illinois.edu/collections/search-collection/details.php?a=2005.11.0015",
+      "https://www.godac.jamstec.go.jp/bismal/j/view/9012503"
+    ],
+    "knowledge_note": "Folklore Heikegani liên hệ linh hồn chiến binh và loài cua thật Heikeopsis japonica; mai mặt nạ phóng đại là fantasy.",
+    "taxon_notes": "Không gen samurai, không folklore thành bằng chứng nguồn gốc khoa học của hoa văn.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0198": {
+    "sources": [
+      "https://www.britishmuseum.org/collection/object/A_1940-0713-0-36",
+      "https://jameelcentre.ashmolean.org/collection/921/object/11166"
+    ],
+    "knowledge_note": "Kurma là avatar rùa Vishnu trong cảnh khuấy biển sữa; gờ cánh sen/màu của sprite là sáng tạo.",
+    "taxon_notes": "Thiết kế rùa thuần inspired, không biểu tượng chuẩn của thần hay loài sinh học.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0199": {
+    "sources": [
+      "https://library.snls.org.sz/archive/web/The_Mahabharata_of_Krishna-Dwaipayana_Vyasa_Bk._3_Pt._2.pdf",
+      "https://www.purankosh.in/?purankosh=akupara"
+    ],
+    "knowledge_note": "Inspired con rùa cổ Akupara ở hồ Indradyumna trong Mahabharata. Chưa verify museum evidence cho world-bearing attribution; lớp mai đá là sáng tạo.",
+    "taxon_notes": "Không đồng nhất tùy ý mọi truyền thống Akupara/Kurma; không scene voi/thế giới và không species thật.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  },
+  "TQ1000-0200": {
+    "sources": [
+      "https://collections.louvre.fr/en/ark%3A/53355/cl010005745",
+      "https://www.amth.gr/en/exhibitions/exhibit-of-the-month/birth-goddess-figurine-aphrodite-anadyomene-shell"
+    ],
+    "knowledge_note": "Sò ngọc dựa motif nghệ thuật Aphrodite và vỏ sò; không tồn tại một loài sò Aphrodite kinh điển được nguồn mô tả.",
+    "taxon_notes": "Art-motif inspired fantasy, không legendary creature scientifically identified.",
+    "scientific_review": "source_notes_only_image_anatomy_pending"
+  }
+}

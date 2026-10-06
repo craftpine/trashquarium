@@ -6,7 +6,7 @@ Trong game, bấm nút **?** ở góc trên bên phải để mở lại hướn
 
 ## 🎁 Bắt đầu
 
-Bạn nhận **1 chú cá bảy màu Lv.0** và **40 CBCoin** làm quà. Cá chưa biết đòi ăn, nhưng rất mê… file bạn không cần nữa.
+Bạn nhận **1 chú cá bảy màu Lv.0** và **300 CBCoin** làm quà. Cá chưa biết đòi ăn, nhưng rất mê… file bạn không cần nữa.
 
 Bật **Cài đặt → Bể cá desktop** để cá bơi ngay dưới biểu tượng màn hình nền. Đang họp? Bật **Chế độ họp** để cá bơi chậm, tắt bong bóng chat và tạm khóa thuyền.
 
@@ -41,13 +41,13 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
 
 ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
 
-**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn.
+**Gắp cá để bán:** cá Lv.100 hiện chữ **"Cá béo lắm rồi, bắt điii! 🎣"** trên đầu ngoài desktop. Gọi thuyền: cá trưởng thành bơi qua lại, phải canh đúng lúc thả móc. Gắp được cá lên thuyền thì chọn **"Cá gầy quá nuôi thêm chút vậyyyy"** (cá bơi đi) hoặc **"Yehh nay có cơm ăn rồiiii"** — thuyền trả **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000) và hiện "+2.000 CBCoin · Cá bảy màu lên thuyền!". Cá càng to càng dễ gắp trúng nhưng kéo lên chậm hơn. Gắp cá không tính vào hạn 60 sò/ngày. File trong Bụng cá vẫn an toàn. Lỡ mua nhầm hoặc bể đầy? Cá chưa lớn có nút **Bán lại** với giá **1/2 giá mua**.
 
 **Sinh sản:** bấm **Sinh sản**, chọn một bạn đời **cùng loài** cũng Lv.100 và số trứng.
 
 - Mỗi trứng trừ giá bán của **cả hai** bố mẹ một lần giá mua gốc. Đẻ càng nhiều bán càng rẻ, nhưng không bao giờ rẻ hơn giá mua gốc.
 - Mỗi trứng nở với tỷ lệ **5–20%**: cá rẻ dễ nở (20%), cá đắt khó nở (5%). Trứng không nở vẫn bị tính.
-- Mọi trứng vào **Hang trứng** (có tab riêng, và một hang đá nhỏ trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
+- Mọi trứng vào **Hang trứng** (có tab riêng, và một vũng nước nhỏ viền sỏi ở giữa đáy bể trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
 - Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Trứng đến giờ mà bể đầy thì nằm chờ trong hang đến khi có chỗ.
 
 ## 😌 Yên tâm

@@ -1,0 +1,60 @@
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 2f4deb2..32008cd 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -13,7 +13,7 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ - Mỗi mốc 5 level (50 EXP), cá nghỉ 7.200 giây. EXP dư của file đã ăn được giữ trong `pending_exp`, không vứt đi. Hết nghỉ, phần dư được tiêu hóa đến mốc nghỉ tiếp theo; nếu lại đủ 5 level thì nghỉ tiếp 2 tiếng. Không tiếp tục nhận file lúc nghỉ. Phần EXP vượt tổng 1.000 không ghi nhận.
+ - Thời hạn nghỉ được lưu để sống qua restart; manager/tank kiểm tra lại khoảng 15 giây khi app mở. Đồng hồ hệ thống được dùng cho thời hạn; chưa có cơ chế chống người dùng chỉnh đồng hồ.
+ - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
+-- **Bán cá trưởng thành bằng cách gắp:** manager không còn nút bán cá Lv.100. Trên desktop cá Lv.100 hiện chữ "Cá béo lắm rồi, bắt điii! 🎣". Khi gọi thuyền, mọi cá Lv.100 được lõi game (Rust) cho bơi qua lại theo làn ngang trong khung trục vớt và tính va chạm với móc giống sò (bán kính trúng lớn hơn với cá to, kéo về chậm hơn). Gắp trúng thì phiên chuyển sang `deciding`: người chơi chọn ở nút nhanh (hoặc tab Trục vớt) "Cá gầy quá nuôi thêm chút vậyyyy" (`keep`, cá bơi đi và không được mời lại trong chuyến này) hoặc "Yehh nay có cơm ăn rồiiii" (`sell`). Bán ghi tiền, xóa cá và biên nhận `last_sale` trong cùng một save atomic, chống bán lặp; desktop hiện "+2.000 CBCoin · <tên cá> lên thuyền!". Có cá trưởng thành thì gọi thuyền được kể cả khi chưa có sò hoặc đã hết hạn 60 sò; gắp cá không tính vào hạn này. Giá bán = giá mua ×100 trừ trứng đã đẻ như cũ.
++- **Bán cá trưởng thành bằng cách gắp:** manager không còn nút bán cá Lv.100. Trên desktop cá Lv.100 hiện chữ "Cá béo lắm rồi, bắt điii! 🎣" (như mọi bong bóng chat của cá: hiện 3 giây, khoảng mỗi phút một lần, mỗi con một thời điểm khác nhau). Khi gọi thuyền, mọi cá Lv.100 được lõi game (Rust) cho bơi qua lại theo làn ngang trong khung trục vớt và tính va chạm với móc giống sò (bán kính trúng lớn hơn với cá to, kéo về chậm hơn). Gắp trúng thì phiên chuyển sang `deciding`: người chơi chọn ở nút nhanh (hoặc tab Trục vớt) "Cá gầy quá nuôi thêm chút vậyyyy" (`keep`, cá bơi đi và không được mời lại trong chuyến này) hoặc "Yehh nay có cơm ăn rồiiii" (`sell`). Bán ghi tiền, xóa cá và biên nhận `last_sale` trong cùng một save atomic, chống bán lặp; desktop hiện "+2.000 CBCoin · <tên cá> lên thuyền!". Có cá trưởng thành thì gọi thuyền được kể cả khi chưa có sò hoặc đã hết hạn 60 sò; gắp cá không tính vào hạn này. Giá bán = giá mua ×100 trừ trứng đã đẻ như cũ.
+ - **Bán lại cá chưa trưởng thành:** cá dưới Lv.100 (mua nhầm, bể đầy) bán lại được 1/2 giá mua, làm tròn xuống (`sale_value`). Cá con nở từ trứng cũng vậy; vì mỗi trứng đã trừ 2 lần giá mua vào giá bán của bố mẹ mà chỉ nở 5–20%, nên không thể đẻ trứng rồi bán cá con để kiếm lời.
+ - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
+ - **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
+diff --git a/src/tank.ts b/src/tank.ts
+index a6ad14e..efba3c0 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -571,6 +571,24 @@ function huntTick(dt: number) {
+   }
+ }
+ 
++// Speech bubbles ("so fat, catch me!", nap jokes) pop up for 3 seconds about once a minute,
++// each fish at its own moment so they don't all talk at once.
++const BUBBLE_EVERY = 60;
++const BUBBLE_FOR = 3;
++const bubbleOffsets = new Map<string, number>();
++function bubbleAlpha(id: string): number {
++  let offset = bubbleOffsets.get(id);
++  if (offset === undefined) {
++    let n = 0;
++    for (const c of id) n = (n * 31 + c.charCodeAt(0)) >>> 0;
++    offset = (n % 997) / 997 * BUBBLE_EVERY;
++    bubbleOffsets.set(id, offset);
++  }
++  const at = (clock + offset) % BUBBLE_EVERY;
++  if (at >= BUBBLE_FOR) return 0;
++  return Math.min(1, at / 0.3, (BUBBLE_FOR - at) / 0.3); // quick fade in and out
++}
++
+ function draw() {
+   ctx.drawImage(background, 0, 0, width, height);
+   // Persistent batch, not a new random field on every render/restart.
+@@ -624,6 +642,9 @@ function draw() {
+     }
+     ctx.restore();
+     const adult = s.fish.exp >= (state?.stage_exp.adult ?? 1000);
++    const say = bubbleAlpha(s.fish.id);
++    if (say <= 0) continue;
++    ctx.globalAlpha = say;
+     if (adult && !hunt?.session && !state?.settings.meeting_mode) {
+       // A grown fish advertises itself for the boat.
+       const text = t("Cá béo lắm rồi, bắt điii! 🎣");
+@@ -644,6 +665,7 @@ function draw() {
+       ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
+       ctx.fillStyle = "#17434b"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
+     }
++    ctx.globalAlpha = 1;
+   }
+   drawHunt(e);
+ }
