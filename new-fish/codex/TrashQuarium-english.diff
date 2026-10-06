@@ -1,0 +1,1702 @@
+diff --git a/README.md b/README.md
+index a25aa59..7e955a9 100644
+--- a/README.md
++++ b/README.md
+@@ -6,6 +6,14 @@ earn **CBCoin** (in-game points) by hunting shells with the boat and buy real
+ fish species from a 64-species shop. See `docs/economy-growth.md`. In the UI
+ CBCoin is shown as the CB logo (`public/art/cb-coin.png`, `src/coin.ts`).
+ 
++Player guides: `docs/how-to-play.md` (English) and `docs/huong-dan-nguoi-moi.md`
++(Vietnamese); the same guide opens in-game from the **?** button.
++
++Languages: Vietnamese and English (Settings → Language; defaults to the system
++language). Vietnamese is the source text: wrap new UI text in `t("…")` from
++`src/i18n.ts` and add the English line to `src/locales/en.ts` (species names and
++facts in `src/locales/species-en.ts`). `npm run test:i18n` fails on anything missing.
++
+ Reimplementation of `../specs/TrashQuarium-Source-2026-09-28` against
+ `../specs/TRASHQUARIUM-MASTER-SPEC-V4.md`, milestones **A** (file safety,
+ Belly, recovery, save, desktop lifecycle) and **B** (shop, wallet, feeding).
+@@ -22,7 +30,7 @@ Runs on macOS and Windows.
+   - `app.rs` facade used by the Tauri commands
+ - `src-tauri/src/desktop.rs` — desktop tank window below the icons (macOS window level / Windows WorkerW), idle detection
+ - `src-tauri/src/lib.rs` — commands, tray/menu-bar, single instance
+-- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle)
++- `src/` — TypeScript front end: `manager.ts` (shop, feeding, Belly, tank, settings), `tank.ts` (canvas ocean, display-rate FPS / 20 FPS idle), `i18n.ts` + `locales/` (vi/en text)
+ 
+ ## Run
+ 
+diff --git a/docs/how-to-play.md b/docs/how-to-play.md
+new file mode 100644
+index 0000000..875d6bd
+--- /dev/null
++++ b/docs/how-to-play.md
+@@ -0,0 +1,56 @@
++# TrashQuarium — How to play in 60 seconds 🐟
++
++> Your desktop aquarium — but the food is… junk files. (Tiếng Việt: [huong-dan-nguoi-moi.md](huong-dan-nguoi-moi.md))
++
++In the game, click the **?** button in the top right to open this guide any time. Switch between English and Vietnamese in **Settings → Language**.
++
++## 🎁 Getting started
++
++You get **1 guppy at Lv.0** and **40 CBCoin** as a welcome gift. Your fish doesn't beg for food yet, but it loves… files you no longer need.
++
++Turn on **Settings → Desktop aquarium** so your fish swim right under your desktop icons. In a meeting? Turn on **Meeting mode** for slower fish, no chat bubbles and the boat on hold.
++
++## 🗑️ Feed them your junk (safely!)
++
++1. Open the **Feed** tab, pick a fish, then drop files you no longer need into the window.
++2. The game checks them first: system folders, files over 4 GiB and content it has already eaten are refused.
++3. Files slip into the **Belly**. Nothing is deleted, and **Release** gives a file back. Fed one by mistake? The fish will just feel a little guilty.
++
++Each file gives EXP by size: small files give 20 EXP, and every extra 20 MB adds another 20 EXP.
++
++## 🆙 Growing like a weed
++
++| Level | Your fish is… |
++|---|---|
++| Lv.0 – 49 | Fry, mostly eating |
++| Lv.50 | Juvenile, starting to show off |
++| Lv.100 | Adult: done growing, time to think about life |
++
++**100 EXP = 1 level.** Every 5 levels your fish gets a belly like a balloon and **naps for 2 hours** (no feeding meanwhile). Leftover EXP isn't lost; it digests later. Fish never die or leave when you take a break.
++
++## 🐚 Call the boat, grab shells, make bank
++
++- Use the **Shell hunt** tab or the ⛵ quick button on the desktop, then **Call the boat**.
++- Watch the swinging claw and press **Space** (Windows) or **Ctrl+Alt+Space** to drop it. Haul a shell back to the boat to get paid.
++- White shells are **1 CBCoin**, red **10**, purple **100**. A purple shell is a jackpot.
++- Rare shells glow gold and sometimes hide a **pearl** for your collection. You can collect up to 60 shells a day, and new shells appear every 8–22 minutes.
++
++## 🛒 Shopping for the tank
++
++Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a whale shark (300) is almost 4 times as long as a guppy (20). New fish always start at Lv.0. The tank holds up to **12 fish**, so buy too many and it gets crowded.
++
++## ⛵ Sell or 🥚 breed? (at Lv.100)
++
++**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe.
++
++**Breed:** press **Breed**, pick a partner of the **same species** that is also Lv.100, and choose how many eggs.
++
++- Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
++- Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
++- Fry are born at Lv.0, show which generation they are, and start all over. If the tank fills up, unused eggs are kept.
++
++## 😌 Relax
++
++No real money, no account, no network. Fish never die — they just get a bit lazy sometimes.
++
++Full rules (Vietnamese): [economy-growth.md](economy-growth.md).
+diff --git a/hud.html b/hud.html
+index fec797f..ef0aec8 100644
+--- a/hud.html
++++ b/hud.html
+@@ -1 +1 @@
+-<!doctype html><html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Nút nhanh TrashQuarium</title></head><body><main id="dock"></main><script type="module" src="/src/hud.ts"></script></body></html>
++<!doctype html><html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>TrashQuarium</title></head><body><main id="dock"></main><script type="module" src="/src/hud.ts"></script></body></html>
+diff --git a/index.html b/index.html
+index 5ef9e75..8970940 100644
+--- a/index.html
++++ b/index.html
+@@ -11,7 +11,7 @@
+         <img src="/fish/poecilia_reticulata.png" alt="" />
+         <div>
+           <h1>TrashQuarium</h1>
+-          <p>Bể cá của bạn · file của bạn vẫn thuộc về bạn</p>
++          <p id="tagline">Bể cá của bạn · file của bạn vẫn thuộc về bạn</p>
+         </div>
+       </div>
+       <div class="stats" id="stats"></div>
+diff --git a/package.json b/package.json
+index f5c6838..56c80a4 100644
+--- a/package.json
++++ b/package.json
+@@ -8,6 +8,7 @@
+     "build": "tsc --noEmit && vite build",
+     "tauri": "tauri",
+     "test": "cd src-tauri && cargo test --lib",
++    "test:i18n": "node scripts/test-i18n.mjs",
+     "seed": "node scripts/seed-fish.mjs"
+   },
+   "dependencies": {
+diff --git a/scripts/test-i18n.mjs b/scripts/test-i18n.mjs
+new file mode 100644
+index 0000000..c28c377
+--- /dev/null
++++ b/scripts/test-i18n.mjs
+@@ -0,0 +1,54 @@
++// Every Vietnamese UI sentence must have an English translation with the same {placeholders},
++// every species an English name/fact, and the English table must not keep dead entries.
++import assert from 'node:assert/strict';
++import { readFileSync, readdirSync } from 'node:fs';
++import { EN } from '../src/locales/en.ts';
++import { SPECIES_EN } from '../src/locales/species-en.ts';
++
++// Letters that only Vietnamese uses (plain á, é, í, ó, ú also appear in names like Yucatán).
++const VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵĩũ]/i;
++const unescape = (s) => JSON.parse(`"${s}"`);
++const srcFiles = readdirSync('src').filter((f) => f.endsWith('.ts')).map((f) => `src/${f}`);
++const keys = new Set();
++
++// t("…") calls with a literal first argument.
++for (const file of srcFiles) {
++  const text = readFileSync(file, 'utf8');
++  for (const m of text.matchAll(/\bt\(\s*"((?:[^"\\]|\\.)*)"/g)) keys.add(unescape(m[1]));
++}
++// Lookup tables whose values are passed to t() later.
++const grab = (file, startMarker, endMarker, re) => {
++  const text = readFileSync(file, 'utf8');
++  const a = text.indexOf(startMarker);
++  assert.ok(a >= 0, `${startMarker} not found in ${file}`);
++  const block = text.slice(a, text.indexOf(endMarker, a));
++  for (const m of block.matchAll(re)) keys.add(unescape(m[1]));
++};
++grab('src/i18n.ts', 'const reasons', '};', /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm);
++grab('src/i18n.ts', 'export const attentionNoteSource', '};', /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm);
++grab('src/i18n.ts', 'export const stageSource', '};', /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm);
++grab('src/i18n.ts', 'export const categorySource', '};', /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm);
++grab('src/tank.ts', 'const SHELL_NAME', '\n', /: "((?:[^"\\]|\\.)*)"/g);
++grab('src/shell-collection.ts', 'export const SHELL_CARDS', '] as const', /\b(?:name|fact|habitat): "((?:[^"\\]|\\.)*)"/g);
++for (const colour of ['Trắng', 'Đỏ', 'Tím']) keys.add(colour); // t([...][card.sprite]) in shell-collection.ts
++keys.add(JSON.parse(readFileSync('src-tauri/config/species.json', 'utf8')).disclaimer);
++
++const placeholders = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
++const missing = [...keys].filter((k) => !(k in EN));
++assert.deepEqual(missing, [], `English translation missing for:\n${missing.join('\n')}`);
++const dead = Object.keys(EN).filter((k) => !keys.has(k));
++assert.deepEqual(dead, [], `English table has entries no code uses:\n${dead.join('\n')}`);
++for (const k of keys) {
++  assert.equal(placeholders(EN[k]), placeholders(k), `placeholders differ for: ${k}`);
++  assert.ok(EN[k].trim().length > 0, `empty translation for: ${k}`);
++  assert.ok(!VIET.test(EN[k]), `English text still contains Vietnamese: ${k}`);
++}
++
++const species = JSON.parse(readFileSync('src-tauri/config/species.json', 'utf8')).species;
++for (const s of species) {
++  const e = SPECIES_EN[s.id];
++  assert.ok(e && e.name && e.fact, `English name/fact missing for species ${s.id}`);
++  assert.ok(!VIET.test(e.name + e.fact), `Vietnamese left in English text for ${s.id}`);
++}
++assert.equal(Object.keys(SPECIES_EN).length, species.length, 'SPECIES_EN has species that no longer exist');
++console.log(`PASS: ${keys.size} UI sentences and ${species.length} species translated, placeholders match, no dead entries`);
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 5130a59..0f42e73 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -42,8 +42,31 @@ impl Drop for BusyGuard<'_> {
+ }
+ 
+ struct TrayItems {
++    open: MenuItem<Wry>,
+     tank: CheckMenuItem<Wry>,
+     meeting: CheckMenuItem<Wry>,
++    quit: MenuItem<Wry>,
++}
++
++/// Tray menu labels: (open, tank, meeting, quit). Vietnamese is the default.
++fn tray_labels(lang: &str) -> [&'static str; 4] {
++    if lang == "en" {
++        ["Open TrashQuarium", "Desktop aquarium", "Meeting mode (less motion)", "Quit TrashQuarium"]
++    } else {
++        ["Mở TrashQuarium", "Bể cá desktop", "Chế độ họp (giảm chuyển động)", "Thoát TrashQuarium"]
++    }
++}
++
++/// The game windows tell Rust which language the player picked so the tray menu follows it.
++#[tauri::command]
++fn set_tray_language(app: AppHandle, lang: String) {
++    if let Some(items) = app.try_state::<TrayItems>() {
++        let [open, tank, meeting, quit] = tray_labels(&lang);
++        let _ = items.open.set_text(open);
++        let _ = items.tank.set_text(tank);
++        let _ = items.meeting.set_text(meeting);
++        let _ = items.quit.set_text(quit);
++    }
+ }
+ 
+ /// Runs `f` on a blocking thread with the core locked. File moves and saves
+@@ -428,7 +451,7 @@ fn build_tray(app: &AppHandle, core: &Core) -> tauri::Result<()> {
+     let meeting = CheckMenuItem::with_id(app, "meeting", "Chế độ họp (giảm chuyển động)", true, settings.meeting_mode, None::<&str>)?;
+     let quit = MenuItem::with_id(app, "quit", "Thoát TrashQuarium", true, None::<&str>)?;
+     let menu = Menu::with_items(app, &[&open, &tank, &meeting, &PredefinedMenuItem::separator(app)?, &quit])?;
+-    app.manage(TrayItems { tank, meeting });
++    app.manage(TrayItems { open, tank, meeting, quit });
+     let mut tray = TrayIconBuilder::with_id("main")
+         .tooltip("TrashQuarium")
+         .menu(&menu)
+@@ -513,6 +536,7 @@ pub fn run() {
+             create_sample_file,
+             system_idle_seconds,
+             quit_app,
++            set_tray_language,
+             hunt_status, start_hunt, hunt_action,
+             open_manager_tab, take_manager_route,
+             set_quick_dock, resize_quick_dock,
+@@ -543,4 +567,13 @@ mod hotkey_tests {
+             key.parse::<tauri_plugin_global_shortcut::Shortcut>().unwrap_or_else(|e| panic!("{key}: {e}"));
+         }
+     }
++
++    #[test]
++    fn tray_labels_exist_in_both_languages() {
++        let (vi, en) = (tray_labels("vi"), tray_labels("en"));
++        assert_eq!(tray_labels("anything-else"), vi);
++        for (a, b) in vi.iter().zip(en.iter()) {
++            assert!(!a.is_empty() && !b.is_empty() && a != b);
++        }
++    }
+ }
+diff --git a/src/api.ts b/src/api.ts
+index 1db8c7b..e9e6042 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -150,6 +150,7 @@ export const api = {
+   finishOnboarding: () => invoke<StateView>("finish_onboarding"),
+   createSample: () => invoke<string>("create_sample_file"),
+   idleSeconds: () => invoke<number>("system_idle_seconds"),
++  setTrayLanguage: (lang: string) => invoke<void>("set_tray_language", { lang }),
+   quit: () => invoke<void>("quit_app"),
+   huntStatus: () => invoke<HuntView>("hunt_status"),
+   startHunt: () => invoke<HuntView>("start_hunt"),
+diff --git a/src/hud.ts b/src/hud.ts
+index bf76a42..dbb7b99 100644
+--- a/src/hud.ts
++++ b/src/hud.ts
+@@ -1,7 +1,7 @@
+ import "./hud.css";
+ import { listen } from "@tauri-apps/api/event";
+ import { api, asFailure, type HuntView } from "./api";
+-import { reason } from "./i18n";
++import { onLangChange, reason, t } from "./i18n";
+ import { setSound, soundCues, soundEnabled, unlockSound } from "./hunt-sound";
+ const dock = document.getElementById("dock")!;
+ let expanded = false;
+@@ -11,7 +11,7 @@ let working = false;
+ let message = "";
+ let hunt: HuntView | null = null;
+ let seq = Date.now();
+-const HOTKEYS = navigator.userAgent.includes("Windows") ? "Phím tắt: Space (hoặc Ctrl+Alt+Space)" : "Phím tắt: Ctrl+Alt+Space";
++const hotkeys = () => (navigator.userAgent.includes("Windows") ? t("Phím tắt: Space (hoặc Ctrl+Alt+Space)") : t("Phím tắt: Ctrl+Alt+Space"));
+ function button(label: string, run: () => Promise<unknown>) {
+   const b = document.createElement("button"); b.textContent = label; b.disabled = working;
+   b.onclick = async () => { if (working) return; working = true; message = ""; render();
+@@ -29,40 +29,40 @@ function huntStatus(v: HuntView): string {
+   const s = v.session!;
+   const left = v.batch?.shells.filter((x) => !x.collected).length ?? 0;
+   if (s.error) return reason(s.error);
+-  if (s.paused) return "Đã tạm dừng";
+-  if (s.phase === "swinging") return `${left} sò đang chờ · Hôm nay ${v.earned}/${v.daily_cap}`;
+-  return s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…";
++  if (s.paused) return t("Đã tạm dừng");
++  if (s.phase === "swinging") return t("{left} sò đang chờ · Hôm nay {earned}/{cap}", { left, earned: v.earned, cap: v.daily_cap });
++  return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
+ }
+ function renderHunt(v: HuntView) {
+   const s = v.session!;
+-  const header = document.createElement("header"); header.textContent = "ĐANG ĐÀO SÒ";
++  const header = document.createElement("header"); header.textContent = t("ĐANG ĐÀO SÒ");
+   const sound = button(soundEnabled() ? "🔊" : "🔇", () => setSound(!soundEnabled()));
+-  sound.title = `Âm thanh đào sò: ${soundEnabled() ? "Bật" : "Tắt"} (bấm để ${soundEnabled() ? "tắt" : "bật"})`;
++  sound.title = soundEnabled() ? t("Âm thanh đào sò: Bật (bấm để tắt)") : t("Âm thanh đào sò: Tắt (bấm để bật)");
+   sound.setAttribute("aria-label", sound.title); sound.setAttribute("aria-pressed", String(soundEnabled()));
+   header.append(sound); dock.append(header);
+   const status = document.createElement("p"); status.textContent = huntStatus(v); status.setAttribute("role", "status"); dock.append(status);
+   const canDrop = s.phase === "swinging" && !s.paused && v.earned < v.daily_cap;
+-  const main = s.paused ? button("▶  Tiếp tục", huntAction("resume")) : button("⚓  Thả móc", huntAction("drop"));
++  const main = s.paused ? button(t("▶  Tiếp tục"), huntAction("resume")) : button(t("⚓  Thả móc"), huntAction("drop"));
+   main.className = "primary"; if (!s.paused) main.disabled = working || !canDrop; dock.append(main);
+-  if (!s.paused) dock.append(button("⏸  Tạm dừng", huntAction("pause")));
+-  dock.append(button("Rời thuyền", huntAction("leave")));
+-  const tip = document.createElement("p"); tip.textContent = HOTKEYS; dock.append(tip);
++  if (!s.paused) dock.append(button(t("⏸  Tạm dừng"), huntAction("pause")));
++  dock.append(button(t("Rời thuyền"), huntAction("leave")));
++  const tip = document.createElement("p"); tip.textContent = hotkeys(); dock.append(tip);
+ }
+ function render() {
+   dock.replaceChildren();
+   if (hunt?.session && expanded) { renderHunt(hunt); return; }
+   if (!expanded) {
+-    const b = button(remaining ? `⛵ ${remaining}` : "⛵", toggle); b.title = "Mở nút nhanh TrashQuarium"; b.setAttribute("aria-label", b.title); b.className = "anchor"; dock.append(b); return;
++    const b = button(remaining ? `⛵ ${remaining}` : "⛵", toggle); b.title = t("Mở nút nhanh TrashQuarium"); b.setAttribute("aria-label", b.title); b.className = "anchor"; dock.append(b); return;
+   }
+   const header = document.createElement("header"); header.textContent = "TRASHQUARIUM";
+   header.append(button("−", toggle)); dock.append(header);
+   if (more) {
+-    dock.append(button("Bụng cá", () => api.openTab("belly")), button("Cài đặt / Mở cùng Windows", () => api.openTab("settings")),
+-      button("Ẩn nút nhanh", () => api.setDock(false)), button("← Quay lại", async () => { more = false; }));
++    dock.append(button(t("Bụng cá"), () => api.openTab("belly")), button(t("Cài đặt / Mở cùng Windows"), () => api.openTab("settings")),
++      button(t("Ẩn nút nhanh"), () => api.setDock(false)), button(t("← Quay lại"), async () => { more = false; }));
+   } else {
+-    dock.append(button("🐟  Cho cá ăn", () => api.openTab("feed")),
+-      button(`⛵  Gọi thuyền${remaining ? ` · ${remaining} sò` : ""}`, () => api.startHunt().catch(() => api.openTab("hunt"))),
+-      button("🐠  Mua cá", () => api.openTab("shop")), button("⋯  Thêm…", async () => { more = true; }));
++    dock.append(button(t("🐟  Cho cá ăn"), () => api.openTab("feed")),
++      button(t("⛵  Gọi thuyền") + (remaining ? t(" · {n} sò", { n: remaining }) : ""), () => api.startHunt().catch(() => api.openTab("hunt"))),
++      button(t("🐠  Mua cá"), () => api.openTab("shop")), button(t("⋯  Thêm…"), async () => { more = true; }));
+   }
+   if (message) { const p = document.createElement("p"); p.textContent = message; p.setAttribute("role", "status"); dock.append(p); }
+ }
+@@ -77,6 +77,7 @@ async function refresh() {
+ }
+ // Browsers only allow audio after a gesture: any click on the dock unlocks it.
+ document.addEventListener("pointerdown", () => { void unlockSound(); });
++onLangChange(() => render());
+ void listen("state-changed", () => refresh().catch(() => {}));
+ // While hunting, follow the claw so the Drop button is only live when it can be used.
+ window.setInterval(() => { if (hunt?.session && !working) refresh().catch(() => {}); }, 200);
+diff --git a/src/i18n.ts b/src/i18n.ts
+index d3ae72e..6a33428 100644
+--- a/src/i18n.ts
++++ b/src/i18n.ts
+@@ -1,5 +1,61 @@
+-// Vietnamese UI text. Keys are stable so an English table can be added later.
++// UI text. Vietnamese is the source language: `t(<Vietnamese sentence>, { param })` returns
++// the sentence itself, or its English translation from locales/en.ts when the language
++// is English. `npm run test:i18n` fails if a sentence has no English entry.
+ import type { Category, Stage } from "./api";
++import { EN } from "./locales/en";
++import { SPECIES_EN } from "./locales/species-en";
++
++export type Lang = "vi" | "en";
++const LANG_KEY = "tq.lang";
++const listeners = new Set<() => void>();
++
++function detect(): Lang {
++  try {
++    const saved = localStorage.getItem(LANG_KEY);
++    if (saved === "vi" || saved === "en") return saved;
++  } catch { /* storage can be unavailable */ }
++  return (navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en";
++}
++
++let lang: Lang = detect();
++if (typeof document !== "undefined") document.documentElement.lang = lang;
++
++export const getLang = (): Lang => lang;
++
++function apply(next: Lang) {
++  lang = next;
++  if (typeof document !== "undefined") document.documentElement.lang = next;
++  listeners.forEach((cb) => cb());
++}
++
++export function setLang(next: Lang) {
++  try { localStorage.setItem(LANG_KEY, next); } catch { /* keep in memory */ }
++  apply(next);
++}
++
++/** Runs `cb` when the language changes here or in another game window. */
++export function onLangChange(cb: () => void) {
++  listeners.add(cb);
++}
++
++// Every window follows a language change made in another one (shared localStorage).
++if (typeof window !== "undefined") {
++  window.addEventListener("storage", (e) => {
++    if (e.key === LANG_KEY && (e.newValue === "vi" || e.newValue === "en") && e.newValue !== lang) apply(e.newValue);
++  });
++}
++
++export function t(vi: string, params?: Record<string, string | number>): string {
++  const text = lang === "en" ? (EN[vi] ?? vi) : vi;
++  return params ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m)) : text;
++}
++
++type SpeciesText = { id: string; name: string; fact: string };
++/** Species display name / fact in the current language (English table is keyed by species id). */
++export const speciesName = (s: SpeciesText): string => (lang === "en" ? SPECIES_EN[s.id]?.name ?? s.name : s.name);
++export const speciesFact = (s: SpeciesText): string => (lang === "en" ? SPECIES_EN[s.id]?.fact ?? s.fact : s.fact);
++
++export const locale = () => (lang === "en" ? "en-US" : "vi-VN");
+ 
+ const reasons: Record<string, string> = {
+   fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
+@@ -75,28 +131,32 @@ const reasons: Record<string, string> = {
+ };
+ 
+ export function reason(code: string): string {
+-  if (code.startsWith("original_unsafe")) return reasons.original_unsafe;
+-  return reasons[code] ?? code;
++  if (code.startsWith("original_unsafe")) return t(reasons.original_unsafe);
++  return reasons[code] ? t(reasons[code]) : code;
+ }
+ 
+-export const attentionNote: Record<string, string> = {
++export const attentionNoteSource: Record<string, string> = {
+   both_exist: "File có mặt ở cả hai nơi. Cả hai được giữ nguyên — hãy tự kiểm tra rồi quyết định.",
+   missing: "Không thấy file ở cả hai nơi. Không có gì bị xóa bởi game; hãy kiểm tra thủ công.",
+   index_mismatch: "Sổ ghi không khớp với ổ đĩa. Mọi file được giữ nguyên.",
+   journal_unreadable: "Không đọc được một sổ giao dịch. Mọi file được giữ nguyên.",
+ };
+ 
+-export const stageName: Record<Stage, string> = {
++export const attentionNote = (note: string): string => (attentionNoteSource[note] ? t(attentionNoteSource[note]) : note);
++
++export const stageSource: Record<Stage, string> = {
+   fry: "Cá non",
+   juvenile: "Cá thành niên",
+   adult: "Trưởng thành",
+ };
++export const stageName = (stage: Stage): string => t(stageSource[stage]);
+ 
+-export const categoryName: Record<Category, string> = {
++export const categorySource: Record<Category, string> = {
+   doc: "Tài liệu",
+   media: "Ảnh/âm thanh/video",
+   tech: "Nén/log/bộ cài",
+ };
++export const categoryName = (category: Category): string => t(categorySource[category]);
+ 
+ export function formatSize(bytes: number): string {
+   const units = ["B", "KB", "MB", "GB"];
+@@ -106,9 +166,9 @@ export function formatSize(bytes: number): string {
+     n /= 1024;
+     i++;
+   }
+-  return `${n.toLocaleString("vi-VN", { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
++  return `${n.toLocaleString(locale(), { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
+ }
+ 
+ export function formatDate(unix: number): string {
+-  return new Date(unix * 1000).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
++  return new Date(unix * 1000).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
+ }
+diff --git a/src/locales/en.ts b/src/locales/en.ts
+new file mode 100644
+index 0000000..df04bbd
+--- /dev/null
++++ b/src/locales/en.ts
+@@ -0,0 +1,309 @@
++// English translations. The key is the Vietnamese source sentence passed to t(); placeholders like {name} must match.
++// `npm run test:i18n` fails when a sentence is missing, has different placeholders or is left unused.
++export const EN: Record<string, string> = {
++  "Phím tắt: Space (hoặc Ctrl+Alt+Space)": "Hotkeys: Space (or Ctrl+Alt+Space)",
++  "Phím tắt: Ctrl+Alt+Space": "Hotkey: Ctrl+Alt+Space",
++  "Đã tạm dừng": "Paused",
++  "{left} sò đang chờ · Hôm nay {earned}/{cap}": "{left} shells waiting · Today {earned}/{cap}",
++  "Móc đang xuống…": "Claw going down…",
++  "Đang kéo về thuyền…": "Hauling it back to the boat…",
++  "ĐANG ĐÀO SÒ": "SHELL HUNT",
++  "Âm thanh đào sò: Bật (bấm để tắt)": "Hunt sound: On (click to turn off)",
++  "Âm thanh đào sò: Tắt (bấm để bật)": "Hunt sound: Off (click to turn on)",
++  "▶  Tiếp tục": "▶  Resume",
++  "⚓  Thả móc": "⚓  Drop claw",
++  "⏸  Tạm dừng": "⏸  Pause",
++  "Rời thuyền": "Leave boat",
++  "Mở nút nhanh TrashQuarium": "Open the TrashQuarium quick buttons",
++  "Bụng cá": "Belly",
++  "Cài đặt / Mở cùng Windows": "Settings / Start with Windows",
++  "Ẩn nút nhanh": "Hide quick buttons",
++  "← Quay lại": "← Back",
++  "🐟  Cho cá ăn": "🐟  Feed fish",
++  "⛵  Gọi thuyền": "⛵  Call boat",
++  " · {n} sò": " · {n} waiting",
++  "🐠  Mua cá": "🐠  Buy fish",
++  "⋯  Thêm…": "⋯  More…",
++  "Chưa xác định — đang kiểm tra Bụng cá…": "Unresolved — checking the Belly…",
++  "Chỉ xem trước {n} file đầu tiên mỗi lượt.": "Only the first {n} files are previewed each round.",
++  "Có file chưa xác định — đang kiểm tra Bụng cá…": "Some files are unresolved — checking the Belly…",
++  "CBCoin là điểm trong game, không phải tiền thật": "CBCoin are in-game points, not real money",
++  "cá trong bể": "fish in tank",
++  "EXP hôm nay": "EXP today",
++  " Thư mục dữ liệu: ": " Data folder: ",
++  "Bụng cá tạm khóa: ": "Belly temporarily locked: ",
++  "Thử lại": "Retry",
++  "Save chính không đọc được nên game đã mở bản sao lưu gần nhất.": "The main save could not be read, so the game opened the most recent backup.",
++  "{n} giao dịch chưa xác định cần bạn kiểm tra. Không file nào bị xóa.": "{n} unresolved transactions need your review. No file was deleted.",
++  "Xem": "View",
++  "Cửa hàng": "Shop",
++  "Cho cá ăn": "Feed",
++  "Bể của tôi": "My tank",
++  "Trục vớt Vỏ sò": "Shell hunt",
++  "Cài đặt": "Settings",
++  "Bể đã đầy": "Tank is full",
++  "Còn thiếu {n} CBCoin": "{n} CBCoin short",
++  "Bể đầy": "Tank full",
++  "Thiếu {n}": "Short {n}",
++  "Đổi": "Trade",
++  "Có thật": "Real species",
++  "Đẻ con": "Live-bearer",
++  "Đẻ trứng": "Egg-layer",
++  "Đã có": "Owned",
++  "Chi tiết": "Details",
++  "Cửa hàng · {n} loài cá thật": "Shop · {n} real fish species",
++  "Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời.": "Dig shells → CBCoin → buy a fry. Clear out files safely so fish earn EXP. CBCoin are in-game points and can't be bought with real money. The shared tank is just game space, not a guide to keeping species together in real life.",
++  "Nội dung nháp — chưa được biên tập khoa học duyệt": "Draft content — not yet reviewed by a science editor",
++  "Nhãn": "Label",
++  "Sinh sản": "Reproduction",
++  "Đẻ con (không có trứng ngoài bụng)": "Live-bearer (no eggs outside the body)",
++  "Khi mua": "On purchase",
++  "Ghép cặp": "Pairing",
++  "Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá": "Same species only, both adult (Lv.100) — use the Breed button on the fish card",
++  "Nguồn": "Source",
++  "Đóng": "Close",
++  "Đổi {price} CBCoin lấy {name}?": "Trade {price} CBCoin for {name}?",
++  "Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.": "After the trade you'll have {left} CBCoin left · tank {count}/{cap}.",
++  "CBCoin là điểm trong game, không dùng tiền thật.": "CBCoin are in-game points, not real money.",
++  "Để sau": "Later",
++  "Đã đón {name} vào bể!": "{name} joined your tank!",
++  "Sinh sản · {name}": "Breed · {name}",
++  "Giá trị cá này đã về mức giá mua gốc nên không sinh sản thêm được.": "This fish's value is back at its original purchase price, so it can't breed any more.",
++  "Cần thêm một con cá cùng loài đã trưởng thành (Lv.100) trong bể để ghép cặp.": "You need another adult (Lv.100) of the same species in the tank to make a pair.",
++  "Số trứng": "Eggs",
++  "Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ": "Hatch chance per egg: {rate}% · expect about {kids} fry (Lv.0). ",
++  "Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ": "Each parent loses {cost} CBCoin of sale value: {before} → {after} CBCoin ",
++  "(mỗi trứng −{price}, tối thiểu {price}). ": "(−{price} per egg, minimum {price}). ",
++  "Bể đang đầy — cần chỗ trống để cá con nở.": "The tank is full — fry need a free slot to hatch.",
++  "Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.": "{free} free slots left; if the tank fills up first, unused eggs are kept.",
++  "Chọn cá ghép cặp": "Choose a mate",
++  "{name} · Lv.{lv} · giá bán {price} CBCoin": "{name} · Lv.{lv} · sells for {price} CBCoin",
++  "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.": "Pair with an adult of the same species. Each egg takes one original purchase price off the sale value of both fish, so the more they breed, the less they sell for.",
++  "Cá ghép cặp": "Mate",
++  "🥚 Sinh sản": "🥚 Breed",
++  "🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!": "🥚 {charged} eggs laid, {n} hatched into fry (Lv.0)!",
++  " · giữ lại {n} trứng vì bể đầy": " · {n} eggs kept because the tank is full",
++  "🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!": "🥚 {charged} eggs laid but none hatched ({rate}% chance each). Try again!",
++  "Gọi thuyền bán {name}?": "Call the boat to sell {name}?",
++  "Level 100 · Giá bán: {price} CBCoin (giá mua ×100": "Level 100 · Sale price: {price} CBCoin (purchase price ×100",
++  ", trừ {n} trứng đã đẻ": ", minus {n} eggs laid",
++  "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.": "The boat only takes the in-game fish away. Files in the Belly stay safe and can still be restored.",
++  "Gọi thuyền": "Call the boat",
++  "Thuyền đến đón cá trưởng thành": "A boat arriving to pick up your adult fish",
++  "Thuyền đang đến đón {name}…": "The boat is on its way to pick up {name}…",
++  "⛵ Thuyền đã đón {name}! +{coins} CBCoin": "⛵ The boat picked up {name}! +{coins} CBCoin",
++  "Chọn file không cần nữa": "Choose files you no longer need",
++  "Hợp lệ": "Valid",
++  "Bị từ chối": "Rejected",
++  "Cá được cho ăn": "Fish to feed",
++  " · Đang no": " · Full",
++  "Chọn file bạn không cần nữa. File được chuyển vào Bụng cá và có thể nhả lại bất cứ lúc nào — game không bao giờ xóa file. Chuyển trong cùng ổ đĩa không làm tăng dung lượng trống.": "Pick files you no longer need. They move into the Belly and can be released again any time — the game never deletes files. Moving within the same drive doesn't free up space.",
++  "Thả file vào cửa sổ này hoặc chọn file": "Drop files into this window or choose files",
++  "Tối đa {n} file mỗi lượt. Xem trước không di chuyển file nào.": "Up to {n} files per round. Previewing doesn't move any file.",
++  "Chọn file…": "Choose files…",
++  "Tạo file mẫu để thử": "Make a sample file to try",
++  "Xác nhận": "Confirm",
++  "Cá nhận thức ăn": "Fish to receive the food",
++  "Đang xử lý…": "Working…",
++  "Cho cá ăn {n} file": "Feed {n} files",
++  "Chưa có file hợp lệ": "No valid files yet",
++  "Mỗi file được kiểm tra lại ngay trước khi chuyển.": "Each file is checked again right before it moves.",
++  "Chỉ nhận file cùng ổ đĩa với Bụng cá; không bao giờ sao chép rồi xóa.": "Only files on the same drive as the Belly are accepted; the game never copies and then deletes.",
++  "File mới được so toàn bộ nội dung bằng SHA-256 trên máy. Copy hoặc đổi tên không được EXP lần nữa. Lịch sử cũ dùng dấu vân tay đầu file để chặn thưởng lặp.": "New files are compared by full content with SHA-256 on your machine. Copying or renaming gives no EXP again. Older history uses a fingerprint of the file's start to block repeat rewards.",
++  "Nhả file ra không thu hồi EXP đã nhận. Mỗi 20 MB là một bậc 20 EXP; 100 EXP = 1 level. Mỗi 5 level nghỉ 2 tiếng, EXP dư được giữ để tiêu hóa sau.": "Releasing a file doesn't take back EXP already earned. Every 20 MB is one 20-EXP step; 100 EXP = 1 level. Every 5 levels the fish rests for 2 hours, and leftover EXP is kept to digest later.",
++  "Đã đưa {n} file vào Bụng cá.": "{n} files moved into the Belly.",
++  "+{exp} EXP · {dup} file trùng không ghi nhận": "+{exp} EXP · {dup} duplicate files not counted",
++  " · đã chạm hạn mức hôm nay": " · today's limit reached",
++  "File đã an toàn trong Bụng cá nhưng chưa lưu được thưởng; game sẽ đối soát lại một lần khi lưu được.": "The files are safe in the Belly but the reward couldn't be saved yet; the game will settle it once when saving works.",
++  "Chưa xác định, đang kiểm tra Bụng cá": "Unresolved, checking the Belly",
++  "Đã nhả ra với tên mới vì trùng tên: {path}": "Released under a new name because that name was taken: {path}",
++  "Đã nhả về {path}": "Released to {path}",
++  "Từ: ": "From: ",
++  "Đến: ": "To: ",
++  "Nhả ra": "Release",
++  "Cho ăn": "Feeding",
++  "Vị trí gốc: ": "Original location: ",
++  "Kiểm tra giao dịch dang dở": "Check unfinished transactions",
++  "File được giữ nguyên byte cho tới khi bạn nhả ra; không tự xóa sau bất kỳ thời hạn nào. Nhả về đúng chỗ cũ; nếu đã có file trùng tên thì đặt tên “(restored N)” thay vì ghi đè.": "Files are kept byte for byte until you release them; nothing is deleted after any deadline. They go back to their original place; if a file with the same name exists, the name gets “(restored N)” instead of being overwritten.",
++  "Cần bạn kiểm tra": "Needs your review",
++  "Bụng cá đang trống.": "The Belly is empty.",
++  "Cá khởi đầu": "Starter fish",
++  "Cá nở trong bể · đời {n}": "Hatched in the tank · generation {n}",
++  "Từ cửa hàng": "From the shop",
++  "{exp} / {next} EXP · {pending} EXP đang tiêu hóa": "{exp} / {next} EXP · {pending} EXP digesting",
++  "Level 100 · đã trưởng thành": "Level 100 · fully grown",
++  "🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.": "🫧 My tummy is a balloon! Resting until {time}, okay?",
++  "⛵ Gọi thuyền bán · {price} CBCoin": "⛵ Sell · {price} CBCoin",
++  "Đã đẻ {n} trứng": "{n} eggs laid",
++  "Fishdex: đã sở hữu {owned}/{total} loài": "Fishdex: {owned}/{total} species owned",
++  "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100).": "Fish never die or leave when you take a break. Feed them to grow from fry → juvenile (Lv.50) → adult (Lv.100).",
++  "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100).": "Call the boat straight onto the desktop aquarium, time the swinging claw and drop it to grab shells. Haul one back to the boat to get CBCoin (white 1, red 10, purple 100).",
++  "{n} sò đang chờ dưới đáy": "{n} shells waiting on the seabed",
++  "Chưa thấy sò mới": "No new shells yet",
++  "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.": "Shells appear in batches of 1–10 at irregular times. Shells are kept while you're busy. The first batch has 3 tutorial shells.",
++  "Đã nhặt hôm nay: {earned}/{cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.": "Collected today: {earned}/{cap}. This limit is separate from feeding; no EXP reward.",
++  "Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt.": "Drop the claw with Space (Windows, while on the desktop) or Ctrl+Alt+Space, or the quick button at the bottom right (shown on the desktop, Win+D). Leaving the desktop pauses the hunt. Missing costs nothing; leaving the boat keeps shells you haven't collected.",
++  "Ngôn ngữ": "Language",
++  "Chọn ngôn ngữ hiển thị. Áp dụng ngay cho mọi cửa sổ của game.": "Choose the display language. It applies immediately to every game window.",
++  "Mở khi đăng nhập Windows": "Start with Windows",
++  "Khởi động xuống khay hệ thống, dùng lựa chọn bể lần trước. Mặc định tắt. Chỉ bật từ bản đã cài.": "Starts minimised in the system tray with the tank setting you last used. Off by default. Only available from the installed version.",
++  "Không đọc được trạng thái": "Can't read the status",
++  "Mở cùng hệ thống": "Start with the system",
++  "Nút nhanh trên desktop": "Desktop quick buttons",
++  "Cho ăn, gọi thuyền, mua cá và các thao tác khác. Windows: chỉ hiện khi bể bật và desktop đang dùng.": "Feed, call the boat, buy fish and more. On Windows: shown only while the tank is on and the desktop is in use.",
++  "Nút nhanh": "Quick buttons",
++  "Bể cá desktop": "Desktop aquarium",
++  "Đại dương nằm dưới biểu tượng desktop, không che ứng dụng đang dùng và không nhận chuột. Tắt lúc nào cũng được. Không đổi hình nền hay theme hệ thống.": "The ocean sits under your desktop icons, doesn't cover the app you're using and doesn't take mouse clicks. Turn it off any time. It doesn't change your wallpaper or system theme.",
++  "Chế độ họp": "Meeting mode",
++  "Giảm chuyển động và khung hình, không bật thông báo tự động.": "Less motion and a lower frame rate, and no automatic notices.",
++  "Dữ liệu trên máy": "Data on this computer",
++  "Save, Bụng cá và sổ giao dịch nằm tại ": "Your save, the Belly and the transaction log live in ",
++  ". Gỡ cài đặt không xóa thư mục này. Không mạng, không tài khoản, không telemetry.": ". Uninstalling does not delete this folder. No network, no account, no telemetry.",
++  "Thoát hẳn": "Quit completely",
++  "Đóng cửa sổ chỉ ẩn game xuống khay/menu bar. Thoát hẳn sẽ tắt cả bể desktop.": "Closing the window only hides the game to the tray / menu bar. Quitting completely also turns off the desktop aquarium.",
++  "Thoát": "Quit",
++  "Chào mừng tới TrashQuarium": "Welcome to TrashQuarium",
++  "Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.": "You get {name} and {coins} CBCoin to open the shop.",
++  "một chú cá": "a little fish",
++  "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.": "• The desktop aquarium (optional) swims under your desktop icons and doesn't cover your apps. Turn it on in Settings.",
++  "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.": "• Feed your fish files you no longer need: they go into the Belly, can always be released again and are never deleted.",
++  "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.": "You don't have to use real files — try a sample file, or just look after your fish and buy more with your gift.",
++  "Thử với file mẫu": "Try a sample file",
++  "Bắt đầu": "Get started",
++  "Ẩn TrashQuarium?": "Hide TrashQuarium?",
++  "Game vẫn chạy ở khay hệ thống (Windows) hoặc menu bar (macOS) — bấm biểu tượng cá để mở lại. Bể desktop vẫn bơi nếu đang bật.": "The game keeps running in the system tray (Windows) or menu bar (macOS) — click the fish icon to open it again. The desktop aquarium keeps swimming if it's on.",
++  "Ẩn cửa sổ": "Hide window",
++  "Bể cá của bạn · file của bạn vẫn thuộc về bạn": "Your aquarium · your files stay yours",
++  "Thả file vào đây để xem trước — chưa có file nào bị chuyển": "Drop files here to preview — no file has been moved",
++  "Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn.": "Finish or cancel the preview before switching screens.",
++  "Không gắn được bể vào desktop ({why}). Bể đã tắt; game không chuyển sang cửa sổ phủ toàn màn hình.": "Couldn't attach the tank to the desktop ({why}). The tank has been turned off; the game won't switch to a full-screen window.",
++  "Bộ sưu tập vỏ sò · {n}/3": "Shell collection · {n}/3",
++  "{n} ngọc trai · Nhặt loại sò lần đầu để mở thẻ tìm hiểu.": "{n} pearls · Collect each kind of shell once to unlock its info card.",
++  "Minh họa stylized: {name}": "Stylised illustration: {name}",
++  "Loại sò chưa khám phá": "Undiscovered shell",
++  "Chưa khám phá": "Undiscovered",
++  "{color} · {coins} CBCoin khi kéo về thuyền": "{color} · {coins} CBCoin when hauled to the boat",
++  "Đã nhặt {count} · Hiếm {rare} · Lần đầu {first}": "Collected {count} · Rare {rare} · First found {first}",
++  "Nguồn: MarLIN / Marine Biological Association": "Source: MarLIN / Marine Biological Association",
++  "Kéo sò về thuyền để mở thẻ kiến thức.": "Haul this shell to the boat to unlock its knowledge card.",
++  "Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc.": "Three info cards about real marine scallops. The AI art is a game illustration and must not be used for identification. The \"rare\" label, its 8% chance and the 35% chance of a pearl inside a rare shell are game rules, not biological data. Pearls are saved for collecting; there is no shop to spend them yet.",
++  "Đã tạm dừng — nhấn {key} để tiếp tục": "Paused — press {key} to resume",
++  "{left} sò đang chờ · {key} để thả móc": "{left} shells waiting · {key} to drop the claw",
++  "Hôm nay {earned}/{cap}": "Today {earned}/{cap}",
++  " · Sò hiếm!": " · Rare shell!",
++  " · +1 Ngọc trai!": " · +1 Pearl!",
++  " · Thẻ mới trong Bộ sưu tập": " · New card in your Collection",
++  "No căng vảy! Cho em ngủ tí": "Scale-popping full! Lemme nap",
++  "Bụng em thành bóng rồi!": "My tummy is a balloon!",
++  "Đừng thêm buffet… em xin thua!": "No more buffet… I surrender!",
++  "Đang tiêu hóa, đừng gọi em đi gym!": "Digesting — don't drag me to the gym!",
++  "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.": "The fish is full! Wait out the 2-hour rest before feeding again.",
++  "Cá đã trưởng thành ở level 100, không nhận thêm EXP.": "This fish is fully grown at level 100 and takes no more EXP.",
++  "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.": "You can only call the boat for adult fish at level 100.",
++  "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.": "Duplicate content already recorded — file not moved, no EXP.",
++  "Chưa có sò mới; bạn có thể quay lại sau.": "No new shells yet; come back later.",
++  "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.": "You've collected enough CBCoin today. Uncollected shells are kept.",
++  "Tắt Chế độ họp để gọi thuyền.": "Turn off Meeting mode to call the boat.",
++  "Lượt thuyền đã kết thúc; hãy gọi thuyền lại.": "That boat trip has ended; call the boat again.",
++  "Móc đang hoạt động; chờ kéo về thuyền.": "The claw is busy; wait for it to come back to the boat.",
++  "Không thay đổi được tùy chọn mở cùng hệ thống.": "Couldn't change the start-with-system option.",
++  "Chỉ bật mở cùng hệ thống từ bản game đã cài, không dùng bản dev.": "Start with the system only works from the installed game, not the dev build.",
++  "Không mở được nút nhanh desktop.": "Couldn't open the desktop quick buttons.",
++  "Sẵn sàng cho cá ăn": "Ready to feed",
++  "Đường dẫn không đầy đủ": "The path is not complete",
++  "Đường dẫn mạng hoặc thiết bị không được hỗ trợ": "Network or device paths are not supported",
++  "Luồng dữ liệu phụ (ADS) không được phép": "Alternate data streams (ADS) are not allowed",
++  "Đường dẫn chứa “..”": "The path contains “..”",
++  "Không tìm thấy": "Not found",
++  "Chỉ nhận file, không nhận thư mục": "Only files are accepted, not folders",
++  "Không phải file thường": "Not a regular file",
++  "Là liên kết (symlink/junction) hoặc nằm trong thư mục liên kết": "A link (symlink/junction) or inside a linked folder",
++  "File nằm ngay gốc ổ đĩa": "The file sits at the root of a drive",
++  "Dữ liệu của chính TrashQuarium": "TrashQuarium's own data",
++  "Thư mục hệ thống hoặc dữ liệu ứng dụng": "System folder or application data",
++  "Nằm trong gói ứng dụng/thư viện (ví dụ Photos Library)": "Inside an app/library package (for example a Photos Library)",
++  "Nằm trong kho mã nguồn (.git/.svn/.hg)": "Inside a source repository (.git/.svn/.hg)",
++  "File ẩn": "Hidden file",
++  "File hệ thống": "System file",
++  "File chỉ có trên đám mây, chưa tải về máy": "File exists only in the cloud and isn't downloaded to this computer",
++  "Định dạng này chưa được cho phép": "This file type isn't allowed yet",
++  "Bộ cài chỉ được nhận trong thư mục Downloads": "Installers are only accepted from the Downloads folder",
++  "Lớn hơn giới hạn 4 GiB": "Larger than the 4 GiB limit",
++  "Khác ổ đĩa với Bụng cá — không chuyển để tránh sao chép rồi xóa": "On a different drive from the Belly — not moved, to avoid copy-then-delete",
++  "Đang được chương trình khác mở": "Currently open in another program",
++  "Không kiểm tra được nên từ chối để an toàn": "Couldn't be checked, so it was refused to be safe",
++  "File đã đổi sau khi xem trước — hãy xem lại": "The file changed after the preview — please preview again",
++  "Không chuyển được; file vẫn ở chỗ cũ": "Couldn't move it; the file stays where it was",
++  "Không ghi được sổ giao dịch; file vẫn ở chỗ cũ": "Couldn't write the transaction log; the file stays where it was",
++  "Không ghi được vào Bụng cá; file vẫn ở chỗ cũ": "Couldn't write to the Belly; the file stays where it was",
++  "Không ghi được danh sách Bụng cá": "Couldn't write the Belly list",
++  "Gián đoạn giữa chừng": "Interrupted halfway",
++  "Đang xử lý một thao tác khác, thử lại sau giây lát": "Another operation is in progress, try again in a moment",
++  "Chưa đủ CBCoin": "Not enough CBCoin",
++  "Hãy chọn hai con cá khác nhau để ghép cặp.": "Please pick two different fish to make a pair.",
++  "Chỉ ghép cặp được hai cá cùng loài.": "Only two fish of the same species can be paired.",
++  "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.": "The fish's value is back at its original purchase price; it can't breed any more.",
++  "Số trứng không hợp lệ hoặc vượt mức tối đa cho phép.": "The number of eggs is invalid or above the allowed maximum.",
++  "Giá đã thay đổi — hãy xem lại trước khi đổi": "The price changed — please check before trading",
++  "Loài này không có trong cửa hàng": "This species isn't in the shop",
++  "Không lưu được tiến trình": "Couldn't save your progress",
++  "Save được tạo bởi phiên bản mới hơn. Game mở ở chế độ chỉ xem và không ghi đè.": "This save was created by a newer version. The game opens read-only and won't overwrite it.",
++  "Không đọc được save và mọi bản sao lưu. Dữ liệu được giữ nguyên, không bị reset.": "Couldn't read the save or any backup. Your data is kept as it is, not reset.",
++  "Danh sách Bụng cá bị hỏng. Không file nào bị di chuyển; dữ liệu được giữ nguyên.": "The Belly list is damaged. No file was moved; your data is kept as it is.",
++  "Bụng cá được tạo bởi phiên bản mới hơn; tạm khóa để an toàn.": "The Belly was created by a newer version; locked for safety.",
++  "TrashQuarium khác đang dùng hồ sơ này.": "Another TrashQuarium is using this profile.",
++  "Không dùng được thư mục dữ liệu của game.": "Couldn't use the game's data folder.",
++  "Thư mục gốc không còn; file vẫn được giữ trong Bụng cá": "The original folder no longer exists; the file is still kept in the Belly",
++  "Vị trí gốc không còn an toàn; file vẫn được giữ trong Bụng cá": "The original location is no longer safe; the file is still kept in the Belly",
++  "Không thấy file trong Bụng cá": "Couldn't find the file in the Belly",
++  "Không tìm được tên trống để nhả file": "Couldn't find a free name to release the file under",
++  "Không tìm thấy cá được chọn": "Couldn't find the selected fish",
++  "Quá nhiều file trong một lượt": "Too many files in one round",
++  "Không mở được bể desktop": "Couldn't open the desktop aquarium",
++  "Không tìm thấy màn hình desktop của Windows": "Couldn't find the Windows desktop",
++  "Windows chưa cung cấp lớp hình nền. Thử lại sau.": "Windows hasn't provided the wallpaper layer yet. Try again later.",
++  "Không gắn được bể cá vào desktop": "Couldn't attach the aquarium to the desktop",
++  "Hệ điều hành này chưa hỗ trợ bể desktop": "This operating system doesn't support the desktop aquarium yet",
++  "Không tạo được file mẫu": "Couldn't create the sample file",
++  "Lỗi không xác định": "Unknown error",
++  "File có mặt ở cả hai nơi. Cả hai được giữ nguyên — hãy tự kiểm tra rồi quyết định.": "The file exists in both places. Both are kept — please check and decide yourself.",
++  "Không thấy file ở cả hai nơi. Không có gì bị xóa bởi game; hãy kiểm tra thủ công.": "The file is missing in both places. The game deleted nothing; please check manually.",
++  "Sổ ghi không khớp với ổ đĩa. Mọi file được giữ nguyên.": "The log doesn't match the disk. Every file is kept.",
++  "Không đọc được một sổ giao dịch. Mọi file được giữ nguyên.": "A transaction log couldn't be read. Every file is kept.",
++  "Cá non": "Fry",
++  "Cá thành niên": "Juvenile",
++  "Trưởng thành": "Adult",
++  "Tài liệu": "Documents",
++  "Ảnh/âm thanh/video": "Images/audio/video",
++  "Nén/log/bộ cài": "Archives/logs/installers",
++  "Sò điệp lớn": "Great scallop",
++  "Sò điệp queen": "Queen scallop",
++  "Sò điệp đa sắc": "Variegated scallop",
++  "Sò điệp lớn có nhiều mắt nhỏ dọc mép áo. Nó có thể khép vỏ hoặc bơi để phản ứng với chuyển động và bóng tối.": "The great scallop has many tiny eyes along the edge of its mantle. It can clamp shut or swim in response to movement and darkness.",
++  "Sống ở biển, trên nền cát hoặc sỏi.": "Lives in the sea, on sand or gravel.",
++  "Cá thể non có thể bám nền bằng sợi tơ chân. Khi lớn, chúng có thể rời điểm bám và bơi tự do.": "Young scallops can attach to the bottom with byssal threads. As they grow, they can let go and swim freely.",
++  "Gặp trên nền cát hoặc sỏi, tới độ sâu khoảng 100 m.": "Found on sand or gravel, down to about 100 m deep.",
++  "Vỏ loài này có nhiều màu tự nhiên, từ trắng, hồng tới tím. Nó có thể sống tự do hoặc bám nền bằng sợi tơ chân.": "The shell comes in many natural colours, from white and pink to purple. It can live free or attach to the bottom with byssal threads.",
++  "Thường gặp trên nền đá, kể cả trong phần bám của tảo.": "Commonly found on rocky ground, including among kelp holdfasts.",
++  "Trắng": "White",
++  "Đỏ": "Red",
++  "Tím": "Purple",
++  "Minh họa AI chưa được chuyên gia duyệt giải phẫu. Bể giả tưởng không mô phỏng điều kiện nuôi chung thật. Giá dùng điểm game, không phải tiền thật.": "AI illustrations have not been reviewed by an anatomy expert. The make-believe tank does not simulate real housing conditions. Prices use game points, not real money.",
++  "Cách chơi trong 60 giây": "How to play in 60 seconds",
++  "Bể cá trên desktop của bạn, nhưng thức ăn là… file rác.": "Your desktop aquarium — but the food is… junk files.",
++  "Cho cá ăn rác (an toàn!)": "Feed them your junk (safely!)",
++  "Thả file bạn không cần nữa vào game. File chui vào Bụng cá — không bị xóa, nhả ra lúc nào cũng được — còn cá thì nhận EXP. Lỡ cho ăn nhầm? Cá chỉ hơi tiếc thôi.": "Drop files you no longer need into the game. They slip into the Belly — never deleted, and you can release them any time — while your fish earns EXP. Fed one by mistake? The fish will just feel a little guilty.",
++  "Lớn nhanh như thổi": "Growing like a weed",
++  "100 EXP = 1 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.": "100 EXP = 1 level. Every 5 levels your fish gets a belly like a balloon and naps for 2 hours. Lv.100 means fully grown: no more growing, time to think about life.",
++  "Gọi thuyền, gắp sò, ra tiền": "Call the boat, grab shells, make bank",
++  "Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.": "Call the boat, watch the swinging claw and hit Space. White shells are 1 CBCoin, red 10, purple 100 — a purple shell is a jackpot.",
++  "Shopping cho bể": "Shopping for the tank",
++  "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank holds up to 12 fish — buy too many and it gets crowded.",
++  "Bán hay cho đẻ?": "Sell or breed?",
++  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat. Or pair two of the same species and breed: each egg takes value off both fish's sale price, with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
++  "Yên tâm": "Relax",
++  "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "No real money, no account, no network. Fish never die — they just get a bit lazy sometimes.",
++  "Đã hiểu!": "Got it!",
++  "Cách chơi": "How to play",
++  "Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.": "Need a quick guide? Click the ? button in the top right any time.",
++};
+diff --git a/src/locales/species-en.ts b/src/locales/species-en.ts
+new file mode 100644
+index 0000000..cddb1e0
+--- /dev/null
++++ b/src/locales/species-en.ts
+@@ -0,0 +1,68 @@
++// English names and facts for the species roster, keyed by species id
++// (src-tauri/config/species.json). `npm run test:i18n` checks every species has an entry.
++export const SPECIES_EN: Record<string, { name: string; fact: string }> = {
++  cyprinus_carpio: { name: "Common carp", fact: "Common carp have barbels near the mouth; don't mistake every goldfish for a carp." },
++  carassius_auratus: { name: "Goldfish", fact: "The goldfish is Carassius auratus; in the aquarium trade its colours and fin shapes vary enormously." },
++  poecilia_reticulata: { name: "Guppy", fact: "Guppies give birth to live young. Eggs in this game are only a symbol for the wait for the fry." },
++  betta_splendens: { name: "Betta", fact: "The betta is Betta splendens. The shared tank in this game is not a guide to keeping fish together." },
++  paracheirodon_innesi: { name: "Neon tetra", fact: "The neon tetra is Paracheirodon innesi; it is not the green neon tetra." },
++  pterophyllum_scalare: { name: "Freshwater angelfish", fact: "The freshwater angelfish is Pterophyllum scalare." },
++  danio_rerio: { name: "Zebrafish", fact: "The zebrafish, Danio rerio, is a species widely used in biology research." },
++  xiphophorus_hellerii: { name: "Green swordtail", fact: "Swordtails bear live young. The sword-like tail extension is usually seen on males." },
++  trichopodus_leerii: { name: "Pearl gourami", fact: "The scientific name of the pearl gourami is Trichopodus leerii." },
++  symphysodon_aequifasciatus: { name: "Discus", fact: "This entry illustrates Symphysodon aequifasciatus; opinions differ on how to classify the discus group." },
++  synchiropus_splendidus: { name: "Mandarinfish", fact: "The mandarinfish grows to only about 7 cm and lives in shallow lagoons and inshore reefs with muddy bottoms and coral rubble." },
++  pomacanthus_imperator: { name: "Emperor angelfish", fact: "The emperor angelfish feeds mostly on sponges and encrusting animals; juveniles and adults sometimes clean much larger fish." },
++  holacanthus_ciliaris: { name: "Queen angelfish", fact: "Stomach samples show the queen angelfish eats almost nothing but sponges; juveniles pick parasites off other fish." },
++  chaetodon_auriga: { name: "Threadfin butterflyfish", fact: "The threadfin butterflyfish nips at bristle worms, anemones, coral polyps and algae; pairs form when they spawn." },
++  centropyge_loriculus: { name: "Flame angelfish", fact: "The flame angelfish eats algae, stays near cover and often forms harems of 3–7 fish." },
++  gramma_loreto: { name: "Royal gramma", fact: "The royal gramma swims with its belly toward the rock, so under a ledge it looks like it is swimming upside down; the male guards the nest." },
++  nemateleotris_magnifica: { name: "Firefish goby", fact: "The firefish hovers above the bottom facing the current to snap up plankton, and often flicks its first dorsal fin like a flag." },
++  pterapogon_kauderni: { name: "Banggai cardinalfish", fact: "The male carries the eggs in his mouth until the young are about 8 mm long; the young have no drifting stage." },
++  sphaeramia_nematoptera: { name: "Pajama cardinalfish", fact: "Pajama cardinalfish school among Porites coral branches in sheltered bays and spread out to feed near the bottom at night; they brood eggs in the mouth." },
++  pseudocheilinus_hexataenia: { name: "Six-line wrasse", fact: "The six-line wrasse reaches about 10 cm, is shy and often swims between coral branches to hide." },
++  cheilinus_undulatus: { name: "Humphead wrasse", fact: "The humphead wrasse can grow beyond 2 m and is one of the few animals that eats toxic prey such as sea hares, boxfish and crown-of-thorns starfish." },
++  lactoria_cornuta: { name: "Longhorn cowfish", fact: "The longhorn cowfish finds bottom animals by blowing sand away; juveniles are often seen near river mouths and brackish water." },
++  ostracion_cubicum: { name: "Yellow boxfish", fact: "Adult yellow boxfish live alone; small juveniles hide in narrow crevices, often among Acropora coral." },
++  balistoides_conspicillum: { name: "Clown triggerfish", fact: "The clown triggerfish eats sea urchins, crabs and molluscs; it is heavily sought for the aquarium trade yet fairly rare across most of its range." },
++  rhinecanthus_aculeatus: { name: "Picasso triggerfish", fact: "The Picasso triggerfish sleeps on its side and makes a grunting sound when alarmed; the female guards the eggs alone." },
++  rhinomuraena_quaesita: { name: "Ribbon eel", fact: "Young ribbon eels are black, males have a yellow dorsal fin and females are almost entirely yellow; the male-to-female change is only inferred from colour." },
++  gymnothorax_favagineus: { name: "Leopard moray", fact: "One of the two largest moray eels in the Indo-Pacific, growing to about 3 m; it often shares a den with cleaner fish or shrimp." },
++  puntigrus_tetrazona: { name: "Tiger barb", fact: "The tiger barb reaches about 7 cm and eats worms, small crustaceans and plants." },
++  poecilia_latipinna: { name: "Sailfin molly", fact: "Sailfin mollies bear live young: after about 28 days of pregnancy, the mother gives birth to 10–100 fry." },
++  xiphophorus_maculatus: { name: "Southern platyfish", fact: "Platies bear live young: after 24–30 days of pregnancy, the mother gives birth to 20–80 fry; the species is also used in genetics research." },
++  hoplisoma_panda: { name: "Panda corydoras", fact: "The panda corydoras is only about 3.8 cm long and can gulp air to breathe when needed." },
++  ancistrus_cirrhosus: { name: "Bristlenose pleco", fact: "The bristlenose pleco eats algae, can breathe air and lives in streams from still, muddy water to clear water running over gravel." },
++  chromobotia_macracanthus: { name: "Clown loach", fact: "Adult clown loaches live on the bottom of main river channels and often hide under rocks, wood or mud hollows; juveniles are usually found on floodplains." },
++  melanotaenia_boesemani: { name: "Boeseman's rainbowfish", fact: "Boeseman's rainbowfish lives in the headwater lakes of the Ajamaru river system in Irian Jaya, Indonesia." },
++  pantodon_buchholzi: { name: "African butterflyfish", fact: "The African butterflyfish doesn't glide: it leaps out of the water to catch insects or escape enemies." },
++  prionace_glauca: { name: "Blue shark", fact: "The blue shark gives birth to live young nourished by a placenta; a litter is usually 15–30 pups and can exceed 100." },
++  lamna_nasus: { name: "Porbeagle", fact: "Porbeagle embryos eat other eggs inside their mother; a litter is usually about 4 pups." },
++  carcharhinus_longimanus: { name: "Oceanic whitetip shark", fact: "The oceanic whitetip lives offshore and is often accompanied by remoras, pilot fish and mahi-mahi." },
++  cetorhinus_maximus: { name: "Basking shark", fact: "The basking shark is the second-largest shark, recorded at 12–15 m, and can live around 50 years." },
++  megachasma_pelagios: { name: "Megamouth shark", fact: "The megamouth shark eats plankton such as krill, copepods and jellyfish; the pale band on its snout may be linked to feeding." },
++  chlamydoselachus_anguineus: { name: "Frilled shark", fact: "The frilled shark is a primitive shark, usually living at depths of 120–1,280 m; pregnancy may last one to two years." },
++  stegostoma_tigrinum: { name: "Zebra shark", fact: "The zebra shark lays eggs in large dark brown or purplish-black cases with ridges; the pups hatch at about 20–26 cm." },
++  aetobatus_narinari: { name: "Spotted eagle ray", fact: "The spotted eagle ray sometimes leaps out of the water; a litter is only 2–4 pups." },
++  rhinoptera_bonasus: { name: "Cownose ray", fact: "Cownose rays migrate in huge schools; in the Gulf of Mexico, schools of up to 10,000 leave the west coast of Florida for the Yucatán in autumn." },
++  coryphaena_hippurus: { name: "Mahi-mahi", fact: "The mahi-mahi matures in only 4–5 months, or about 3 months in captivity." },
++  thunnus_alalunga: { name: "Albacore tuna", fact: "The albacore often swims in schools with skipjack, yellowfin and bluefin tuna, sometimes around floating objects such as sargassum." },
++  katsuwonus_pelamis: { name: "Skipjack tuna", fact: "In the tropics, a spawning female skipjack can lay eggs almost every day." },
++  makaira_nigricans: { name: "Blue marlin", fact: "The blue marlin usually lives alone offshore; females are bigger than males and can live nearly 20 years." },
++  istiophorus_platypterus: { name: "Indo-Pacific sailfish", fact: "The sailfish lives near the ocean surface, gathers near coasts and islands, and migrates to spawn in the Pacific." },
++  exocoetus_volitans: { name: "Tropical two-wing flyingfish", fact: "Flying fish can launch out of the water and glide a long way; they are prey for swordfish, tuna and many other big fish." },
++  carcharodon_carcharias: { name: "Great white shark", fact: "Great white embryos eat other eggs inside their mother once the yolk runs out; newborn pups are already 1.2–1.5 m long." },
++  rhincodon_typus: { name: "Whale shark", fact: "The whale shark is the largest fish in the world but harmless to people, and often returns to the same places every year." },
++  sphyrna_lewini: { name: "Scalloped hammerhead", fact: "The scalloped hammerhead bears live young nourished by a placenta, 12–41 pups per litter after 9–10 months of pregnancy." },
++  galeocerdo_cuvier: { name: "Tiger shark", fact: "The tiger shark feeds at night on a very wide menu, from fish, turtles and seabirds to sea snakes; a litter can be 10–82 pups." },
++  thunnus_thynnus: { name: "Atlantic bluefin tuna", fact: "The Atlantic bluefin can weigh up to 900 kg and live up to 40 years in the western Atlantic." },
++  thunnus_albacares: { name: "Yellowfin tuna", fact: "The yellowfin is sensitive to low-oxygen water, so in the tropics it is rarely caught deeper than 250 m." },
++  xiphias_gladius: { name: "Swordfish", fact: "The swordfish uses its \"sword\" to stun prey and feeds from the surface all the way to the bottom." },
++  mobula_birostris: { name: "Giant oceanic manta", fact: "The giant oceanic manta has a wingspan of up to about 9 m, feeds mainly on plankton and has at most 2 pups per litter." },
++  amphiprion_ocellaris: { name: "Clownfish", fact: "The clownfish lives among the stinging tentacles of large sea anemones; a male can change into a female, and the male guards the eggs." },
++  paracanthurus_hepatus: { name: "Blue tang", fact: "The blue tang has venom glands; frightened juveniles hide tight among Pocillopora coral branches." },
++  zebrasoma_flavescens: { name: "Yellow tang", fact: "The yellow tang mostly grazes on filamentous algae and often spawns around the full moon." },
++  zanclus_cornutus: { name: "Moorish idol", fact: "The Moorish idol has a long drifting larval stage, so it is widespread, and its colours do not differ between regions." },
++  pterois_volitans: { name: "Red lionfish", fact: "The red lionfish hunts at night, spreading its pectoral fins to herd prey into a corner before swallowing it whole; its dorsal spines are venomous." },
++  arothron_nigropunctatus: { name: "Blackspotted puffer", fact: "The blackspotted puffer eats the tips of Acropora coral along with crustaceans, molluscs, sponges and algae." },
++};
+diff --git a/src/manager.ts b/src/manager.ts
+index c018962..d40bb91 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -4,7 +4,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
+ import { getCurrentWindow } from "@tauri-apps/api/window";
+ import { open } from "@tauri-apps/plugin-dialog";
+ import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
+-import { attentionNote, categoryName, formatDate, formatSize, reason, stageName } from "./i18n";
++import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangChange, reason, setLang, speciesFact, speciesName, stageName, t, type Lang } from "./i18n";
+ import { collectionPanel } from "./shell-collection";
+ import { coinText } from "./coin";
+ 
+@@ -61,7 +61,7 @@ function toast(text: string, error = false) {
+ 
+ function fail(e: unknown) {
+   const f = asFailure(e);
+-  toast(f.undetermined ? "Chưa xác định — đang kiểm tra Bụng cá…" : reason(f.code), true);
++  toast(f.undetermined ? t("Chưa xác định — đang kiểm tra Bụng cá…") : reason(f.code), true);
+ }
+ 
+ interface Action {
+@@ -108,7 +108,7 @@ async function previewPaths(paths: string[]) {
+   try {
+     preview = await api.preview(paths);
+     if (paths.length > state.max_preview_files) {
+-      toast(`Chỉ xem trước ${state.max_preview_files} file đầu tiên mỗi lượt.`);
++      toast(t("Chỉ xem trước {n} file đầu tiên mỗi lượt.", { n: state.max_preview_files }));
+     }
+   } catch (e) {
+     fail(e);
+@@ -126,7 +126,7 @@ async function feed() {
+     feedReport = await api.feed(items, selectedFish);
+     preview = [];
+     if (feedReport.files.some((f) => f.undetermined)) {
+-      toast("Có file chưa xác định — đang kiểm tra Bụng cá…", true);
++      toast(t("Có file chưa xác định — đang kiểm tra Bụng cá…"), true);
+       await api.recover().catch(fail);
+     }
+   } catch (e) {
+@@ -154,35 +154,54 @@ function render() {
+   panel.replaceChildren(views[tab]());
+ }
+ 
++function showGuide() {
++  const item = (icon: string, title: string, body: string) =>
++    h("div", { class: "guide-item" }, h("span", { class: "guide-icon", "aria-hidden": "true" }, icon), h("div", {}, h("h3", {}, title), h("p", {}, body)));
++  modal(
++    h("div", { class: "guide" },
++      h("h2", {}, t("Cách chơi trong 60 giây")),
++      h("p", { class: "lead" }, t("Bể cá trên desktop của bạn, nhưng thức ăn là… file rác.")),
++      item("🗑️", t("Cho cá ăn rác (an toàn!)"), t("Thả file bạn không cần nữa vào game. File chui vào Bụng cá — không bị xóa, nhả ra lúc nào cũng được — còn cá thì nhận EXP. Lỡ cho ăn nhầm? Cá chỉ hơi tiếc thôi.")),
++      item("🆙", t("Lớn nhanh như thổi"), t("100 EXP = 1 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
++      item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
++      item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể chứa tối đa 12 cá, mua nhiều quá là cá chen chúc đó.")),
++      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
++      item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
++    ),
++    [{ label: t("Đã hiểu!"), kind: "primary" }],
++  );
++}
++
+ function renderStats() {
+   $("stats").replaceChildren(
+-    h("span", { class: "pill shells", title: "CBCoin là điểm trong game, không phải tiền thật" }, h("b", {}, String(state.cbcoins)), "CBCoin"),
+-    h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), "cá trong bể"),
+-    h("span", { class: "pill" }, "EXP hôm nay", h("b", {}, String(state.daily.exp))),
++    h("span", { class: "pill shells", title: t("CBCoin là điểm trong game, không phải tiền thật") }, h("b", {}, String(state.cbcoins)), "CBCoin"),
++    h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), t("cá trong bể")),
++    h("span", { class: "pill" }, t("EXP hôm nay"), h("b", {}, String(state.daily.exp))),
++    h("button", { class: "pill help", title: t("Cách chơi"), "aria-label": t("Cách chơi"), onclick: showGuide }, "?"),
+   );
+ }
+ 
+ function renderBanners() {
+   const banners: Node[] = [];
+   if (state.read_only) {
+-    banners.push(h("div", { class: "banner danger" }, h("span", {}, reason(state.read_only.code), " Thư mục dữ liệu: ", h("code", {}, state.data_dir))));
++    banners.push(h("div", { class: "banner danger" }, h("span", {}, reason(state.read_only.code), t(" Thư mục dữ liệu: "), h("code", {}, state.data_dir))));
+   }
+   if (state.belly_error) {
+     banners.push(
+       h("div", { class: "banner danger" },
+-        h("span", {}, "Bụng cá tạm khóa: ", reason(state.belly_error.code)),
+-        h("button", { class: "small ghost", onclick: () => api.recover().then(refresh, fail) }, "Thử lại"),
++        h("span", {}, t("Bụng cá tạm khóa: "), reason(state.belly_error.code)),
++        h("button", { class: "small ghost", onclick: () => api.recover().then(refresh, fail) }, t("Thử lại")),
+       ),
+     );
+   }
+   if (state.recovered_from_backup) {
+-    banners.push(h("div", { class: "banner info" }, "Save chính không đọc được nên game đã mở bản sao lưu gần nhất."));
++    banners.push(h("div", { class: "banner info" }, t("Save chính không đọc được nên game đã mở bản sao lưu gần nhất.")));
+   }
+   if (state.attention.length > 0) {
+     banners.push(
+       h("div", { class: "banner warn" },
+-        h("span", {}, `${state.attention.length} giao dịch chưa xác định cần bạn kiểm tra. Không file nào bị xóa.`),
+-        h("button", { class: "small ghost", onclick: () => switchTab("belly") }, "Xem"),
++        h("span", {}, t("{n} giao dịch chưa xác định cần bạn kiểm tra. Không file nào bị xóa.", { n: state.attention.length })),
++        h("button", { class: "small ghost", onclick: () => switchTab("belly") }, t("Xem")),
+       ),
+     );
+   }
+@@ -202,12 +221,12 @@ function switchTab(next: Tab) {
+ 
+ function renderTabs() {
+   const tabs: [Tab, string, number?][] = [
+-    ["shop", "Cửa hàng"],
+-    ["feed", "Cho cá ăn"],
+-    ["belly", "Bụng cá", state.held_count],
+-    ["tank", "Bể của tôi"],
+-    ["hunt", "Trục vớt Vỏ sò"],
+-    ["settings", "Cài đặt"],
++    ["shop", t("Cửa hàng")],
++    ["feed", t("Cho cá ăn")],
++    ["belly", t("Bụng cá"), state.held_count],
++    ["tank", t("Bể của tôi")],
++    ["hunt", t("Trục vớt Vỏ sò")],
++    ["settings", t("Cài đặt")],
+   ];
+   $("tabs").replaceChildren(
+     ...tabs.map(([id, label, count]) =>
+@@ -223,8 +242,11 @@ function speciesOf(id: string): Species | undefined {
+   return state.species.find((s) => s.id === id);
+ }
+ 
++/** Fish keep the species name they were bought under; show it in the current language. */
++const fishLabel = (f: Fish) => { const sp = speciesOf(f.species_id); return sp ? speciesName(sp) : f.name; };
++
+ function fishArt(species: Species | undefined) {
+-  return h("div", { class: "art" }, species ? h("img", { src: `/${species.sprite}`, alt: species.name, loading: "lazy" }) : "🐟");
++  return h("div", { class: "art" }, species ? h("img", { src: `/${species.sprite}`, alt: speciesName(species), loading: "lazy" }) : "🐟");
+ }
+ 
+ function renderShop(): Node {
+@@ -234,23 +256,23 @@ function renderShop(): Node {
+     const buy = h("button", {
+       class: "primary small",
+       disabled: working || full || short > 0 || !!state.read_only,
+-      title: full ? "Bể đã đầy" : short > 0 ? `Còn thiếu ${short} CBCoin` : undefined,
++      title: full ? t("Bể đã đầy") : short > 0 ? t("Còn thiếu {n} CBCoin", { n: short }) : undefined,
+       onclick: () => confirmBuy(s),
+-    }, full ? "Bể đầy" : short > 0 ? `Thiếu ${short}` : "Đổi");
++    }, full ? t("Bể đầy") : short > 0 ? t("Thiếu {n}", { n: short }) : t("Đổi"));
+     return h("article", { class: "card" },
+       fishArt(s),
+       h("div", { class: "body" },
+-        h("h3", {}, s.name),
++        h("h3", {}, speciesName(s)),
+         h("span", { class: "sci" }, s.scientific_name),
+         h("div", { class: "tags" },
+-          h("span", { class: "tag" }, "Có thật"),
+-          h("span", { class: "tag" }, s.reproduction === "live_birth" ? "Đẻ con" : "Đẻ trứng"),
+-          state.dex[s.id]?.owned ? h("span", { class: "tag" }, "Đã có") : null,
++          h("span", { class: "tag" }, t("Có thật")),
++          h("span", { class: "tag" }, s.reproduction === "live_birth" ? t("Đẻ con") : t("Đẻ trứng")),
++          state.dex[s.id]?.owned ? h("span", { class: "tag" }, t("Đã có")) : null,
+         ),
+         h("div", { class: "actions" },
+           h("span", { class: "price" }, `${s.price} CBCoin`),
+           h("span", {},
+-            h("button", { class: "ghost small", onclick: () => showSpecies(s) }, "Chi tiết"), " ",
++            h("button", { class: "ghost small", onclick: () => showSpecies(s) }, t("Chi tiết")), " ",
+             buy,
+           ),
+         ),
+@@ -258,44 +280,44 @@ function renderShop(): Node {
+     );
+   });
+   return h("section", {},
+-    h("div", { class: "section-head" }, h("h2", {}, `Cửa hàng · ${state.species.length} loài cá thật`)),
+-    h("p", { class: "lead" }, "Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời."),
++    h("div", { class: "section-head" }, h("h2", {}, t("Cửa hàng · {n} loài cá thật", { n: state.species.length }))),
++    h("p", { class: "lead" }, t("Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời.")),
+     h("div", { class: "grid" }, ...cards),
+-    h("p", { class: "fine", style: "margin-top:16px" }, state.disclaimer),
++    h("p", { class: "fine", style: "margin-top:16px" }, t(state.disclaimer)),
+   );
+ }
+ 
+ function showSpecies(s: Species) {
+   modal(
+     h("div", {},
+-      h("div", { class: "modal-art" }, h("img", { src: `/${s.sprite}`, alt: s.name })),
+-      h("h2", { style: "margin-top:12px" }, s.name),
++      h("div", { class: "modal-art" }, h("img", { src: `/${s.sprite}`, alt: speciesName(s) })),
++      h("h2", { style: "margin-top:12px" }, speciesName(s)),
+       h("p", { class: "sci" }, s.scientific_name),
+-      s.editorial_status !== "released" ? h("p", { class: "tag draft", style: "display:inline-block;margin:6px 0" }, "Nội dung nháp — chưa được biên tập khoa học duyệt") : null,
+-      h("p", { style: "margin:8px 0" }, s.fact),
++      s.editorial_status !== "released" ? h("p", { class: "tag draft", style: "display:inline-block;margin:6px 0" }, t("Nội dung nháp — chưa được biên tập khoa học duyệt")) : null,
++      h("p", { style: "margin:8px 0" }, speciesFact(s)),
+       h("dl", { class: "kv" },
+-        h("dt", {}, "Nhãn"), h("dd", {}, "Có thật"),
+-        h("dt", {}, "Sinh sản"), h("dd", {}, s.reproduction === "live_birth" ? "Đẻ con (không có trứng ngoài bụng)" : "Đẻ trứng"),
+-        h("dt", {}, "Khi mua"), h("dd", {}, stageName.fry),
+-        h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá"),
+-        h("dt", {}, "Nguồn"), h("dd", {}, h("code", {}, s.source)),
++        h("dt", {}, t("Nhãn")), h("dd", {}, t("Có thật")),
++        h("dt", {}, t("Sinh sản")), h("dd", {}, s.reproduction === "live_birth" ? t("Đẻ con (không có trứng ngoài bụng)") : t("Đẻ trứng")),
++        h("dt", {}, t("Khi mua")), h("dd", {}, stageName("fry")),
++        h("dt", {}, t("Ghép cặp")), h("dd", {}, t("Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá")),
++        h("dt", {}, t("Nguồn")), h("dd", {}, h("code", {}, s.source)),
+       ),
+     ),
+-    [{ label: "Đóng", kind: "ghost" }],
++    [{ label: t("Đóng"), kind: "ghost" }],
+   );
+ }
+ 
+ function confirmBuy(s: Species) {
+   modal(
+     h("div", {},
+-      h("h2", {}, `Đổi ${s.price} CBCoin lấy ${s.name}?`),
+-      h("p", { style: "margin-top:8px" }, `Sau khi đổi còn ${state.cbcoins - s.price} CBCoin · bể ${state.fish.length + 1}/${state.capacity}.`),
+-      h("p", { class: "fine" }, "CBCoin là điểm trong game, không dùng tiền thật."),
++      h("h2", {}, t("Đổi {price} CBCoin lấy {name}?", { price: s.price, name: speciesName(s) })),
++      h("p", { style: "margin-top:8px" }, t("Sau khi đổi còn {left} CBCoin · bể {count}/{cap}.", { left: state.cbcoins - s.price, count: state.fish.length + 1, cap: state.capacity })),
++      h("p", { class: "fine" }, t("CBCoin là điểm trong game, không dùng tiền thật.")),
+     ),
+     [
+-      { label: "Để sau", kind: "ghost" },
++      { label: t("Để sau"), kind: "ghost" },
+       {
+-        label: "Đổi",
++        label: t("Đổi"),
+         kind: "primary",
+         run: async () => {
+           if (working) return;
+@@ -303,7 +325,7 @@ function confirmBuy(s: Species) {
+           render();
+           try {
+             const fish = await api.buy(s.id, s.price);
+-            toast(`Đã đón ${fish.name} vào bể!`);
++            toast(t("Đã đón {name} vào bể!", { name: fishLabel(fish) }));
+           } catch (e) {
+             fail(e);
+           }
+@@ -324,11 +346,11 @@ function confirmBreed(fish: Fish) {
+   const sp = speciesOf(fish.species_id);
+   if (fish.eggs_used >= 99 || partners.length === 0) {
+     modal(h("div", {},
+-      h("h2", {}, `Sinh sản · ${fish.name}`),
++      h("h2", {}, t("Sinh sản · {name}", { name: fishLabel(fish) })),
+       h("p", {}, fish.eggs_used >= 99
+-        ? "Giá trị cá này đã về mức giá mua gốc nên không sinh sản thêm được."
+-        : "Cần thêm một con cá cùng loài đã trưởng thành (Lv.100) trong bể để ghép cặp.")
+-    ), [{ label: "Đóng", kind: "primary" }]);
++        ? t("Giá trị cá này đã về mức giá mua gốc nên không sinh sản thêm được.")
++        : t("Cần thêm một con cá cùng loài đã trưởng thành (Lv.100) trong bể để ghép cặp."))
++    ), [{ label: t("Đóng"), kind: "primary" }]);
+     return;
+   }
+   let partner = partners[0];
+@@ -338,39 +360,39 @@ function confirmBreed(fish: Fish) {
+   const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
+   const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
+   const summary = h("p", { class: "fine", role: "status" });
+-  const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": "Số trứng" }) as HTMLInputElement;
++  const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": t("Số trứng") }) as HTMLInputElement;
+   const refreshSummary = () => {
+     const r = rate(sp?.price ?? fish.purchase_price);
+     eggs = Math.max(1, Math.min(maxEggs(), Math.floor(Number(eggInput.value) || 1)));
+     eggInput.max = String(maxEggs());
+     summary.replaceChildren(...coinText([
+-      `Tỷ lệ nở mỗi trứng: ${(r * 100).toFixed(1)}% · dự kiến khoảng ${(eggs * r).toFixed(1)} cá con (Lv.0). `,
+-      `Mỗi cá bố mẹ mất ${fish.purchase_price * eggs} CBCoin giá bán: ${saleValue(fish)} → ${fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs)} CBCoin `,
+-      `(mỗi trứng −${fish.purchase_price}, tối thiểu ${fish.purchase_price}). `,
+-      free === 0 ? "Bể đang đầy — cần chỗ trống để cá con nở." : `Bể còn ${free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.`,
++      t("Tỷ lệ nở mỗi trứng: {rate}% · dự kiến khoảng {kids} cá con (Lv.0). ", { rate: (r * 100).toFixed(1), kids: (eggs * r).toFixed(1) }),
++      t("Mỗi cá bố mẹ mất {cost} CBCoin giá bán: {before} → {after} CBCoin ", { cost: fish.purchase_price * eggs, before: saleValue(fish), after: fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs) }),
++      t("(mỗi trứng −{price}, tối thiểu {price}). ", { price: fish.purchase_price }),
++      free === 0 ? t("Bể đang đầy — cần chỗ trống để cá con nở.") : t("Bể còn {free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.", { free }),
+     ].join("")));
+   };
+-  const select = h("select", { "aria-label": "Chọn cá ghép cặp", onchange: (ev: Event) => {
++  const select = h("select", { "aria-label": t("Chọn cá ghép cặp"), onchange: (ev: Event) => {
+     partner = partners.find((o) => o.id === (ev.currentTarget as HTMLSelectElement).value) ?? partner;
+     refreshSummary();
+-  } }, ...partners.map((o) => h("option", { value: o.id }, `${o.name} · Lv.${Math.floor(o.exp / 100)} · giá bán ${saleValue(o)} CBCoin`)));
++  } }, ...partners.map((o) => h("option", { value: o.id }, t("{name} · Lv.{lv} · giá bán {price} CBCoin", { name: fishLabel(o), lv: Math.floor(o.exp / 100), price: saleValue(o) }))));
+   eggInput.addEventListener("input", refreshSummary);
+   refreshSummary();
+   modal(h("div", { class: "breed-form" },
+-    h("h2", {}, `Sinh sản · ${fish.name}`),
+-    h("p", {}, "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít."),
+-    h("label", {}, "Cá ghép cặp ", select),
+-    h("label", {}, "Số trứng ", eggInput),
++    h("h2", {}, t("Sinh sản · {name}", { name: fishLabel(fish) })),
++    h("p", {}, t("Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít.")),
++    h("label", {}, t("Cá ghép cặp"), " ", select),
++    h("label", {}, t("Số trứng"), " ", eggInput),
+     summary,
+-  ), [{ label: "Để sau", kind: "ghost" }, { label: "🥚 Sinh sản", kind: "primary", run: async () => {
++  ), [{ label: t("Để sau"), kind: "ghost" }, { label: t("🥚 Sinh sản"), kind: "primary", run: async () => {
+     if (working) return;
+     working = true; render();
+     try {
+       const out = await api.breed(fish.id, partner.id, eggs);
+       const n = out.hatched.length;
+       toast(n > 0
+-        ? `🥚 Đã đẻ ${out.charged} trứng, nở ${n} cá con (Lv.0)${out.refunded ? ` · giữ lại ${out.refunded} trứng vì bể đầy` : ""}!`
+-        : `🥚 Đã đẻ ${out.charged} trứng nhưng chưa quả nào nở (tỷ lệ ${(out.hatch_rate * 100).toFixed(1)}%). Thử lại nhé!`);
++        ? t("🥚 Đã đẻ {charged} trứng, nở {n} cá con (Lv.0)!", { charged: out.charged, n }) + (out.refunded ? t(" · giữ lại {n} trứng vì bể đầy", { n: out.refunded }) : "")
++        : t("🥚 Đã đẻ {charged} trứng nhưng chưa quả nào nở (tỷ lệ {rate}%). Thử lại nhé!", { charged: out.charged, rate: (out.hatch_rate * 100).toFixed(1) }));
+     } catch (e) { fail(e); }
+     finally { working = false; await refresh(); }
+   }}]);
+@@ -378,15 +400,15 @@ function confirmBreed(fish: Fish) {
+ 
+ function confirmSell(fish: Fish) {
+   modal(h("div", {},
+-    h("h2", {}, `Gọi thuyền bán ${fish.name}?`),
+-    h("p", {}, `Level 100 · Giá bán: ${saleValue(fish)} CBCoin (giá mua ×100${fish.eggs_used ? `, trừ ${fish.eggs_used} trứng đã đẻ` : ""}).`),
+-    h("p", { class: "fine" }, "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.")
+-  ), [{ label: "Để sau", kind: "ghost" }, { label: "Gọi thuyền", kind: "primary", run: async () => {
++    h("h2", {}, t("Gọi thuyền bán {name}?", { name: fishLabel(fish) })),
++    h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ")."),
++    h("p", { class: "fine" }, t("Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục."))
++  ), [{ label: t("Để sau"), kind: "ghost" }, { label: t("Gọi thuyền"), kind: "primary", run: async () => {
+     if (working) return;
+     working = true; render();
+     const boat = h("div", { class: "sale-boat", role: "status" },
+-      h("img", { src: "/art/hunt/boat.png", alt: "Thuyền đến đón cá trưởng thành" }),
+-      h("p", {}, `Thuyền đang đến đón ${fish.name}…`)
++      h("img", { src: "/art/hunt/boat.png", alt: t("Thuyền đến đón cá trưởng thành") }),
++      h("p", {}, t("Thuyền đang đến đón {name}…", { name: fishLabel(fish) }))
+     );
+     document.body.append(boat);
+     try {
+@@ -394,7 +416,7 @@ function confirmSell(fish: Fish) {
+         duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200, fill: "forwards"
+       }).finished;
+       const coins = await api.sell(fish.id);
+-      toast(`⛵ Thuyền đã đón ${fish.name}! +${coins} CBCoin`);
++      toast(t("⛵ Thuyền đã đón {name}! +{coins} CBCoin", { name: fishLabel(fish), coins }));
+     } catch (e) { fail(e); }
+     finally { boat.remove(); working = false; await refresh(); }
+   }}]);
+@@ -403,7 +425,7 @@ function confirmSell(fish: Fish) {
+ function renderFeed(): Node {
+   const okCount = preview.filter((p) => p.ok).length;
+   const choose = async () => {
+-    const picked = await open({ multiple: true, directory: false, title: "Chọn file không cần nữa" });
++    const picked = await open({ multiple: true, directory: false, title: t("Chọn file không cần nữa") });
+     if (picked) previewPaths(Array.isArray(picked) ? picked : [picked]);
+   };
+   const sample = async () => {
+@@ -416,49 +438,49 @@ function renderFeed(): Node {
+   };
+   const rows = preview.map((p) =>
+     h("div", { class: `row-item ${p.ok ? "ok" : "bad"}` },
+-      h("span", { class: "mark", "aria-label": p.ok ? "Hợp lệ" : "Bị từ chối" }, p.ok ? "✓" : "✕"),
++      h("span", { class: "mark", "aria-label": p.ok ? t("Hợp lệ") : t("Bị từ chối") }, p.ok ? "✓" : "✕"),
+       h("div", {},
+         h("div", { class: "name" }, p.name || p.path),
+         h("div", { class: "path" }, p.path),
+         h("div", { class: "why" }, reason(p.code)),
+       ),
+-      h("div", { class: "meta" }, p.size ? formatSize(p.size) : "", h("br"), p.category ? categoryName[p.category] : ""),
++      h("div", { class: "meta" }, p.size ? formatSize(p.size) : "", h("br"), p.category ? categoryName(p.category) : ""),
+     ),
+   );
+   const fishSelect = h("select", {
+-    "aria-label": "Cá được cho ăn",
++    "aria-label": t("Cá được cho ăn"),
+     onchange: (e: Event) => { selectedFish = (e.target as HTMLSelectElement).value; render(); },
+-  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${f.name} · Lv.${Math.floor(f.exp / 100)} · ${stageName[f.stage]}${f.resting_until > Date.now()/1000 ? " · Đang no" : ""}`)));
++  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${fishLabel(f)} · Lv.${Math.floor(f.exp / 100)} · ${stageName(f.stage)}${f.resting_until > Date.now()/1000 ? t(" · Đang no") : ""}`)));
+   return h("section", {},
+-    h("div", { class: "section-head" }, h("h2", {}, "Cho cá ăn")),
+-    h("p", { class: "lead" }, "Chọn file bạn không cần nữa. File được chuyển vào Bụng cá và có thể nhả lại bất cứ lúc nào — game không bao giờ xóa file. Chuyển trong cùng ổ đĩa không làm tăng dung lượng trống."),
++    h("div", { class: "section-head" }, h("h2", {}, t("Cho cá ăn"))),
++    h("p", { class: "lead" }, t("Chọn file bạn không cần nữa. File được chuyển vào Bụng cá và có thể nhả lại bất cứ lúc nào — game không bao giờ xóa file. Chuyển trong cùng ổ đĩa không làm tăng dung lượng trống.")),
+     h("div", { class: "feed-layout" },
+       h("div", {},
+         h("div", { class: "dropzone" },
+-          h("strong", {}, "Thả file vào cửa sổ này hoặc chọn file"),
+-          h("span", { class: "fine" }, `Tối đa ${state.max_preview_files} file mỗi lượt. Xem trước không di chuyển file nào.`),
++          h("strong", {}, t("Thả file vào cửa sổ này hoặc chọn file")),
++          h("span", { class: "fine" }, t("Tối đa {n} file mỗi lượt. Xem trước không di chuyển file nào.", { n: state.max_preview_files })),
+           h("div", { class: "row" },
+-            h("button", { onclick: choose, disabled: working }, "Chọn file…"),
+-            h("button", { class: "ghost", onclick: sample, disabled: working }, "Tạo file mẫu để thử"),
++            h("button", { onclick: choose, disabled: working }, t("Chọn file…")),
++            h("button", { class: "ghost", onclick: sample, disabled: working }, t("Tạo file mẫu để thử")),
+           ),
+         ),
+         preview.length ? h("div", { class: "list" }, ...rows) : null,
+         feedReport ? renderFeedReport(feedReport) : null,
+       ),
+       h("aside", { class: "side" },
+-        h("h3", {}, "Xác nhận"),
+-        h("label", { class: "fine" }, "Cá nhận thức ăn"),
++        h("h3", {}, t("Xác nhận")),
++        h("label", { class: "fine" }, t("Cá nhận thức ăn")),
+         fishSelect,
+         h("button", {
+           class: "primary",
+           disabled: working || okCount === 0 || !selectedFish || !!state.read_only || !!state.belly_error || !!state.fish.find(f => f.id === selectedFish && (f.exp >= 10000 || f.resting_until > Date.now()/1000)),
+           onclick: feed,
+-        }, working ? "Đang xử lý…" : okCount ? `Cho cá ăn ${okCount} file` : "Chưa có file hợp lệ"),
++        }, working ? t("Đang xử lý…") : okCount ? t("Cho cá ăn {n} file", { n: okCount }) : t("Chưa có file hợp lệ")),
+         h("ul", {},
+-          h("li", {}, "Mỗi file được kiểm tra lại ngay trước khi chuyển."),
+-          h("li", {}, "Chỉ nhận file cùng ổ đĩa với Bụng cá; không bao giờ sao chép rồi xóa."),
+-          h("li", {}, "File mới được so toàn bộ nội dung bằng SHA-256 trên máy. Copy hoặc đổi tên không được EXP lần nữa. Lịch sử cũ dùng dấu vân tay đầu file để chặn thưởng lặp."),
+-          h("li", {}, "Nhả file ra không thu hồi EXP đã nhận. Mỗi 20 MB là một bậc 20 EXP; 100 EXP = 1 level. Mỗi 5 level nghỉ 2 tiếng, EXP dư được giữ để tiêu hóa sau."),
++          h("li", {}, t("Mỗi file được kiểm tra lại ngay trước khi chuyển.")),
++          h("li", {}, t("Chỉ nhận file cùng ổ đĩa với Bụng cá; không bao giờ sao chép rồi xóa.")),
++          h("li", {}, t("File mới được so toàn bộ nội dung bằng SHA-256 trên máy. Copy hoặc đổi tên không được EXP lần nữa. Lịch sử cũ dùng dấu vân tay đầu file để chặn thưởng lặp.")),
++          h("li", {}, t("Nhả file ra không thu hồi EXP đã nhận. Mỗi 20 MB là một bậc 20 EXP; 100 EXP = 1 level. Mỗi 5 level nghỉ 2 tiếng, EXP dư được giữ để tiêu hóa sau.")),
+         ),
+       ),
+     ),
+@@ -469,28 +491,27 @@ function renderFeedReport(r: FeedReport): Node {
+   const moved = r.files.filter((f) => f.ok).length;
+   const refused = r.files.filter((f) => !f.ok);
+   return h("div", { class: "result" },
+-    h("strong", {}, `Đã đưa ${moved} file vào Bụng cá.`),
++    h("strong", {}, t("Đã đưa {n} file vào Bụng cá.", { n: moved })),
+     r.reward
+       ? h("div", {},
+-          `+${r.reward.exp} EXP · ${r.reward.duplicates} file trùng không ghi nhận`,
+-
+-          r.reward.capped ? " · đã chạm hạn mức hôm nay" : "",
++          t("+{exp} EXP · {dup} file trùng không ghi nhận", { exp: r.reward.exp, dup: r.reward.duplicates }),
++          r.reward.capped ? t(" · đã chạm hạn mức hôm nay") : "",
+         )
+       : null,
+-    r.reward_error ? h("div", {}, "File đã an toàn trong Bụng cá nhưng chưa lưu được thưởng; game sẽ đối soát lại một lần khi lưu được.") : null,
+-    ...refused.map((f) => h("div", { class: "fine" }, `✕ ${f.name}: ${f.undetermined ? "Chưa xác định, đang kiểm tra Bụng cá" : reason(f.code)}`)),
++    r.reward_error ? h("div", {}, t("File đã an toàn trong Bụng cá nhưng chưa lưu được thưởng; game sẽ đối soát lại một lần khi lưu được.")) : null,
++    ...refused.map((f) => h("div", { class: "fine" }, `✕ ${f.name}: ${f.undetermined ? t("Chưa xác định, đang kiểm tra Bụng cá") : reason(f.code)}`)),
+   );
+ }
+ 
+ function renderBelly(): Node {
+-  const fishName = (id: string) => state.fish.find((f) => f.id === id)?.name ?? "—";
++  const fishName = (id: string) => { const f = state.fish.find((x) => x.id === id); return f ? fishLabel(f) : "—"; };
+   const restore = async (entry: BellyEntry) => {
+     if (working) return;
+     working = true;
+     render();
+     try {
+       const out = await api.restore(entry.id);
+-      toast(out.renamed ? `Đã nhả ra với tên mới vì trùng tên: ${out.path}` : `Đã nhả về ${out.path}`);
++      toast(out.renamed ? t("Đã nhả ra với tên mới vì trùng tên: {path}", { path: out.path }) : t("Đã nhả về {path}", { path: out.path }));
+     } catch (e) {
+       fail(e);
+     }
+@@ -502,11 +523,11 @@ function renderBelly(): Node {
+       h("span", { class: "mark" }, "?"),
+       h("div", {},
+         h("div", { class: "name" }, a.name || a.transaction_id),
+-        h("div", { class: "why" }, attentionNote[a.note] ?? a.note),
+-        a.from ? h("div", { class: "path" }, "Từ: ", a.from) : null,
+-        a.to ? h("div", { class: "path" }, "Đến: ", a.to) : null,
++        h("div", { class: "why" }, attentionNote(a.note)),
++        a.from ? h("div", { class: "path" }, t("Từ: "), a.from) : null,
++        a.to ? h("div", { class: "path" }, t("Đến: "), a.to) : null,
+       ),
+-      h("div", { class: "meta" }, a.op === "restore" ? "Nhả ra" : "Cho ăn"),
++      h("div", { class: "meta" }, a.op === "restore" ? t("Nhả ra") : t("Cho ăn")),
+     ),
+   );
+   const rows = bellyEntries.map((e) =>
+@@ -514,20 +535,20 @@ function renderBelly(): Node {
+       h("span", { class: "mark" }, "◍"),
+       h("div", {},
+         h("div", { class: "name" }, e.name),
+-        h("div", { class: "path" }, "Vị trí gốc: ", e.original_path),
+-        h("div", { class: "fine" }, `${formatSize(e.size)} · ${categoryName[e.category]} · ${formatDate(e.eaten_at)} · ${fishName(e.fish_id)}`),
++        h("div", { class: "path" }, t("Vị trí gốc: "), e.original_path),
++        h("div", { class: "fine" }, `${formatSize(e.size)} · ${categoryName(e.category)} · ${formatDate(e.eaten_at)} · ${fishName(e.fish_id)}`),
+       ),
+-      h("button", { class: "ghost small", disabled: working, onclick: () => restore(e) }, "Nhả ra"),
++      h("button", { class: "ghost small", disabled: working, onclick: () => restore(e) }, t("Nhả ra")),
+     ),
+   );
+   return h("section", {},
+     h("div", { class: "section-head" },
+-      h("h2", {}, "Bụng cá"),
+-      h("button", { class: "ghost small", disabled: working, onclick: () => api.recover().then(refresh, fail) }, "Kiểm tra giao dịch dang dở"),
++      h("h2", {}, t("Bụng cá")),
++      h("button", { class: "ghost small", disabled: working, onclick: () => api.recover().then(refresh, fail) }, t("Kiểm tra giao dịch dang dở")),
+     ),
+-    h("p", { class: "lead" }, "File được giữ nguyên byte cho tới khi bạn nhả ra; không tự xóa sau bất kỳ thời hạn nào. Nhả về đúng chỗ cũ; nếu đã có file trùng tên thì đặt tên “(restored N)” thay vì ghi đè."),
+-    attention.length ? h("div", { class: "list" }, h("h3", {}, "Cần bạn kiểm tra"), ...attention) : null,
+-    rows.length ? h("div", { class: "list" }, ...rows) : h("div", { class: "empty" }, "Bụng cá đang trống."),
++    h("p", { class: "lead" }, t("File được giữ nguyên byte cho tới khi bạn nhả ra; không tự xóa sau bất kỳ thời hạn nào. Nhả về đúng chỗ cũ; nếu đã có file trùng tên thì đặt tên “(restored N)” thay vì ghi đè.")),
++    attention.length ? h("div", { class: "list" }, h("h3", {}, t("Cần bạn kiểm tra")), ...attention) : null,
++    rows.length ? h("div", { class: "list" }, ...rows) : h("div", { class: "empty" }, t("Bụng cá đang trống.")),
+   );
+ }
+ 
+@@ -540,29 +561,29 @@ function renderTank(): Node {
+     return h("article", { class: "card fish-card" },
+       fishArt(s),
+       h("div", { class: "body" },
+-        h("h3", {}, `${f.name} · Lv.${Math.floor(f.exp / 100)}`),
++        h("h3", {}, `${fishLabel(f)} · Lv.${Math.floor(f.exp / 100)}`),
+         h("span", { class: "sci" }, s ? s.scientific_name : f.species_id),
+         h("div", { class: "tags" },
+-          h("span", { class: "tag" }, stageName[f.stage]),
+-          h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : f.origin === "hatched" ? `Cá nở trong bể · đời ${f.generation}` : "Từ cửa hàng"),
++          h("span", { class: "tag" }, stageName(f.stage)),
++          h("span", { class: "tag" }, f.origin === "starter" ? t("Cá khởi đầu") : f.origin === "hatched" ? t("Cá nở trong bể · đời {n}", { n: f.generation }) : t("Từ cửa hàng")),
+         ),
+         h("div", { class: "bar", role: "progressbar", "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` })),
+-        h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP · ${f.pending_exp} EXP đang tiêu hóa` : "Level 100 · đã trưởng thành"),
+-        f.resting_until > Date.now()/1000 ? h("p", {}, `🫧 Bụng em thành bóng rồi! Nghỉ tới ${formatDate(f.resting_until)} nhé.`) : null,
++        h("span", { class: "fine" }, next ? t("{exp} / {next} EXP · {pending} EXP đang tiêu hóa", { exp: f.exp, next, pending: f.pending_exp }) : t("Level 100 · đã trưởng thành")),
++        f.resting_until > Date.now()/1000 ? h("p", {}, t("🫧 Bụng em thành bóng rồi! Nghỉ tới {time} nhé.", { time: formatDate(f.resting_until) })) : null,
+         f.stage === "adult" ? h("div", { class: "tags" },
+-          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${saleValue(f)} CBCoin`),
+-          h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, "🥚 Sinh sản"),
++          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, t("⛵ Gọi thuyền bán · {price} CBCoin", { price: saleValue(f) })),
++          h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, t("🥚 Sinh sản")),
+         ) : null,
+-        f.eggs_used ? h("span", { class: "fine" }, `Đã đẻ ${f.eggs_used} trứng`) : null,
++        f.eggs_used ? h("span", { class: "fine" }, t("Đã đẻ {n} trứng", { n: f.eggs_used })) : null,
+       ),
+     );
+   });
+   return h("section", {},
+     h("div", { class: "section-head" },
+-      h("h2", {}, "Bể của tôi"),
+-      h("span", { class: "fine" }, `Fishdex: đã sở hữu ${owned}/${state.species.length} loài`),
++      h("h2", {}, t("Bể của tôi")),
++      h("span", { class: "fine" }, t("Fishdex: đã sở hữu {owned}/{total} loài", { owned, total: state.species.length })),
+     ),
+-    h("p", { class: "lead" }, "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100)."),
++    h("p", { class: "lead" }, t("Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100).")),
+     h("div", { class: "grid" }, ...cards),
+   );
+ }
+@@ -570,17 +591,17 @@ function renderTank(): Node {
+ function renderHunt(): Node {
+   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
+   return h("section", { class: "settings" },
+-    h("h2", {}, "Trục vớt Vỏ sò"),
+-    h("p", { class: "lead" }, "Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100)."),
++    h("h2", {}, t("Trục vớt Vỏ sò")),
++    h("p", { class: "lead" }, t("Gọi thuyền ra thẳng bể cá trên desktop, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin (sò trắng 1, đỏ 10, tím 100).")),
+     h("div", { class: "setting" }, h("div", {},
+-      h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
+-      h("p", {}, "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.")),
++      h("h3", {}, remaining ? t("{n} sò đang chờ dưới đáy", { n: remaining }) : t("Chưa thấy sò mới")),
++      h("p", {}, t("Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn."))),
+       state.hunt.session
+-        ? h("button", { onclick: () => api.huntAction(state.hunt.session!.id, Date.now(), "leave").then(refresh, fail) }, "Rời thuyền")
++        ? h("button", { onclick: () => api.huntAction(state.hunt.session!.id, Date.now(), "leave").then(refresh, fail) }, t("Rời thuyền"))
+         : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
+-            onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
+-    h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
+-    h("p", { class: "fine" }, "Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt."),
++            onclick: () => api.startHunt().then(refresh, fail) }, t("Gọi thuyền"))),
++    h("p", {}, t("Đã nhặt hôm nay: {earned}/{cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.", { earned: state.hunt.earned, cap: state.hunt.daily_cap })),
++    h("p", { class: "fine" }, t("Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt.")),
+     collectionPanel(state.hunt),
+   );
+ }
+@@ -603,36 +624,41 @@ function renderSettings(): Node {
+       },
+     });
+   return h("section", { class: "settings" },
+-    h("h2", {}, "Cài đặt"),
++    h("h2", {}, t("Cài đặt")),
++    h("div", { class: "setting" },
++      h("div", {}, h("h3", {}, t("Ngôn ngữ")), h("p", {}, t("Chọn ngôn ngữ hiển thị. Áp dụng ngay cho mọi cửa sổ của game."))),
++      h("select", { "aria-label": t("Ngôn ngữ"), onchange: (e: Event) => setLang((e.currentTarget as HTMLSelectElement).value as Lang) },
++        h("option", { value: "vi", selected: getLang() === "vi" }, "Tiếng Việt"),
++        h("option", { value: "en", selected: getLang() === "en" }, "English"))),
+     h("div", { class: "setting" },
+-      h("div", {}, h("h3", {}, "Mở khi đăng nhập Windows"), h("p", {}, "Khởi động xuống khay hệ thống, dùng lựa chọn bể lần trước. Mặc định tắt. Chỉ bật từ bản đã cài.")),
+-      autostart === null ? h("span", { class: "fine" }, "Không đọc được trạng thái") : toggle(autostart, "Mở cùng hệ thống", async (v) => { autostart = await api.setAutostart(v); })),
++      h("div", {}, h("h3", {}, t("Mở khi đăng nhập Windows")), h("p", {}, t("Khởi động xuống khay hệ thống, dùng lựa chọn bể lần trước. Mặc định tắt. Chỉ bật từ bản đã cài."))),
++      autostart === null ? h("span", { class: "fine" }, t("Không đọc được trạng thái")) : toggle(autostart, t("Mở cùng hệ thống"), async (v) => { autostart = await api.setAutostart(v); })),
+     h("div", { class: "setting" },
+-      h("div", {}, h("h3", {}, "Nút nhanh trên desktop"), h("p", {}, "Cho ăn, gọi thuyền, mua cá và các thao tác khác. Windows: chỉ hiện khi bể bật và desktop đang dùng.")),
+-      toggle(state.settings.quick_dock_enabled, "Nút nhanh", (v) => api.setDock(v))),
++      h("div", {}, h("h3", {}, t("Nút nhanh trên desktop")), h("p", {}, t("Cho ăn, gọi thuyền, mua cá và các thao tác khác. Windows: chỉ hiện khi bể bật và desktop đang dùng."))),
++      toggle(state.settings.quick_dock_enabled, t("Nút nhanh"), (v) => api.setDock(v))),
+     h("div", { class: "setting" },
+       h("div", {},
+-        h("h3", {}, "Bể cá desktop"),
+-        h("p", {}, "Đại dương nằm dưới biểu tượng desktop, không che ứng dụng đang dùng và không nhận chuột. Tắt lúc nào cũng được. Không đổi hình nền hay theme hệ thống."),
++        h("h3", {}, t("Bể cá desktop")),
++        h("p", {}, t("Đại dương nằm dưới biểu tượng desktop, không che ứng dụng đang dùng và không nhận chuột. Tắt lúc nào cũng được. Không đổi hình nền hay theme hệ thống.")),
+       ),
+-      toggle(state.settings.tank_enabled, "Bể cá desktop", (v) => api.setTank(v)),
++      toggle(state.settings.tank_enabled, t("Bể cá desktop"), (v) => api.setTank(v)),
+     ),
+     h("div", { class: "setting" },
+       h("div", {},
+-        h("h3", {}, "Chế độ họp"),
+-        h("p", {}, "Giảm chuyển động và khung hình, không bật thông báo tự động."),
++        h("h3", {}, t("Chế độ họp")),
++        h("p", {}, t("Giảm chuyển động và khung hình, không bật thông báo tự động.")),
+       ),
+-      toggle(state.settings.meeting_mode, "Chế độ họp", (v) => api.setMeetingMode(v)),
++      toggle(state.settings.meeting_mode, t("Chế độ họp"), (v) => api.setMeetingMode(v)),
+     ),
+     h("div", { class: "setting" },
+       h("div", {},
+-        h("h3", {}, "Dữ liệu trên máy"),
+-        h("p", {}, "Save, Bụng cá và sổ giao dịch nằm tại ", h("code", {}, state.data_dir), ". Gỡ cài đặt không xóa thư mục này. Không mạng, không tài khoản, không telemetry."),
++        h("h3", {}, t("Dữ liệu trên máy")),
++        h("p", {}, t("Save, Bụng cá và sổ giao dịch nằm tại "), h("code", {}, state.data_dir), t(". Gỡ cài đặt không xóa thư mục này. Không mạng, không tài khoản, không telemetry.")),
+       ),
+     ),
+     h("div", { class: "setting" },
+-      h("div", {}, h("h3", {}, "Thoát hẳn"), h("p", {}, "Đóng cửa sổ chỉ ẩn game xuống khay/menu bar. Thoát hẳn sẽ tắt cả bể desktop.")),
+-      h("button", { class: "ghost", onclick: () => api.quit() }, "Thoát"),
++      h("div", {}, h("h3", {}, t("Thoát hẳn")), h("p", {}, t("Đóng cửa sổ chỉ ẩn game xuống khay/menu bar. Thoát hẳn sẽ tắt cả bể desktop."))),
++      h("button", { class: "ghost", onclick: () => api.quit() }, t("Thoát")),
+     ),
+   );
+ }
+@@ -643,21 +669,22 @@ function onboarding() {
+   const starter = state.fish[0];
+   modal(
+     h("div", {},
+-      h("h2", {}, "Chào mừng tới TrashQuarium"),
+-      h("p", { style: "margin-top:8px" }, `Bạn được tặng ${starter ? starter.name : "một chú cá"} và ${state.cbcoins} CBCoin để mở cửa hàng.`),
+-      h("p", {}, "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt."),
+-      h("p", {}, "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa."),
+-      h("p", { class: "fine" }, "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng."),
++      h("h2", {}, t("Chào mừng tới TrashQuarium")),
++      h("p", { style: "margin-top:8px" }, t("Bạn được tặng {name} và {coins} CBCoin để mở cửa hàng.", { name: starter ? fishLabel(starter) : t("một chú cá"), coins: state.cbcoins })),
++      h("p", {}, t("• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt.")),
++      h("p", {}, t("• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa.")),
++      h("p", { class: "fine" }, t("Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng.")),
++      h("p", { class: "fine" }, t("Cần hướng dẫn nhanh? Bấm nút ? ở góc trên bên phải bất cứ lúc nào.")),
+     ),
+     [
+-      { label: "Thử với file mẫu", kind: "ghost", run: async () => {
++      { label: t("Thử với file mẫu"), kind: "ghost", run: async () => {
+         await api.finishOnboarding().catch(fail);
+         tab = "feed";
+         const path = await api.createSample().catch((e) => (fail(e), null));
+         await refresh();
+         if (path) await previewPaths([path]);
+       } },
+-      { label: "Bắt đầu", kind: "primary", run: async () => {
++      { label: t("Bắt đầu"), kind: "primary", run: async () => {
+         await api.finishOnboarding().catch(fail);
+         await refresh();
+       } },
+@@ -668,17 +695,25 @@ function onboarding() {
+ function askClose() {
+   modal(
+     h("div", {},
+-      h("h2", {}, "Ẩn TrashQuarium?"),
+-      h("p", { style: "margin-top:8px" }, "Game vẫn chạy ở khay hệ thống (Windows) hoặc menu bar (macOS) — bấm biểu tượng cá để mở lại. Bể desktop vẫn bơi nếu đang bật."),
++      h("h2", {}, t("Ẩn TrashQuarium?")),
++      h("p", { style: "margin-top:8px" }, t("Game vẫn chạy ở khay hệ thống (Windows) hoặc menu bar (macOS) — bấm biểu tượng cá để mở lại. Bể desktop vẫn bơi nếu đang bật.")),
+     ),
+     [
+-      { label: "Thoát hẳn", kind: "ghost", run: () => api.quit() },
+-      { label: "Ẩn cửa sổ", kind: "primary", run: () => getCurrentWindow().hide() },
++      { label: t("Thoát hẳn"), kind: "ghost", run: () => api.quit() },
++      { label: t("Ẩn cửa sổ"), kind: "primary", run: () => getCurrentWindow().hide() },
+     ],
+   );
+ }
+ 
++function applyStatic() {
++  $("tagline").textContent = t("Bể cá của bạn · file của bạn vẫn thuộc về bạn");
++  $("drop-hint").textContent = t("Thả file vào đây để xem trước — chưa có file nào bị chuyển");
++}
++
+ async function main() {
++  applyStatic();
++  onLangChange(() => { applyStatic(); void api.setTrayLanguage(getLang()).catch(() => {}); if (state) render(); });
++  void api.setTrayLanguage(getLang()).catch(() => {});
+   autostart = await api.autostartStatus().catch(() => null);
+   await refresh();
+   if (!state) return;
+@@ -687,7 +722,7 @@ async function main() {
+   const route = async () => {
+     const next = await api.takeRoute();
+     if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {
+-      if (working || preview.length > 0) { toast("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn."); return; }
++      if (working || preview.length > 0) { toast(t("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn.")); return; }
+       switchTab(next as Tab);
+     }
+   };
+@@ -697,7 +732,7 @@ async function main() {
+     if (payload) { autostart = await api.autostartStatus().catch(() => null); render(); }
+   });
+   await listen<string>("tank-error", (e) =>
+-    toast(`Không gắn được bể vào desktop (${reason(e.payload)}). Bể đã tắt; game không chuyển sang cửa sổ phủ toàn màn hình.`, true),
++    toast(t("Không gắn được bể vào desktop ({why}). Bể đã tắt; game không chuyển sang cửa sổ phủ toàn màn hình.", { why: reason(e.payload) }), true),
+   );
+   await getCurrentWindow().onCloseRequested((event) => {
+     event.preventDefault();
+diff --git a/src/shell-collection.ts b/src/shell-collection.ts
+index 54f92ab..a40af2e 100644
+--- a/src/shell-collection.ts
++++ b/src/shell-collection.ts
+@@ -1,6 +1,7 @@
+ import type { HuntView, ShellKind } from "./api";
+ import "./shell-collection.css";
+ import { coinText } from "./coin";
++import { t } from "./i18n";
+ 
+ export const SHELL_CARDS = [
+   { id: "great", sprite: 0, name: "Sò điệp lớn", taxon: "Pecten maximus", fact: "Sò điệp lớn có nhiều mắt nhỏ dọc mép áo. Nó có thể khép vỏ hoặc bơi để phản ứng với chuyển động và bóng tối.", habitat: "Sống ở biển, trên nền cát hoặc sỏi.", source: "https://www.marlin.ac.uk/species/detail/1398" },
+@@ -15,21 +16,21 @@ function node(tag: string, text = "", className = ""): HTMLElement {
+ export function collectionPanel(view: HuntView): HTMLElement {
+   const panel = node("section", "", "shell-collection");
+   const unlocked = SHELL_CARDS.filter(card => (view.collection[card.id]?.count ?? 0) > 0).length;
+-  panel.append(node("h2", `Bộ sưu tập vỏ sò · ${unlocked}/3`));
+-  panel.append(node("p", `${view.pearls} ngọc trai · Nhặt loại sò lần đầu để mở thẻ tìm hiểu.`));
++  panel.append(node("h2", t("Bộ sưu tập vỏ sò · {n}/3", { n: unlocked })));
++  panel.append(node("p", t("{n} ngọc trai · Nhặt loại sò lần đầu để mở thẻ tìm hiểu.", { n: view.pearls })));
+   const grid = node("div", "", "shell-grid");
+   for (const card of SHELL_CARDS) {
+     const entry = view.collection[card.id];
+     const article = node("article", "", `shell-card${entry ? "" : " locked"}`);
+-    const img = document.createElement("img"); img.src = `/art/hunt/shell_${card.sprite}.png`; img.alt = entry ? `Minh họa stylized: ${card.name}` : "Loại sò chưa khám phá";
+-    article.append(img, node("h3", entry ? card.name : "Chưa khám phá"));
+-    article.append(node("p", `${["Trắng", "Đỏ", "Tím"][card.sprite]} · ${[1,10,100][card.sprite]} CBCoin khi kéo về thuyền`, "shell-meta"));
++    const img = document.createElement("img"); img.src = `/art/hunt/shell_${card.sprite}.png`; img.alt = entry ? t("Minh họa stylized: {name}", { name: t(card.name) }) : t("Loại sò chưa khám phá");
++    article.append(img, node("h3", entry ? t(card.name) : t("Chưa khám phá")));
++    article.append(node("p", t("{color} · {coins} CBCoin khi kéo về thuyền", { color: t(["Trắng", "Đỏ", "Tím"][card.sprite]), coins: [1,10,100][card.sprite] }), "shell-meta"));
+     if (entry) {
+-      article.append(node("i", card.taxon), node("p", card.fact), node("p", card.habitat), node("p", `Đã nhặt ${entry.count} · Hiếm ${entry.rare_count} · Lần đầu ${entry.first_found}`, "shell-meta"));
+-      const source = document.createElement("a"); source.href = card.source; source.target = "_blank"; source.rel = "noopener noreferrer"; source.textContent = "Nguồn: MarLIN / Marine Biological Association"; article.append(source);
+-    } else article.append(node("p", "Kéo sò về thuyền để mở thẻ kiến thức."));
++      article.append(node("i", card.taxon), node("p", t(card.fact)), node("p", t(card.habitat)), node("p", t("Đã nhặt {count} · Hiếm {rare} · Lần đầu {first}", { count: entry.count, rare: entry.rare_count, first: entry.first_found }), "shell-meta"));
++      const source = document.createElement("a"); source.href = card.source; source.target = "_blank"; source.rel = "noopener noreferrer"; source.textContent = t("Nguồn: MarLIN / Marine Biological Association"); article.append(source);
++    } else article.append(node("p", t("Kéo sò về thuyền để mở thẻ kiến thức.")));
+     grid.append(article);
+   }
+-  panel.append(grid, node("p", "Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc.", "shell-note"));
++  panel.append(grid, node("p", t("Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc."), "shell-note"));
+   return panel;
+ }
+diff --git a/src/style.css b/src/style.css
+index 04dc676..4ad026e 100644
+--- a/src/style.css
++++ b/src/style.css
+@@ -641,3 +641,39 @@ dialog::backdrop {
+   color: var(--ink);
+   max-width: 140px;
+ }
++
++.pill.help {
++  cursor: pointer;
++  font: inherit;
++  font-size: 18px;
++  font-weight: 700;
++  color: inherit;
++  border: 0;
++  width: 40px;
++  height: 40px;
++  padding: 0;
++  align-items: center;
++  justify-content: center;
++}
++.guide {
++  display: flex;
++  flex-direction: column;
++  gap: 12px;
++}
++.guide-item {
++  display: grid;
++  grid-template-columns: 36px minmax(0, 1fr);
++  gap: 10px;
++  align-items: start;
++}
++.guide-icon {
++  font-size: 26px;
++  line-height: 1.1;
++}
++.guide-item h3 {
++  font-size: 16px;
++  margin: 0 0 2px;
++}
++.guide-item p {
++  font-size: 14px;
++}
+diff --git a/src/tank.ts b/src/tank.ts
+index 21bf8af..3c9139d 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -3,7 +3,7 @@
+ // the window is hidden.
+ import { listen } from "@tauri-apps/api/event";
+ import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
+-import { reason } from "./i18n";
++import { reason, t } from "./i18n";
+ import { closureStep, drawClaw } from "./hunt-motion";
+ import { COIN_SRC } from "./coin";
+ 
+@@ -66,7 +66,7 @@ const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat s
+ const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
+ const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
+ const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
+-const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const;
++const SHELL_NAME = { great: "Sò điệp lớn", queen: "Sò điệp queen", variegated: "Sò điệp đa sắc" } as const; // keys for t()
+ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+ let closure = 0; // 0 = claw open, 1 = closed on a catch
+ let prevLength = 0;
+@@ -300,10 +300,10 @@ function huntMessage(): string {
+   const s = hunt?.session;
+   if (!s || !hunt) return "";
+   if (s.error) return reason(s.error);
+-  if (s.paused) return `Đã tạm dừng — nhấn ${HUNT_KEY} để tiếp tục`;
++  if (s.paused) return t("Đã tạm dừng — nhấn {key} để tiếp tục", { key: HUNT_KEY });
+   const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
+-  if (s.phase === "swinging") return `${left} sò đang chờ · ${HUNT_KEY} để thả móc`;
+-  return s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…";
++  if (s.phase === "swinging") return t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
++  return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
+ }
+ 
+ /** Boat, rope, claw and status pill. Drawn above the fish, below nothing. */
+@@ -366,7 +366,7 @@ function drawHunt(e: number) {
+   ctx.restore();
+ 
+   // Status pill, top centre.
+-  const text = huntMessage() + (hunt.session ? `  ·  Hôm nay ${hunt.earned}/${hunt.daily_cap}` : "");
++  const text = huntMessage() + (hunt.session ? "  ·  " + t("Hôm nay {earned}/{cap}", { earned: hunt.earned, cap: hunt.daily_cap }) : "");
+   ctx.font = "600 15px system-ui, sans-serif";
+   const w = ctx.measureText(text).width + 36;
+   const x = width / 2 - w / 2;
+@@ -413,7 +413,7 @@ function huntTick(dt: number) {
+   if (receipt && receipt.shell_id !== seenReceipt) {
+     seenReceipt = receipt.shell_id;
+     notice = {
+-      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${SHELL_NAME[receipt.kind]}${receipt.rare ? " · Sò hiếm!" : ""}${receipt.pearl ? " · +1 Ngọc trai!" : ""}${receipt.first_of_kind ? " · Thẻ mới trong Bộ sưu tập" : ""}`,
++      text: `+${SHELL_COINS[receipt.kind]} CBCoin · ${t(SHELL_NAME[receipt.kind])}${receipt.rare ? t(" · Sò hiếm!") : ""}${receipt.pearl ? t(" · +1 Ngọc trai!") : ""}${receipt.first_of_kind ? t(" · Thẻ mới trong Bộ sưu tập") : ""}`,
+       until: performance.now() + 7000,
+     };
+   }
+@@ -455,7 +455,7 @@ function draw() {
+     ctx.restore();
+     if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+       // Fed to the next 5-level mark: the fish naps and says so.
+-      const jokes = ["No căng vảy! Cho em ngủ tí", "Bụng em thành bóng rồi!", "Đừng thêm buffet… em xin thua!", "Đang tiêu hóa, đừng gọi em đi gym!"];
++      const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
+       const text = jokes[Math.floor(s.fish.exp / 500) % jokes.length];
+       ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+       const bubbleWidth = ctx.measureText(text).width + 20;

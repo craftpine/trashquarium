@@ -1,0 +1,284 @@
+diff --git a/README.md b/README.md
+index 60e1415..3d5f82e 100644
+--- a/README.md
++++ b/README.md
+@@ -78,8 +78,9 @@ remove it.
+   three tutorial shells once. Later batches contain 1–10 shells after a random
+   8–22 minutes of running time. Sleep, shutdown and Meeting Mode do not advance
+   the clock. Uncollected shells never expire.
+-- The tank is click-through, so controls are the global hotkey **Ctrl+Alt+Space**
+-  (registered only during a hunt) and the dock's **Thả móc / Tạm dừng / Rời thuyền**
++- The tank is click-through, so controls are the global hotkeys **Space** (Windows
++  only, claimed only while a hunt runs and the desktop is in front) and
++  **Ctrl+Alt+Space** (registered only during a hunt), and the dock's **Thả móc / Tạm dừng / Rời thuyền**
+   buttons. One shell per catch; pulling it to the boat credits CBCoin by colour
+   (white 1, red 10, purple 100). About 8 % of shells are rare (gold glow) and a
+   rare shell may hold a pearl; each shell type opens a collection card the first
+@@ -88,7 +89,9 @@ remove it.
+   desktop is covered by other windows (use Win+D to show it); resume with
+   **Tiếp tục**. Leaving returns an unpaid catch to the same batch. macOS has no
+   dock yet, so only the hotkey is available there and there is no auto-pause.
+-  If another program owns the hotkey it is ignored and the dock still works.
++  If another program owns a hotkey it is ignored and the dock still works.
++  The dock's speaker button toggles optional synthesized hunt sounds (off by
++  default, remembered); sounds play from the dock window, so macOS has none.
+ - Hunt rewards have a separate 60-shell daily cap (counts shells, not CBCoin),
+   without fish EXP. Rust owns the simulation and commits wallet, collection,
+   daily count and collected flag together.
+diff --git a/docs/hunt-features.md b/docs/hunt-features.md
+index 3d89a2b..0d9c39d 100644
+--- a/docs/hunt-features.md
++++ b/docs/hunt-features.md
+@@ -2,7 +2,7 @@
+ 
+ > Luật tiền/EXP và kết quả test bên dưới là mốc bàn giao trước. Luật hiện tại đã đổi sang CBCoin và save schema 4; xem [economy-growth.md](economy-growth.md).
+ 
+-> Ghi chú tích hợp: cửa sổ đào sò riêng đã được thay bằng cảnh đào sò vẽ thẳng trên bể desktop (`src/tank.ts`; điều khiển bằng dock nhỏ + Ctrl+Alt+Space). Animation móc đóng/mở, sò hiếm, ripple và thông báo bắt sò đã port sang đó; bộ sưu tập nằm ở tab đào sò trong manager. Nút bật/tắt âm thanh chưa port (chỉ có ở bản cửa sổ cũ).
++> Ghi chú tích hợp: cửa sổ đào sò riêng đã được thay bằng cảnh đào sò vẽ thẳng trên bể desktop (`src/tank.ts`; điều khiển bằng dock nhỏ + Space/Ctrl+Alt+Space). Animation móc đóng/mở, sò hiếm, ripple và thông báo bắt sò đã port sang đó; bộ sưu tập nằm ở tab đào sò trong manager. Nút bật/tắt âm thanh nằm ở dock (`src/hunt-sound.ts`, mặc định tắt).
+ 
+ ## Đã triển khai
+ 
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 41e6b86..302f9d4 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -2,7 +2,7 @@ mod engine;
+ mod desktop;
+ 
+ use std::path::PathBuf;
+-use std::sync::atomic::{AtomicBool, Ordering};
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+ use std::sync::{Arc, Mutex};
+ 
+ use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
+@@ -93,10 +93,18 @@ async fn hunt_status(core: State<'_, Core>) -> Result<engine::hunt::HuntView, Fa
+ 
+ /// One key for the whole hunt: resumes when paused, drops the claw while it swings.
+ const HUNT_KEY: &str = "ctrl+alt+space";
++/// Plain Space does the same, but it is only claimed (Windows only) while a hunt
++/// is running and the desktop is in front, so typing in other apps is never affected.
++const SPACE_KEY: &str = "space";
+ 
+ /// True while the hunt hotkey is registered (it is only held during a session).
+ #[derive(Default)]
+ struct HuntKey(AtomicBool);
++/// True while plain Space is registered for the hunt.
++#[derive(Default)]
++struct SpaceKey(AtomicBool);
++/// Debounce: a held key repeats, which would resume and drop in one press.
++static LAST_HOTKEY_MS: AtomicU64 = AtomicU64::new(0);
+ 
+ fn register_hunt_key(app: &AppHandle) {
+     let flag = app.state::<HuntKey>();
+@@ -112,7 +120,22 @@ fn unregister_hunt_key(app: &AppHandle) {
+     if app.state::<HuntKey>().0.swap(false, Ordering::AcqRel) { let _ = app.global_shortcut().unregister(HUNT_KEY); }
+ }
+ 
++fn register_space_key(app: &AppHandle) {
++    let flag = app.state::<SpaceKey>();
++    if flag.0.swap(true, Ordering::AcqRel) { return; }
++    let result = app.global_shortcut().on_shortcut(SPACE_KEY, |app, _shortcut, event| {
++        if event.state() == ShortcutState::Pressed { hunt_hotkey(app); }
++    });
++    if result.is_err() { flag.0.store(false, Ordering::Release); }
++}
++
++fn unregister_space_key(app: &AppHandle) {
++    if app.state::<SpaceKey>().0.swap(false, Ordering::AcqRel) { let _ = app.global_shortcut().unregister(SPACE_KEY); }
++}
++
+ fn hunt_hotkey(app: &AppHandle) {
++    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
++    if stamp.saturating_sub(LAST_HOTKEY_MS.swap(stamp, Ordering::AcqRel)) < 300 { return; }
+     let app = app.clone();
+     tauri::async_runtime::spawn(async move {
+         let core: Core = app.state::<Core>().inner().clone();
+@@ -147,7 +170,7 @@ async fn start_hunt(app: AppHandle, window: tauri::WebviewWindow, core: State<'_
+ async fn hunt_action(app: AppHandle, core: State<'_, Core>, session_id: String, seq: u64, action: String) -> Result<engine::hunt::HuntView, Failure> {
+     let leaving = action == "leave";
+     let view = with_core(&core, move |c| c.game.hunt_action(&session_id, seq, &action)).await;
+-    if leaving { unregister_hunt_key(&app); notify(&app); }
++    if leaving { unregister_hunt_key(&app); unregister_space_key(&app); notify(&app); }
+     view
+ }
+ 
+@@ -179,6 +202,7 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
+         let mut dock_tick = 0;
+         let mut hunting = false;
+         let mut was_hunting = false;
++        let mut space_on = false;
+         loop {
+             std::thread::sleep(std::time::Duration::from_millis(100));
+             let now = std::time::Instant::now();
+@@ -206,6 +230,12 @@ fn start_hunt_clock(app: AppHandle, core: Core) {
+                 if hunting { register_hunt_key(&app); } else { unregister_hunt_key(&app); }
+                 was_hunting = hunting;
+             }
++            // Plain Space only while the desktop is in front (Windows has the auto-pause).
++            let space_wanted = cfg!(windows) && hunting && !away;
++            if space_wanted != space_on {
++                if space_wanted { register_space_key(&app); } else { unregister_space_key(&app); }
++                space_on = space_wanted;
++            }
+             if changed { notify(&app); }
+             if let Some(visible) = desired_dock {
+                 if visible != dock_visible {
+@@ -445,6 +475,7 @@ pub fn run() {
+             app.manage(Busy::default());
+             app.manage(PendingRoute::default());
+             app.manage(HuntKey::default());
++            app.manage(SpaceKey::default());
+             build_tray(app.handle(), &core)?;
+             #[cfg(windows)]
+             desktop::ensure_hud(app.handle()).map_err(std::io::Error::other)?;
+@@ -492,3 +523,15 @@ pub fn run() {
+         let _ = (app, event);
+     });
+ }
++
++#[cfg(test)]
++mod hotkey_tests {
++    use super::*;
++
++    #[test]
++    fn hunt_hotkeys_parse() {
++        for key in [HUNT_KEY, SPACE_KEY] {
++            key.parse::<tauri_plugin_global_shortcut::Shortcut>().unwrap_or_else(|e| panic!("{key}: {e}"));
++        }
++    }
++}
+diff --git a/src/hud.ts b/src/hud.ts
+index be24805..bf76a42 100644
+--- a/src/hud.ts
++++ b/src/hud.ts
+@@ -2,6 +2,7 @@ import "./hud.css";
+ import { listen } from "@tauri-apps/api/event";
+ import { api, asFailure, type HuntView } from "./api";
+ import { reason } from "./i18n";
++import { setSound, soundCues, soundEnabled, unlockSound } from "./hunt-sound";
+ const dock = document.getElementById("dock")!;
+ let expanded = false;
+ let remaining = 0;
+@@ -10,6 +11,7 @@ let working = false;
+ let message = "";
+ let hunt: HuntView | null = null;
+ let seq = Date.now();
++const HOTKEYS = navigator.userAgent.includes("Windows") ? "Phím tắt: Space (hoặc Ctrl+Alt+Space)" : "Phím tắt: Ctrl+Alt+Space";
+ function button(label: string, run: () => Promise<unknown>) {
+   const b = document.createElement("button"); b.textContent = label; b.disabled = working;
+   b.onclick = async () => { if (working) return; working = true; message = ""; render();
+@@ -33,14 +35,18 @@ function huntStatus(v: HuntView): string {
+ }
+ function renderHunt(v: HuntView) {
+   const s = v.session!;
+-  const header = document.createElement("header"); header.textContent = "ĐANG ĐÀO SÒ"; dock.append(header);
++  const header = document.createElement("header"); header.textContent = "ĐANG ĐÀO SÒ";
++  const sound = button(soundEnabled() ? "🔊" : "🔇", () => setSound(!soundEnabled()));
++  sound.title = `Âm thanh đào sò: ${soundEnabled() ? "Bật" : "Tắt"} (bấm để ${soundEnabled() ? "tắt" : "bật"})`;
++  sound.setAttribute("aria-label", sound.title); sound.setAttribute("aria-pressed", String(soundEnabled()));
++  header.append(sound); dock.append(header);
+   const status = document.createElement("p"); status.textContent = huntStatus(v); status.setAttribute("role", "status"); dock.append(status);
+   const canDrop = s.phase === "swinging" && !s.paused && v.earned < v.daily_cap;
+   const main = s.paused ? button("▶  Tiếp tục", huntAction("resume")) : button("⚓  Thả móc", huntAction("drop"));
+   main.className = "primary"; if (!s.paused) main.disabled = working || !canDrop; dock.append(main);
+   if (!s.paused) dock.append(button("⏸  Tạm dừng", huntAction("pause")));
+   dock.append(button("Rời thuyền", huntAction("leave")));
+-  const tip = document.createElement("p"); tip.textContent = "Phím tắt: Ctrl+Alt+Space"; dock.append(tip);
++  const tip = document.createElement("p"); tip.textContent = HOTKEYS; dock.append(tip);
+ }
+ function render() {
+   dock.replaceChildren();
+@@ -63,11 +69,14 @@ function render() {
+ async function refresh() {
+   const view = await api.huntStatus();
+   const started = !!view.session && !hunt?.session;
++  soundCues(hunt, view);
+   hunt = view; remaining = view.batch?.shells.filter((s) => !s.collected).length ?? 0;
+   // A new session opens the dock so the hunt controls are right there.
+   if (started && !expanded) { await api.resizeDock(true); expanded = true; more = false; }
+   render();
+ }
++// Browsers only allow audio after a gesture: any click on the dock unlocks it.
++document.addEventListener("pointerdown", () => { void unlockSound(); });
+ void listen("state-changed", () => refresh().catch(() => {}));
+ // While hunting, follow the claw so the Drop button is only live when it can be used.
+ window.setInterval(() => { if (hunt?.session && !working) refresh().catch(() => {}); }, 200);
+diff --git a/src/hunt-sound.ts b/src/hunt-sound.ts
+new file mode 100644
+index 0000000..6c2ad38
+--- /dev/null
++++ b/src/hunt-sound.ts
+@@ -0,0 +1,47 @@
++// Optional synthesized hunt sounds, played from the dock window (the desktop
++// tank never receives clicks, and a click is needed to unlock audio). Off by default.
++import type { HuntView } from "./api";
++
++const KEY = "tq.hunt-sound";
++let enabled = false;
++let audio: AudioContext | null = null;
++
++try { enabled = localStorage.getItem(KEY) === "1"; } catch { /* storage may be unavailable */ }
++
++export const soundEnabled = () => enabled;
++
++export async function setSound(on: boolean) {
++  enabled = on;
++  try { localStorage.setItem(KEY, on ? "1" : "0"); } catch { /* ignore */ }
++  if (on) await unlockSound();
++}
++
++/** Call from a user gesture so the browser allows playback. */
++export async function unlockSound() {
++  if (!enabled) return;
++  try { audio ??= new AudioContext(); if (audio.state !== "running") await audio.resume(); }
++  catch { enabled = false; }
++}
++
++function tone(frequency: number, duration: number) {
++  if (!enabled || document.hidden || audio?.state !== "running") return;
++  try {
++    const osc = audio.createOscillator(), gain = audio.createGain();
++    osc.type = "triangle"; osc.frequency.setValueAtTime(frequency, audio.currentTime);
++    gain.gain.setValueAtTime(0.04, audio.currentTime);
++    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
++    osc.connect(gain); gain.connect(audio.destination);
++    osc.start(); osc.stop(audio.currentTime + duration);
++    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
++  } catch { /* sound never blocks gameplay */ }
++}
++
++/** Play the cues that happened between two views of the same hunt. */
++export function soundCues(prev: HuntView | null, next: HuntView) {
++  const a = prev?.session, b = next.session;
++  if (!b || next.session?.paused) return;
++  if (a && a.length < 0.12 && b.length >= 0.12 && b.phase === "extending") tone(180, 0.12); // claw enters the water
++  if (b.caught_id && b.caught_id !== a?.caught_id) tone(620, 0.07); // claw closes on a shell
++  const receipt = next.last_catch;
++  if (receipt && prev && receipt.shell_id !== prev.last_catch?.shell_id) tone(receipt.pearl ? 960 : 760, 0.16); // paid
++}
+diff --git a/src/manager.ts b/src/manager.ts
+index 47a00b3..48977fe 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -511,7 +511,7 @@ function renderHunt(): Node {
+         : h("button", { class: "primary", disabled: !!state.read_only || state.settings.meeting_mode || state.hunt.earned >= state.hunt.daily_cap,
+             onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
+     h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
+-    h("p", { class: "fine" }, "Thả móc bằng Ctrl+Alt+Space hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt."),
++    h("p", { class: "fine" }, "Thả móc bằng Space (Windows, khi đang ở màn hình desktop) hoặc Ctrl+Alt+Space, hoặc nút nhanh ở góc phải dưới (hiện khi bạn ở màn hình desktop, Win+D). Rời khỏi desktop sẽ tạm dừng. Trượt không mất điểm; rời thuyền giữ sò chưa nhặt."),
+     collectionPanel(state.hunt),
+   );
+ }
+diff --git a/src/tank.ts b/src/tank.ts
+index f6a8e12..b94b183 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -61,7 +61,7 @@ let clock = 0;
+ let hunt: HuntView | null = null;
+ let huntBlend = 0; // 0 = idle ocean, 1 = hunt scene fully shown
+ const huntArt: Record<string, HTMLImageElement | null> = {};
+-const HUNT_KEY = "Ctrl+Alt+Space";
++const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
+ const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
+ const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
+ const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top

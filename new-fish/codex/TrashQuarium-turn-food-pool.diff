@@ -1,0 +1,652 @@
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 9f4a7c9..570586d 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -14,6 +14,7 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ - Thời hạn nghỉ được lưu để sống qua restart; manager/tank kiểm tra lại khoảng 15 giây khi app mở. Đồng hồ hệ thống được dùng cho thời hạn; chưa có cơ chế chống người dùng chỉnh đồng hồ.
+ - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
+ - Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
++- **Bán lại cá chưa trưởng thành:** cá dưới Lv.100 (mua nhầm, bể đầy) bán lại được 1/2 giá mua, làm tròn xuống (`sale_value`). Cá con nở từ trứng cũng vậy; vì mỗi trứng đã trừ 2 lần giá mua vào giá bán của bố mẹ mà chỉ nở 5–20%, nên không thể đẻ trứng rồi bán cá con để kiếm lời.
+ - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
+ - **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
+ - Giữ quà khởi đầu 40 CBCoin, giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
+@@ -28,7 +29,7 @@ Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặ
+ - **Hang trứng và thời gian ấp:** mọi trứng vừa đẻ đều vào Hang trứng (`GameState.eggs`), mỗi trứng có giờ nở riêng ngẫu nhiên 2–3 tiếng (`incubate_min_s`/`incubate_max_s`). Hang chứa tối đa 100 trứng (`den_capacity`); đẻ quá chỗ trống bị từ chối. Đồng hồ chạy theo giờ hệ thống nên game tắt vẫn tính; khi mở lại, trứng quá giờ được xử lý ngay.
+ - **Nở:** đồng hồ native kiểm tra mỗi giây. Trứng đến giờ mới tung tỷ lệ nở: nở thì thành cá con trong bể, không nở thì mất. Kết quả 30 lần gần nhất lưu ở `hatch_log` để giao diện báo.
+ - **Bể đầy:** sinh sản không cần chỗ trong bể (trứng nằm trong hang). Trứng đến giờ mà bể không đủ chỗ cho loài đó thì nằm chờ trong hang, chưa tung tỷ lệ, cho tới khi bể có chỗ.
+-- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang đá với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
++- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang trứng thành một vũng nước nhỏ viền sỏi và rong ở giữa đáy cát (tránh cột biểu tượng desktop bên trái), với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
+ 
+ ## Code quà tặng (Cài đặt → Nhập code)
+ 
+diff --git a/docs/how-to-play.md b/docs/how-to-play.md
+index 8b56f6f..8f8d815 100644
+--- a/docs/how-to-play.md
++++ b/docs/how-to-play.md
+@@ -41,13 +41,13 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
+ 
+ ## ⛵ Sell or 🥚 breed? (at Lv.100)
+ 
+-**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe.
++**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
+ 
+ **Breed:** press **Breed**, pick a partner of the **same species** that is also Lv.100, and choose how many eggs.
+ 
+ - Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
+ - Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
+-- Every egg goes into the **Egg den** (its own tab, and a little rock cave on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
++- Every egg goes into the **Egg den** (its own tab, and a little pebble-ringed pool in the middle of the seabed on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
+ - Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
+ 
+ ## 😌 Relax
+diff --git a/docs/how-to-play.zh.md b/docs/how-to-play.zh.md
+index 9a8edcc..f08845a 100644
+--- a/docs/how-to-play.zh.md
++++ b/docs/how-to-play.zh.md
+@@ -41,13 +41,13 @@
+ 
+ ## ⛵ 卖掉还是 🥚 繁殖？（Lv.100 时）
+ 
+-**卖出：** 点 **⛵ 卖出**，小船付你 **购买价 × 100 CBCoin**（20 CBCoin 的孔雀鱼能卖 2000）。鱼肚子里的文件依然安全。
++**卖出：** 点 **⛵ 卖出**，小船付你 **购买价 × 100 CBCoin**（20 CBCoin 的孔雀鱼能卖 2000）。鱼肚子里的文件依然安全。买错了鱼或鱼缸满了？未成年的鱼有 **卖回** 按钮，按 **购买价的一半** 卖出。
+ 
+ **繁殖：** 点 **繁殖**，选一条同样 Lv.100 的 **同种** 配对鱼，再选鱼卵数量。
+ 
+ - 每颗卵会让 **两条** 亲鱼的售价各减少一次原始购买价。生得越多卖得越便宜，但永远不会低于你买它的价钱。
+ - 每颗卵的孵化率是 **5–20%**：便宜的鱼容易孵（20%），贵的鱼难孵（5%）。没孵出的卵也算数。
+-- 每颗卵都会放进 **鱼卵洞**（有单独的页签，桌面上也有一个小石洞），孵 **2–3 小时**，每颗卵上都有倒计时。关掉游戏也照样计时。
++- 每颗卵都会放进 **鱼卵洞**（有单独的页签，桌面海底中间也有一个围着卵石的小水潭），孵 **2–3 小时**，每颗卵上都有倒计时。关掉游戏也照样计时。
+ - 鱼苗出生是 Lv.0，会标明第几代，然后从头开始。卵到时间时如果鱼缸满了，它会在洞里等到有位置。
+ 
+ ## 😌 放轻松
+diff --git a/docs/huong-dan-nguoi-moi.md b/docs/huong-dan-nguoi-moi.md
+index 45a055b..ca31563 100644
+--- a/docs/huong-dan-nguoi-moi.md
++++ b/docs/huong-dan-nguoi-moi.md
+@@ -41,13 +41,13 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
+ 
+ ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
+ 
+-**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn.
++**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn. Lỡ mua nhầm hoặc bể đầy? Cá chưa lớn có nút **Bán lại** với giá **1/2 giá mua**.
+ 
+ **Sinh sản:** bấm **Sinh sản**, chọn một bạn đời **cùng loài** cũng Lv.100 và số trứng.
+ 
+ - Mỗi trứng trừ giá bán của **cả hai** bố mẹ một lần giá mua gốc. Đẻ càng nhiều bán càng rẻ, nhưng không bao giờ rẻ hơn giá mua gốc.
+ - Mỗi trứng nở với tỷ lệ **5–20%**: cá rẻ dễ nở (20%), cá đắt khó nở (5%). Trứng không nở vẫn bị tính.
+-- Mọi trứng vào **Hang trứng** (có tab riêng, và một hang đá nhỏ trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
++- Mọi trứng vào **Hang trứng** (có tab riêng, và một vũng nước nhỏ viền sỏi ở giữa đáy bể trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
+ - Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Trứng đến giờ mà bể đầy thì nằm chờ trong hang đến khi có chỗ.
+ 
+ ## 😌 Yên tâm
+diff --git a/src-tauri/src/engine/game.rs b/src-tauri/src/engine/game.rs
+index d47f34b..d26f3bb 100644
+--- a/src-tauri/src/engine/game.rs
++++ b/src-tauri/src/engine/game.rs
+@@ -70,8 +70,10 @@ pub struct Fish {
+ }
+ 
+ impl Fish {
+-    /// What the sale boat pays: purchase price x100, minus one purchase price per egg laid.
++    /// What the sale boat pays. Adults (Lv.100): purchase price x100, minus one purchase price
++    /// per egg laid. Younger fish (a wrong buy, a full tank): half the purchase price.
+     pub fn sale_value(&self) -> Option<u64> {
++        if self.exp < MAX_EXP { return Some(self.purchase_price / 2); }
+         self.purchase_price.checked_mul(100u64.saturating_sub(self.eggs_used as u64))
+     }
+ }
+@@ -406,7 +408,6 @@ impl GameStore {
+     pub fn sell(&mut self, fish_id: &str) -> Result<u64, Failure> {
+         let mut next = self.state.clone();
+         let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
+-        if next.fish[i].exp < MAX_EXP { return Err(Failure::new("fish_not_adult", "level 100 required")); }
+         let price = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+         next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+         next.fish.remove(i);
+@@ -774,7 +775,7 @@ mod tests {
+         s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,50);
+         s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(60,0));
+         assert!(s.can_feed(&id,NOW+7200).is_ok());
+-        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_adult");
++        assert_eq!(s.state.fish[0].sale_value(), Some(s.state.fish[0].purchase_price / 2)); // young: half price
+         s.state.fish[0].exp = 490; s.state.fish[0].pending_exp = 20; s.state.fish[0].resting_until = 0;
+         s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,500);
+         s.state.fish[0].exp = 990; s.state.fish[0].pending_exp = 10; s.state.fish[0].resting_until = 0;
+@@ -1017,6 +1018,20 @@ mod tests {
+         assert_eq!((s.used_slots(), s.state.eggs.len()), (18, 6)); // 2 free < 3: the rest wait
+     }
+ 
++    #[test]
++    fn young_fish_sell_back_for_half_the_purchase_price() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        s.state.wallet.cbcoins = 1000;
++        let tuna = s.purchase("thunnus_albacares", 120, NOW).unwrap();
++        assert_eq!(s.state.wallet.cbcoins, 880);
++        assert_eq!(s.sell(&tuna.id).unwrap(), 60);
++        assert_eq!(s.state.wallet.cbcoins, 940);
++        assert!(s.state.fish.iter().all(|f| f.id != tuna.id));
++        let starter = s.state.fish[0].id.clone();
++        s.state.fish[0].exp = MAX_EXP - 1;
++        assert_eq!(s.sell(&starter).unwrap(), 10); // a Lv.99 guppy is still "young"
++    }
++
+     fn store(dir: &Path) -> GameStore {
+         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
+     }
+diff --git a/src/egg-den.ts b/src/egg-den.ts
+index c044867..c29de01 100644
+--- a/src/egg-den.ts
++++ b/src/egg-den.ts
+@@ -13,61 +13,95 @@ export interface DenEgg { id: string; hatch_at: number }
+ 
+ const SHOWN = 5;
+ 
+-/** Draws the den with its bottom centre at (x, y). `size` is the den width in pixels. */
++/** Stable pseudo-random numbers so the pebbles don't jump between frames. */
++function seeded(n: number) {
++  const v = Math.sin(n * 127.1 + 311.7) * 43758.5453;
++  return v - Math.floor(v);
++}
++
++/** Draws the den — a little spring-fed pool on the sand ringed with pebbles and sea grass —
++ * centred at (x, y). `size` is the pool width in pixels. */
+ export function drawDen(
+   ctx: CanvasRenderingContext2D, x: number, y: number, size: number,
+   eggs: DenEgg[], nowSec: number, clock: number, label: string, waitingLabel: string, still: boolean,
+ ) {
+-  const w = size, h = size * 0.56;
++  const w = size, h = size * 0.3; // seen at a low angle: a flat oval
++  const t = still ? 0 : clock;
+   ctx.save();
+   ctx.translate(x, y);
+-  // Rock mound: a few overlapping boulders so it reads as stone, not a dome.
+-  const boulder = (cx: number, cy: number, rx: number, ry: number, light: string, dark: string) => {
+-    const g = ctx.createRadialGradient(cx * w - rx * w * 0.35, cy * h - ry * h * 0.45, rx * w * 0.1, cx * w, cy * h, rx * w * 1.05);
+-    g.addColorStop(0, light); g.addColorStop(0.6, dark); g.addColorStop(1, "#22231a");
+-    ctx.fillStyle = g;
+-    ctx.beginPath(); ctx.ellipse(cx * w, cy * h, rx * w, ry * h, 0, 0, Math.PI * 2); ctx.fill();
++
++  // Sea grass behind the pool, swaying.
++  const blade = (bx: number, height: number, lean: number, hue: string) => {
++    const sway = Math.sin(t * 1.3 + bx * 9) * w * 0.02;
++    ctx.strokeStyle = hue; ctx.lineWidth = Math.max(2, w * 0.012); ctx.lineCap = "round";
++    ctx.beginPath(); ctx.moveTo(bx * w, -h * 0.35);
++    ctx.quadraticCurveTo(bx * w + lean * w * 0.04 + sway, -h * 0.35 - height * w * 0.5, bx * w + lean * w * 0.07 + sway * 2, -h * 0.35 - height * w);
++    ctx.stroke();
+   };
+-  boulder(-0.3, -0.38, 0.24, 0.42, "#8f8b70", "#57553f");
+-  boulder(0.3, -0.36, 0.23, 0.4, "#8a856a", "#525039");
+-  boulder(0.02, -0.62, 0.36, 0.5, "#9b9678", "#5f5c45");
+-  boulder(-0.12, -0.92, 0.17, 0.2, "#a7a283", "#6a6650");
+-  // Cracks.
+-  ctx.strokeStyle = "rgba(25, 25, 15, 0.35)"; ctx.lineWidth = Math.max(1, w * 0.006);
+-  ctx.beginPath(); ctx.moveTo(-w * 0.3, -h * 0.9); ctx.quadraticCurveTo(-w * 0.22, -h * 0.75, -w * 0.27, -h * 0.6); ctx.stroke();
+-  ctx.beginPath(); ctx.moveTo(w * 0.28, -h * 0.82); ctx.quadraticCurveTo(w * 0.33, -h * 0.66, w * 0.25, -h * 0.55); ctx.stroke();
+-  // Moss on top.
+-  ctx.fillStyle = "rgba(118, 150, 62, 0.42)";
+-  for (const [mx, my, mr] of [[-0.18, -1.05, 0.1], [0.08, -1.08, 0.08], [0.26, -0.86, 0.07], [-0.38, -0.66, 0.06], [0.4, -0.55, 0.05]]) {
+-    ctx.beginPath(); ctx.ellipse(mx * w, my * h, mr * w, mr * w * 0.42, 0, 0, Math.PI * 2); ctx.fill();
++  for (let i = 0; i < 9; i++) {
++    const bx = -0.46 + seeded(i) * 0.25 + (i > 4 ? 0.68 : 0);
++    blade(bx, 0.16 + seeded(i + 20) * 0.18, seeded(i + 40) - 0.5, i % 2 ? "#4f8a3a" : "#6aa44a");
+   }
+-  // Cave mouth.
+-  const mouth = ctx.createRadialGradient(0, -h * 0.15, w * 0.02, 0, -h * 0.25, w * 0.36);
+-  mouth.addColorStop(0, "#1e3a3a"); mouth.addColorStop(1, "#071315");
+-  ctx.fillStyle = mouth;
+-  ctx.beginPath();
+-  ctx.moveTo(-w * 0.36, 0);
+-  ctx.bezierCurveTo(-w * 0.36, -h * 0.62, -w * 0.14, -h * 0.8, 0, -h * 0.8);
+-  ctx.bezierCurveTo(w * 0.14, -h * 0.8, w * 0.36, -h * 0.62, w * 0.36, 0);
+-  ctx.closePath();
+-  ctx.fill();
+-  // Sand floor of the cave.
+-  ctx.fillStyle = "#b99b62";
+-  ctx.beginPath(); ctx.ellipse(0, -h * 0.02, w * 0.35, h * 0.1, 0, Math.PI, Math.PI * 2); ctx.fill();
++
++  // Sand bank around the pool.
++  const bank = ctx.createRadialGradient(0, 0, w * 0.2, 0, 0, w * 0.62);
++  bank.addColorStop(0, "rgba(214, 186, 120, 0.95)"); bank.addColorStop(1, "rgba(190, 160, 100, 0)");
++  ctx.fillStyle = bank;
++  ctx.beginPath(); ctx.ellipse(0, 0, w * 0.62, h * 0.85, 0, 0, Math.PI * 2); ctx.fill();
++
++  // The pool: deep blue-green water with moving light.
++  const water = ctx.createRadialGradient(0, h * 0.05, w * 0.03, 0, 0, w * 0.5);
++  water.addColorStop(0, "#1f6f78"); water.addColorStop(0.7, "#0f4650"); water.addColorStop(1, "#0a2f37");
++  ctx.fillStyle = water;
++  ctx.beginPath(); ctx.ellipse(0, 0, w * 0.44, h * 0.5, 0, 0, Math.PI * 2); ctx.fill();
++  ctx.save();
++  ctx.beginPath(); ctx.ellipse(0, 0, w * 0.44, h * 0.5, 0, 0, Math.PI * 2); ctx.clip();
++  ctx.strokeStyle = "rgba(170, 240, 235, 0.28)"; ctx.lineWidth = Math.max(1.5, w * 0.006);
++  for (let i = 0; i < 6; i++) {
++    const cy = (-0.35 + i * 0.14) * h;
++    ctx.beginPath();
++    for (let k = 0; k <= 20; k++) {
++      const cx = -w * 0.45 + (k / 20) * w * 0.9;
++      const yy = cy + Math.sin(k * 0.9 + t * 1.6 + i * 1.7) * h * 0.06;
++      if (k === 0) ctx.moveTo(cx, yy); else ctx.lineTo(cx, yy);
++    }
++    ctx.stroke();
++  }
++  // Rising spring bubbles.
++  ctx.fillStyle = "rgba(220, 250, 255, 0.55)";
++  for (let i = 0; i < 4; i++) {
++    const phase = ((t * 0.35 + i * 0.25) % 1);
++    ctx.beginPath(); ctx.arc((seeded(i + 60) - 0.5) * w * 0.6, h * 0.25 - phase * h * 0.6, Math.max(1.5, w * 0.008), 0, Math.PI * 2); ctx.fill();
++  }
++  ctx.restore();
++
++  // Pebble ring: back half first, eggs, then the front half so the eggs sit inside.
++  const pebbles = Array.from({ length: 26 }, (_, i) => {
++    const a = (i / 26) * Math.PI * 2 + seeded(i) * 0.15;
++    const r = 0.95 + seeded(i + 7) * 0.12;
++    const tone = ["#8f8a78", "#a49c84", "#7b7a6a", "#6f7f5c", "#b5aa8c"][i % 5];
++    return { x: Math.cos(a) * w * 0.46 * r, y: Math.sin(a) * h * 0.52 * r, s: w * (0.028 + seeded(i + 13) * 0.022), tone };
++  });
++  const pebble = (p: (typeof pebbles)[number]) => {
++    const g = ctx.createRadialGradient(p.x - p.s * 0.35, p.y - p.s * 0.45, p.s * 0.1, p.x, p.y, p.s * 1.2);
++    g.addColorStop(0, "#efe9d8"); g.addColorStop(0.35, p.tone); g.addColorStop(1, "#3e3c32");
++    ctx.fillStyle = g;
++    ctx.beginPath(); ctx.ellipse(p.x, p.y, p.s * 1.25, p.s * 0.8, 0, 0, Math.PI * 2); ctx.fill();
++  };
++  pebbles.filter((p) => p.y < 0).forEach(pebble);
+ 
+   // Eggs: soonest first, each with its own timer.
+   const sorted = [...eggs].sort((a, b) => a.hatch_at - b.hatch_at);
+   const shown = sorted.slice(0, SHOWN);
+-  const ew = w * 0.055, eh = ew * 1.3;
+-  const gap = Math.min(w * 0.13, (w * 0.6) / Math.max(1, shown.length));
++  const ew = w * 0.045, eh = ew * 1.3;
++  const gap = Math.min(w * 0.13, (w * 0.62) / Math.max(1, shown.length));
+   shown.forEach((egg, i) => {
+     const ex = (i - (shown.length - 1) / 2) * gap;
+-    const ey = -h * 0.08 - eh;
++    const ey = h * 0.08;
+     const left = egg.hatch_at - nowSec;
+     ctx.save();
+-    ctx.translate(ex, ey + eh);
+-    // Eggs about to hatch wobble.
+-    if (!still && left < 600) ctx.rotate(Math.sin(clock * 9 + i) * (left <= 0 ? 0.16 : 0.08));
++    ctx.translate(ex, ey);
++    if (!still && left < 600) ctx.rotate(Math.sin(clock * 9 + i) * (left <= 0 ? 0.16 : 0.08)); // about to hatch
+     const shell = ctx.createRadialGradient(-ew * 0.35, -eh * 1.45, ew * 0.1, 0, -eh, eh * 1.1);
+     shell.addColorStop(0, "#fffdf6"); shell.addColorStop(1, "#e8cf9f");
+     ctx.fillStyle = shell;
+@@ -79,23 +113,25 @@ export function drawDen(
+     ctx.restore();
+     // Timer pill above the egg, staggered so neighbours don't overlap.
+     const text = left > 0 ? formatCountdown(left) : waitingLabel;
+-    ctx.font = `700 ${Math.max(12, Math.round(w * 0.045))}px system-ui, sans-serif`;
+-    const tw = ctx.measureText(text).width + 12, th = Math.max(18, w * 0.068);
+-    const ty = ey - eh * 0.4 - th - (i % 2) * (th + 3);
+-    ctx.fillStyle = left > 0 ? "rgba(8, 30, 34, 0.78)" : "rgba(150, 90, 20, 0.85)";
++    ctx.font = `700 ${Math.max(12, Math.round(w * 0.04))}px system-ui, sans-serif`;
++    const tw = ctx.measureText(text).width + 12, th = Math.max(18, w * 0.06);
++    const ty = ey - eh * 2.3 - th - (i % 2) * (th + 3);
++    ctx.fillStyle = left > 0 ? "rgba(8, 30, 34, 0.82)" : "rgba(150, 90, 20, 0.9)";
+     ctx.beginPath(); ctx.roundRect(ex - tw / 2, ty, tw, th, th / 2); ctx.fill();
+     ctx.fillStyle = "#fff4dc"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+     ctx.fillText(text, ex, ty + th / 2 + 0.5);
+   });
++  pebbles.filter((p) => p.y >= 0).forEach(pebble);
+ 
+-  // Name plate on the rock.
++  // Name plate.
+   const more = sorted.length - shown.length;
+   const plate = more > 0 ? `${label} · +${more}` : label;
+-  ctx.font = `700 ${Math.max(12, Math.round(w * 0.05))}px system-ui, sans-serif`;
+-  const pw = ctx.measureText(plate).width + 18, ph = Math.max(20, w * 0.075);
+-  ctx.fillStyle = "rgba(255, 244, 220, 0.9)";
+-  ctx.beginPath(); ctx.roundRect(-pw / 2, -h * 1.12 - ph - 4, pw, ph, ph / 2); ctx.fill();
++  ctx.font = `700 ${Math.max(12, Math.round(w * 0.045))}px system-ui, sans-serif`;
++  const pw = ctx.measureText(plate).width + 18, ph = Math.max(20, w * 0.068);
++  const py = -h * 0.35 - w * 0.36 - ph;
++  ctx.fillStyle = "rgba(255, 244, 220, 0.92)";
++  ctx.beginPath(); ctx.roundRect(-pw / 2, py, pw, ph, ph / 2); ctx.fill();
+   ctx.fillStyle = "#4a3a1a"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+-  ctx.fillText(plate, 0, -h * 1.12 - ph / 2 - 3.5);
++  ctx.fillText(plate, 0, py + ph / 2 + 0.5);
+   ctx.restore();
+ }
+diff --git a/src/fish-motion.ts b/src/fish-motion.ts
+index 7978921..b707720 100644
+--- a/src/fish-motion.ts
++++ b/src/fish-motion.ts
+@@ -31,7 +31,7 @@ export function bodyWave(style: SwimStyle, u: number, beat: number): number {
+     case "ray": // the body stays level; the wings do the work (finStretch)
+       return 0.012 * Math.sin(beat * 0.5 - back * 2);
+     default: // most fish: wave grows toward the tail, the head yaws a little the other way
+-      return 0.045 * (0.06 + 0.94 * back * back) * Math.sin(beat - back * 3.6) - 0.01 * Math.pow(u, 3) * Math.sin(beat);
++      return 0.055 * (0.06 + 0.94 * back * back) * Math.sin(beat - back * 3.6) - 0.012 * Math.pow(u, 3) * Math.sin(beat);
+   }
+ }
+ 
+@@ -39,10 +39,10 @@ export function bodyWave(style: SwimStyle, u: number, beat: number): number {
+  * middle of the body and the tail fin fans open and closed with each beat. Rays flap. */
+ export function finStretch(style: SwimStyle, u: number, beat: number, fin: number): number {
+   if (style === "ray") return 1 + 0.2 * Math.sin(beat * 0.5 - u * 1.4); // wings up and down
+-  const middle = Math.exp(-(((u - 0.55) / 0.16) ** 2));
+-  const tail = u < 0.2 ? 1 - u / 0.2 : 0;
+-  const flutter = style === "eel" ? 0.02 : 0.06;
+-  return 1 + flutter * middle * Math.sin(fin + u * 4) + 0.1 * tail * Math.sin(beat + 0.6);
++  const middle = Math.exp(-(((u - 0.58) / 0.17) ** 2));
++  const tail = u < 0.22 ? 1 - u / 0.22 : 0;
++  const flutter = style === "eel" ? 0.025 : 0.09;
++  return 1 + flutter * middle * Math.sin(fin + u * 4) + 0.14 * tail * Math.sin(beat + 0.6);
+ }
+ 
+ /** Burst-and-glide: returns the new burst level (0..1). Bursts start at random or on a turn. */
+diff --git a/src/i18n.ts b/src/i18n.ts
+index c8cd672..890b566 100644
+--- a/src/i18n.ts
++++ b/src/i18n.ts
+@@ -71,7 +71,7 @@ export const locale = () => ({ vi: "vi-VN", en: "en-US", zh: "zh-CN" })[lang];
+ const reasons: Record<string, string> = {
+   fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
+   fish_adult: "Cá đã trưởng thành ở level 100, không nhận thêm EXP.",
+-  fish_not_adult: "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.",
++  fish_not_adult: "Cần cá đã trưởng thành ở level 100.",
+   duplicate: "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.",
+   hunt_waiting: "Chưa có sò mới; bạn có thể quay lại sau.",
+   hunt_cap: "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.",
+diff --git a/src/locales/en.ts b/src/locales/en.ts
+index 1867ab8..5569f26 100644
+--- a/src/locales/en.ts
++++ b/src/locales/en.ts
+@@ -194,7 +194,7 @@ export const EN: Record<string, string> = {
+   "Đang tiêu hóa, đừng gọi em đi gym!": "Digesting — don't drag me to the gym!",
+   "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.": "The fish is full! Wait out the 2-hour rest before feeding again.",
+   "Cá đã trưởng thành ở level 100, không nhận thêm EXP.": "This fish is fully grown at level 100 and takes no more EXP.",
+-  "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.": "You can only call the boat for adult fish at level 100.",
++  "Cần cá đã trưởng thành ở level 100.": "This needs an adult fish at level 100.",
+   "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.": "Duplicate content already recorded — file not moved, no EXP.",
+   "Chưa có sò mới; bạn có thể quay lại sau.": "No new shells yet; come back later.",
+   "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.": "You've collected enough CBCoin today. Uncollected shells are kept.",
+@@ -295,7 +295,7 @@ export const EN: Record<string, string> = {
+   "Shopping cho bể": "Shopping for the tank",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "Cheap fish are tiny, pricey fish are huge: a whale shark (300 CBCoin) is almost 4 times as long as a guppy (20 CBCoin). The tank has 20 slots: fish under 100 CBCoin take 1, 100–199 take 2, 200 and up take 3 — big sharks need their elbow room!",
+   "Bán hay cho đẻ?": "Sell or breed?",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat. Or pair two of the same species and breed: each egg takes value off both fish's sale price, then incubates in the Egg den for 2–3 hours with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
++  "Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "A Lv.100 fish sells for its purchase price ×100 when you call the boat (bought the wrong one? a younger fish sells back for half the price). Or pair two of the same species and breed: each egg takes value off both fish's sale price, then incubates in the Egg den for 2–3 hours with a 5–20% hatch chance (the pricier the fish, the harder it hatches). Fry are born at Lv.0 and start all over.",
+   "Yên tâm": "Relax",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "No real money, no account, no network. Fish never die — they just get a bit lazy sometimes.",
+   "Đã hiểu!": "Got it!",
+@@ -330,4 +330,7 @@ export const EN: Record<string, string> = {
+   "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} eggs reached their time but didn't hatch.",
+   "Hang trứng · {n} trứng": "Egg den · {n} eggs",
+   "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "The Egg den is full. Wait for some eggs to hatch before breeding again.",
++  "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "This fish isn't grown yet (Lv.{lv}), so it sells back for half its purchase price: {price} CBCoin. Raise it to Lv.100 to sell for purchase price ×100.",
++  "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "Bought by mistake or tank full? Sell it back for half the purchase price.",
++  "Bán lại · {price} CBCoin": "Sell back · {price} CBCoin",
+ };
+diff --git a/src/locales/zh.ts b/src/locales/zh.ts
+index 274bcb9..7b6d347 100644
+--- a/src/locales/zh.ts
++++ b/src/locales/zh.ts
+@@ -194,7 +194,7 @@ export const ZH: Record<string, string> = {
+   "Đang tiêu hóa, đừng gọi em đi gym!": "正在消化，别叫我去健身房！",
+   "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.": "鱼吃饱了！等 2 小时休息结束再喂吧。",
+   "Cá đã trưởng thành ở level 100, không nhận thêm EXP.": "这条鱼已在 Level 100 成年，不再获得 EXP。",
+-  "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.": "只有 Level 100 的成年鱼才能叫船卖出。",
++  "Cần cá đã trưởng thành ở level 100.": "需要 Level 100 的成年鱼。",
+   "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.": "重复内容已记录过 — 文件未移动，不加 EXP。",
+   "Chưa có sò mới; bạn có thể quay lại sau.": "还没有新贝壳，晚点再来吧。",
+   "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.": "今天的 CBCoin 已经捞够了。没捞的贝壳会保留。",
+@@ -295,7 +295,7 @@ export const ZH: Record<string, string> = {
+   "Shopping cho bể": "给鱼缸购物",
+   "Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!": "便宜的鱼小小只，贵的鱼大大只：鲸鲨（300 CBCoin）差不多是孔雀鱼（20 CBCoin）的 4 倍长。鱼缸有 20 个位置：100 CBCoin 以下的鱼占 1 个，100–199 占 2 个，200 及以上占 3 个 — 大鲨鱼当然要多占点地方！",
+   "Bán hay cho đẻ?": "卖掉还是繁殖？",
+-  "Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，然后在鱼卵洞里孵 2–3 小时，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
++  "Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.": "Lv.100 的鱼叫船卖出可得购买价 ×100（买错了？未成年的鱼可按半价卖回）。或者让两条同种的鱼繁殖：每颗卵会降低两条鱼的售价，然后在鱼卵洞里孵 2–3 小时，孵化率 5–20%（鱼越贵越难孵）。鱼苗出生是 Lv.0，从头开始。",
+   "Yên tâm": "放轻松",
+   "Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.": "没有真钱、没有账号、不联网。鱼永远不会死，只是偶尔有点懒。",
+   "Đã hiểu!": "知道了！",
+@@ -330,4 +330,7 @@ export const ZH: Record<string, string> = {
+   "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} 颗卵到时间了，但没有孵出来。",
+   "Hang trứng · {n} trứng": "鱼卵洞 · {n} 颗卵",
+   "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "鱼卵洞已满。等一些卵孵化后再繁殖吧。",
++  "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "这条鱼还没成年（Lv.{lv}），只能按购买价的一半卖回：{price} CBCoin。养到 Lv.100 就能卖购买价 ×100。",
++  "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "买错了或鱼缸满了？按购买价的一半卖回。",
++  "Bán lại · {price} CBCoin": "卖回 · {price} CBCoin",
+ };
+diff --git a/src/manager.ts b/src/manager.ts
+index 817abeb..65a42c2 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -168,7 +168,7 @@ function showGuide() {
+       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
+       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
+       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
+-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
++      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
+     ),
+     [{ label: t("Đã hiểu!"), kind: "primary" }],
+@@ -354,7 +354,9 @@ const freeSlots = () => Math.max(0, state.capacity - state.used_slots);
+ 
+ const levelOf = (f: Fish) => Math.floor((f.exp * 100) / state.stage_exp.adult);
+ 
+-const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
++/** Same rule as the engine: adults sell for price ×100 minus eggs laid, younger fish for half the price. */
++const isAdult = (f: Fish) => f.exp >= state.stage_exp.adult;
++const saleValue = (f: Fish) => (isAdult(f) ? f.purchase_price * Math.max(1, 100 - f.eggs_used) : Math.floor(f.purchase_price / 2));
+ 
+ // ---------- breeding ----------
+ 
+@@ -419,7 +421,9 @@ function confirmBreed(fish: Fish) {
+ function confirmSell(fish: Fish) {
+   modal(h("div", {},
+     h("h2", {}, t("Gọi thuyền bán {name}?", { name: fishLabel(fish) })),
+-    h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ")."),
++    isAdult(fish)
++      ? h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ").")
++      : h("p", {}, t("Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.", { lv: levelOf(fish), price: saleValue(fish) })),
+     h("p", { class: "fine" }, t("Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục."))
+   ), [{ label: t("Để sau"), kind: "ghost" }, { label: t("Gọi thuyền"), kind: "primary", run: async () => {
+     if (working) return;
+@@ -591,7 +595,9 @@ function renderTank(): Node {
+         f.stage === "adult" ? h("div", { class: "tags" },
+           h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, t("⛵ Gọi thuyền bán · {price} CBCoin", { price: saleValue(f) })),
+           h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, t("🥚 Sinh sản")),
+-        ) : null,
++        ) : h("div", { class: "tags" },
++          h("button", { class: "ghost small", disabled: working || !!state.read_only, title: t("Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua."), onclick: () => confirmSell(f) }, t("Bán lại · {price} CBCoin", { price: saleValue(f) })),
++        ),
+         f.eggs_used ? h("span", { class: "fine" }, t("Đã đẻ {n} trứng", { n: f.eggs_used })) : null,
+       ),
+     );
+diff --git a/src/tank.ts b/src/tank.ts
+index 36acf9d..4ef3ba1 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -37,9 +37,23 @@ interface Swimmer {
+   tail: number; // tail-beat phase, faster when the fish swims faster
+   fin: number; // pectoral/dorsal fin flutter phase
+   burst: number; // 0 = gliding, 1 = fast tail beats
++  gulp: number; // 1 right after snapping at food, fades to 0
++  chasing: boolean; // heading for a food pellet
+   speed: number;
+ }
+ 
++/** Food pellets that sink slowly; nearby fish that aren't full dart over and snap them up. */
++interface Pellet {
++  x: number;
++  y: number;
++  vy: number;
++  wobble: number;
++  bottomFor: number; // seconds spent resting on the sand
++}
++let pellets: Pellet[] = [];
++let nextAmbientFood = 25 + Math.random() * 40;
++const lastExp = new Map<string, number>();
++
+ interface Bubble {
+   x: number;
+   y: number;
+@@ -144,6 +158,8 @@ function syncSwimmers(fish: Fish[]) {
+       tail: Math.random() * Math.PI * 2,
+       fin: Math.random() * Math.PI * 2,
+       burst: 0,
++      gulp: 0,
++      chasing: false,
+       speed: 0.9 + Math.random() * 0.3,
+     };
+     pickTarget(s);
+@@ -171,20 +187,59 @@ async function pollHunt() {
+   try { hunt = await api.huntStatus(); } catch { /* keep the last view */ }
+ }
+ 
++function dropFood(x: number, count: number) {
++  for (let i = 0; i < count && pellets.length < 40; i++) {
++    pellets.push({ x: Math.min(width * 0.97, Math.max(width * 0.03, x + (Math.random() - 0.5) * 120)), y: height * (0.03 + Math.random() * 0.05), vy: 16 + Math.random() * 14, wobble: Math.random() * 6, bottomFor: 0 });
++  }
++}
++
++const restingNow = (s: Swimmer) => s.fish.resting_until > Date.now() / 1000;
++const mouthX = (s: Swimmer, len: number) => s.x + (Math.sign(s.facing) || 1) * len * 0.45;
++
+ function step(dt: number) {
+   clock += dt;
++  const quietTank = !!state?.settings.meeting_mode;
++  // Food now and then, as if someone sprinkled flakes on the surface.
++  if (!quietTank && !huntActive() && clock > nextAmbientFood) {
++    nextAmbientFood = clock + 45 + Math.random() * 60;
++    dropFood(width * (0.25 + Math.random() * 0.65), 3 + Math.floor(Math.random() * 4));
++  }
++  const floor = height * 0.9;
++  for (const p of pellets) {
++    if (p.y < floor) { p.y = Math.min(floor, p.y + p.vy * dt); p.x += Math.sin(clock * 2 + p.wobble) * 8 * dt; }
++    else p.bottomFor += dt;
++  }
++  pellets = pellets.filter((p) => p.bottomFor < 20);
+   huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
+   const calm = state?.settings.meeting_mode ? 0.4 : 1;
+   for (const s of swimmers) {
+     const len = fishLength(s.fish);
+     const cruise = (len * 0.35 + 18) * s.speed * calm * (0.75 + 0.7 * s.burst);
++    // Hungry fish go after the nearest pellet; full (resting) fish ignore food.
++    let food: Pellet | null = null;
++    if (!quietTank && !restingNow(s) && pellets.length) {
++      let best = width * 0.4;
++      for (const p of pellets) { const d = Math.hypot(p.x - s.x, p.y - s.y); if (d < best) { best = d; food = p; } }
++    }
++    if (food) {
++      const dir = food.x >= s.x ? 1 : -1;
++      s.tx = food.x - dir * len * 0.42; s.ty = food.y; s.chasing = true;
++      s.burst = Math.max(s.burst, 0.45);
++      if (Math.hypot(food.x - mouthX(s, len), food.y - s.y) < len * 0.16 + 8) {
++        const eaten = food;
++        pellets = pellets.filter((p) => p !== eaten); // snap!
++        s.gulp = 1;
++        if (bubbles.length < 24) bubbles.push({ x: mouthX(s, len), y: s.y - len * 0.05, r: 2 + Math.random() * 2, v: 30 + Math.random() * 20 });
++      }
++    } else if (s.chasing) { s.chasing = false; pickTarget(s); }
+     const dx = s.tx - s.x;
+     const dy = s.ty - s.y;
+     const dist = Math.hypot(dx, dy);
+-    if (dist < len * 0.4) pickTarget(s);
+-    // Steer gently toward the target; fish mostly swim horizontally.
+-    s.vx += ((dx / (dist || 1)) * cruise - s.vx) * Math.min(1, dt * 0.8);
+-    s.vy += ((dy / (dist || 1)) * cruise * 0.45 - s.vy) * Math.min(1, dt * 0.8);
++    if (!s.chasing && dist < len * 0.4) pickTarget(s);
++    // Steer toward the target (harder while chasing food); fish mostly swim horizontally.
++    const steer = Math.min(1, dt * (s.chasing ? 2 : 0.8));
++    s.vx += ((dx / (dist || 1)) * cruise - s.vx) * steer;
++    s.vy += ((dy / (dist || 1)) * cruise * (s.chasing ? 0.9 : 0.45) - s.vy) * steer;
+     s.x += s.vx * dt;
+     s.y += s.vy * dt;
+     s.phase += dt * (2 + Math.abs(s.vx) / 40);
+@@ -192,9 +247,12 @@ function step(dt: number) {
+     s.tail += dt * (3 + Math.hypot(s.vx, s.vy) / 26 + 5 * s.burst) * calm;
+     s.fin += dt * (7 + 3 * s.burst) * calm;
+     // Dead zone: a fish that is nearly still keeps its heading instead of flip-flopping.
+-    const want = s.vx > 4 ? 1 : s.vx < -4 ? -1 : Math.sign(s.facing) || 1;
++    const want = s.vx > 8 ? 1 : s.vx < -8 ? -1 : Math.sign(s.facing) || 1;
+     const turned = want !== (Math.sign(s.facing) || 1);
+-    s.facing += (want - s.facing) * Math.min(1, dt * 4);
++    // A quick turn (about a fifth of a second) so the fish never looks like a flat card for long.
++    s.facing += (want - s.facing) * Math.min(1, dt * 11);
++    s.gulp = Math.max(0, s.gulp - dt * 2.8);
++    if (!quietTank && s.gulp === 0 && Math.random() < dt * 0.02) s.gulp = 0.7; // idle mouthing
+     s.burst = calm < 1 ? 0 : nextBurst(s.burst, dt, Math.random(), turned);
+   }
+   if (!state?.settings.meeting_mode) {
+@@ -283,7 +341,10 @@ function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
+   for (let i = 0; i < SLICES; i++) {
+     const x0 = -totalW / 2 + i * destW;
+     const right = waveAt(x0 + destW);
+-    const sh = totalH * finStretch(style, uAt(x0 + destW / 2), s.tail, s.fin);
++    const u = uAt(x0 + destW / 2);
++    // Snapping at food: the head end opens and closes once.
++    const head = u > 0.78 ? (u - 0.78) / 0.22 : 0;
++    const sh = totalH * finStretch(style, u, s.tail, s.fin) * (1 + 0.16 * Math.sin(s.gulp * Math.PI) * head);
+     // Shear each slice so its edges meet the neighbours: a smooth bend, no stair steps.
+     ctx.save();
+     ctx.transform(1, (right - left) / destW, 0, 1, x0, left);
+@@ -460,11 +521,12 @@ function draw() {
+     const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
+     drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
+   }
+-  // The egg den sits on the seabed, in front of the shells, behind the fish.
++  // The egg den: a pebble-ringed spring pool on open sand in the middle of the seabed
++  // (the left side is where desktop icons usually sit).
+   if (state) {
+     const eggs = state.eggs ?? [];
+     const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
+-    drawDen(ctx, width * 0.16, height * 0.93, Math.min(320, Math.min(width, height) * 0.27), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
++    drawDen(ctx, width * 0.5, height * 0.915, Math.min(340, Math.min(width, height) * 0.3), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
+   }
+   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
+   for (const b of bubbles) {
+@@ -472,6 +534,14 @@ function draw() {
+     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+     ctx.fill();
+   }
++  // Food pellets.
++  for (const p of pellets) {
++    const fade = p.bottomFor > 15 ? 1 - (p.bottomFor - 15) / 5 : 1;
++    ctx.globalAlpha = Math.max(0, fade);
++    ctx.fillStyle = "#c9782f"; ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2); ctx.fill();
++    ctx.fillStyle = "rgba(255, 220, 160, 0.9)"; ctx.beginPath(); ctx.arc(p.x - 1, p.y - 1, 1.2, 0, Math.PI * 2); ctx.fill();
++    ctx.globalAlpha = 1;
++  }
+   // Farther (smaller y) fish first.
+   for (const s of [...swimmers].sort((a, b) => a.y - b.y)) {
+     const len = fishLength(s.fish);
+@@ -480,7 +550,9 @@ function draw() {
+     ctx.save();
+     ctx.translate(s.x, s.y + bob);
+     ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
+-    ctx.scale(s.facing, 1);
++    // Mid-turn the body is seen end-on: narrower but never paper thin, and a little taller.
++    const turn = Math.abs(s.facing);
++    ctx.scale((Math.sign(s.facing) || 1) * Math.max(0.22, turn), 1 + 0.08 * (1 - turn));
+     if (img) {
+       drawUndulating(s, img, len);
+     } else {
+@@ -490,7 +562,7 @@ function draw() {
+     if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+       // Fed to the next 5-level mark: the fish naps and says so.
+       const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
+-      const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length] // a new joke every 5 levels;
++      const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length]; // a new joke every 5 levels
+       ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+       const bubbleWidth = ctx.measureText(text).width + 20;
+       const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
+@@ -532,6 +604,16 @@ async function refresh() {
+   );
+   for (const sp of state.species) prices.set(sp.id, sp.price);
+   syncSwimmers(state.fish);
++  // A fish that just ate files gets real food on the desktop too.
++  for (const f of state.fish) {
++    const total = f.exp + f.pending_exp;
++    const before = lastExp.get(f.id);
++    if (before !== undefined && total > before && !state.settings.meeting_mode) {
++      const s = swimmers.find((w) => w.fish.id === f.id);
++      if (s) dropFood(s.x, 4 + Math.floor(Math.random() * 3));
++    }
++    lastExp.set(f.id, total);
++  }
+ }
+ 
+ async function pollIdle() {

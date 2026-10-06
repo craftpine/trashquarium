@@ -1,0 +1,611 @@
+diff --git a/README.md b/README.md
+index ba74898..a25aa59 100644
+--- a/README.md
++++ b/README.md
+@@ -126,7 +126,7 @@ change does not apply a Windows theme or alter file intake safety.
+ 
+ ## Still not done
+ 
+-- Milestones C–E: breeding, ancestry, eggs, trait layers, birth cards, full
++- Milestones C–E: breeding (trial: pair + egg count + hatch rate, see docs/economy-growth.md), ancestry, egg incubation, trait layers, birth cards, full
+   Fishdex, Ancient/Mythic lines, Museum/events.
+ - Taskbar-overlay mode and Windows themes (wallpaper/cursor/colours).
+ - Fish rename, sounds, English localisation.
+diff --git a/docs/economy-growth.md b/docs/economy-growth.md
+index 942ecd7..87e439e 100644
+--- a/docs/economy-growth.md
++++ b/docs/economy-growth.md
+@@ -17,6 +17,16 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch
+ - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
+ - Giữ quà khởi đầu 40 CBCoin, giá shop hiện có, sức chứa bể và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
+ 
++## Sinh sản (bản dùng thử)
++
++Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặp bằng nút "Sinh sản" trên thẻ cá. Người chơi chọn số trứng.
++
++- **Giá trị bán:** mỗi trứng trừ của *từng* cá bố mẹ đúng một lần giá mua gốc. Giá bán hiện tại = giá mua × (100 − số trứng đã đẻ). Số trứng cộng dồn theo từng cá (`eggs_used`) và tối đa 99, tức giá bán không bao giờ thấp hơn giá mua gốc. Khi một trong hai cá hết hạn mức, chỉ còn đẻ được số trứng còn lại của cá ít hạn mức hơn.
++- **Tỷ lệ nở mỗi trứng:** giảm tuyến tính theo giá của loài, từ 20% (giá ≤ 20 CBCoin) xuống 5% (giá ≥ 300 CBCoin). Cấu hình trong `balance.json` mục `breeding`. Trứng không nở vẫn bị trừ giá trị.
++- **Cá con:** nở ra là cá bột Lv.0, `origin = hatched`, có `parent_ids` của hai cá bố mẹ và `generation` = đời lớn nhất của bố mẹ + 1. Giá mua ghi nhận bằng giá catalog của loài, nên cá con nuôi lên Lv.100 bán được như cá mua mới.
++- **Bể đầy:** trứng được xử lý lần lượt; khi bể đầy, các trứng chưa dùng được giữ lại, không bị trừ giá trị. Bể đầy ngay từ đầu thì không sinh sản được.
++- Nở tức thì ngay khi bấm; chưa có thời gian ấp, trạng thái trứng trong bể, tính trạng hay biến thể màu. Save cũ không có `eggs_used` đọc ra 0, không cần đổi schema.
++
+ ## Tương thích dữ liệu
+ 
+ Schema save mới là 4. Wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
+diff --git a/src-tauri/config/balance.json b/src-tauri/config/balance.json
+index 8d8e48d..e070e55 100644
+--- a/src-tauri/config/balance.json
++++ b/src-tauri/config/balance.json
+@@ -6,6 +6,7 @@
+   "max_file_bytes": 4294967296,
+   "fingerprint_bytes": 1048576,
+   "stage_exp": { "juvenile": 5000, "adult": 10000 },
++  "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300 },
+   "economy": {
+     "welcome_shells": 40,
+     "base_shells": 2,
+diff --git a/src-tauri/src/engine/app.rs b/src-tauri/src/engine/app.rs
+index 3419b1f..5be2267 100644
+--- a/src-tauri/src/engine/app.rs
++++ b/src-tauri/src/engine/app.rs
+@@ -55,6 +55,7 @@ pub struct StateView {
+     pub species: Vec<Species>,
+     pub disclaimer: String,
+     pub stage_exp: StageExp,
++    pub breeding: super::catalog::Breeding,
+     pub max_preview_files: usize,
+     pub read_only: Option<Failure>,
+     pub recovered_from_backup: bool,
+@@ -184,6 +185,7 @@ impl AppCore {
+             species: c.species.clone(),
+             disclaimer: c.disclaimer.clone(),
+             stage_exp: c.balance.stage_exp.clone(),
++            breeding: c.balance.breeding.clone(),
+             max_preview_files: c.balance.max_preview_files,
+             read_only: self.game.read_only.clone(),
+             recovered_from_backup: self.game.recovered_from_backup,
+diff --git a/src-tauri/src/engine/catalog.rs b/src-tauri/src/engine/catalog.rs
+index c2fe3a9..ac3b594 100644
+--- a/src-tauri/src/engine/catalog.rs
++++ b/src-tauri/src/engine/catalog.rs
+@@ -69,6 +69,36 @@ pub struct Balance {
+     pub fingerprint_bytes: u64,
+     pub stage_exp: StageExp,
+     pub economy: Economy,
++    #[serde(default)]
++    pub breeding: Breeding,
++}
++
++/// Breeding: each egg costs both parents one purchase price of sale value, and
++/// hatches with a chance that falls linearly from `hatch_max` (cheapest fish)
++/// to `hatch_min` (most expensive fish).
++#[derive(Serialize, Deserialize, Clone, Debug)]
++#[serde(default)]
++pub struct Breeding {
++    pub hatch_max: f64,
++    pub hatch_min: f64,
++    pub price_low: u64,
++    pub price_high: u64,
++}
++
++impl Default for Breeding {
++    fn default() -> Self {
++        Breeding { hatch_max: 0.20, hatch_min: 0.05, price_low: 20, price_high: 300 }
++    }
++}
++
++impl Breeding {
++    /// Hatch chance for one egg of a species priced `price` CBCoin.
++    pub fn hatch_rate(&self, price: u64) -> f64 {
++        if price <= self.price_low { return self.hatch_max; }
++        if price >= self.price_high { return self.hatch_min; }
++        let t = (price - self.price_low) as f64 / (self.price_high - self.price_low) as f64;
++        self.hatch_max + (self.hatch_min - self.hatch_max) * t
++    }
+ }
+ 
+ #[derive(Clone, Debug)]
+@@ -118,6 +148,10 @@ impl Catalog {
+         if b.tank_capacity == 0 || b.stage_exp.juvenile >= b.stage_exp.adult {
+             return Err("tank capacity / stage thresholds invalid".into());
+         }
++        let br = &b.breeding;
++        if !(br.hatch_min.is_finite() && br.hatch_max.is_finite()) || br.hatch_min < 0.0 || br.hatch_min > br.hatch_max || br.hatch_max > 1.0 || br.price_low >= br.price_high {
++            return Err("breeding balance invalid".into());
++        }
+         let e = &b.economy;
+         let non_negative = [
+             e.base_shells, e.base_exp, e.diminish_step, e.diminish_min, e.size_log_divisor, e.size_min, e.size_max,
+diff --git a/src-tauri/src/engine/game.rs b/src-tauri/src/engine/game.rs
+index 0af0cef..9094acd 100644
+--- a/src-tauri/src/engine/game.rs
++++ b/src-tauri/src/engine/game.rs
+@@ -15,6 +15,8 @@ use super::Failure;
+ pub const SCHEMA_VERSION: u64 = 4;
+ pub const RULES_VERSION: u32 = 1;
+ pub const RENDERER_VERSION: u32 = 1;
++/// Sale value runs from price x100 down to price x1: at most 99 eggs per fish.
++pub const MAX_EGGS_PER_FISH: u32 = 99;
+ const BACKUPS: usize = 3;
+ 
+ #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+@@ -30,6 +32,7 @@ pub enum Stage {
+ pub enum Origin {
+     Starter,
+     Shop,
++    Hatched,
+ }
+ 
+ #[derive(Serialize, Deserialize, Clone, Debug)]
+@@ -52,12 +55,31 @@ pub struct Fish {
+     #[serde(default)] pub pending_exp: u64,
+     #[serde(default)] pub resting_until: i64,
+     #[serde(default)] pub purchase_price: u64,
++    /// Eggs this fish has laid. Each costs one purchase price of sale value.
++    #[serde(default)] pub eggs_used: u32,
+     pub traits: BTreeMap<String, String>,
+     pub visual_recipe: VisualRecipe,
+     pub rules_version: u32,
+     pub acquired_at: i64,
+ }
+ 
++impl Fish {
++    /// What the sale boat pays: purchase price x100, minus one purchase price per egg laid.
++    pub fn sale_value(&self) -> Option<u64> {
++        self.purchase_price.checked_mul(100u64.saturating_sub(self.eggs_used as u64))
++    }
++}
++
++/// Result of one breeding: `charged` eggs were spent, `refunded` were kept
++/// because the tank filled up first.
++#[derive(Serialize, Clone, Debug)]
++pub struct BreedOutcome {
++    pub charged: u32,
++    pub refunded: u32,
++    pub hatch_rate: f64,
++    pub hatched: Vec<Fish>,
++}
++
+ #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+ pub struct Wallet {
+     #[serde(alias = "shells")] pub cbcoins: u64,
+@@ -138,6 +160,9 @@ impl GameState {
+             if f.species_id.is_empty() {
+                 return Err(format!("fish {} has no species", f.id));
+             }
++            if f.eggs_used > MAX_EGGS_PER_FISH {
++                return Err(format!("invalid egg count {}", f.id));
++            }
+             if self.schema_version >= 4 && (f.exp > 10000 || f.pending_exp > 10000 - f.exp || f.resting_until < 0) {
+                 return Err(format!("invalid growth state {}", f.id));
+             }
+@@ -267,7 +292,7 @@ impl GameStore {
+             parent_ids: Vec::new(),
+             generation: 0,
+             stage,
+-            exp: 0, pending_exp: 0, resting_until: 0, purchase_price: species.price,
++            exp: 0, pending_exp: 0, resting_until: 0, purchase_price: species.price, eggs_used: 0,
+             traits: BTreeMap::new(),
+             visual_recipe: VisualRecipe { base: species.id.clone(), renderer_version: RENDERER_VERSION },
+             rules_version: RULES_VERSION,
+@@ -313,13 +338,60 @@ impl GameStore {
+         let mut next = self.state.clone();
+         let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
+         if next.fish[i].exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
+-        let price = next.fish[i].purchase_price.checked_mul(100).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
++        let price = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+         next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+         next.fish.remove(i);
+         self.commit(next)?;
+         Ok(price)
+     }
+ 
++    /// Breeds two adult fish of the same species. Each egg costs both parents one
++    /// purchase price of sale value (never below one purchase price) and hatches
++    /// with the species' hatch rate. Offspring start as Lv.0 fry. If the tank fills
++    /// up, the remaining eggs are not spent. Randomness comes from `roll` (0..1).
++    pub fn breed_with(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64, roll: &mut dyn FnMut() -> f64) -> Result<BreedOutcome, Failure> {
++        if a_id == b_id { return Err(Failure::new("breed_same_fish", a_id)); }
++        let find = |id: &str| self.state.fish.iter().position(|f| f.id == id).ok_or_else(|| Failure::new("fish_not_found", id.to_string()));
++        let (ai, bi) = (find(a_id)?, find(b_id)?);
++        let (a, b) = (&self.state.fish[ai], &self.state.fish[bi]);
++        if a.exp < 10000 || b.exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
++        if a.species_id != b.species_id { return Err(Failure::new("breed_species_mismatch", &a.species_id)); }
++        let room = (MAX_EGGS_PER_FISH - a.eggs_used.min(MAX_EGGS_PER_FISH)).min(MAX_EGGS_PER_FISH - b.eggs_used.min(MAX_EGGS_PER_FISH));
++        if room == 0 { return Err(Failure::new("breed_exhausted", "sale value is back to the purchase price")); }
++        if eggs == 0 || eggs > room { return Err(Failure::new("breed_eggs_invalid", room)); }
++        let species = self.catalog.species(&a.species_id).cloned().ok_or_else(|| Failure::new("unknown_species", a.species_id.clone()))?;
++        let free = self.catalog.balance.tank_capacity.saturating_sub(self.state.fish.len());
++        if free == 0 { return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity)); }
++        let rate = self.catalog.balance.breeding.hatch_rate(species.price);
++        let generation = a.generation.max(b.generation) + 1;
++        let parents = vec![a.id.clone(), b.id.clone()];
++        let mut hatched = Vec::new();
++        let mut charged = 0u32;
++        while charged < eggs && hatched.len() < free {
++            charged += 1;
++            if roll() < rate {
++                let mut kid = self.new_fish(&species, Origin::Hatched, now);
++                kid.parent_ids = parents.clone();
++                kid.generation = generation;
++                hatched.push(kid);
++            }
++        }
++        let mut next = self.state.clone();
++        next.fish[ai].eggs_used += charged;
++        next.fish[bi].eggs_used += charged;
++        next.fish.extend(hatched.iter().cloned());
++        if !hatched.is_empty() { mark_owned(&mut next, &species.id); }
++        self.commit(next)?;
++        Ok(BreedOutcome { charged, refunded: eggs - charged, hatch_rate: rate, hatched })
++    }
++
++    pub fn breed(&mut self, a_id: &str, b_id: &str, eggs: u32, now: i64) -> Result<BreedOutcome, Failure> {
++        self.breed_with(a_id, b_id, eggs, now, &mut || {
++            let bytes = *uuid::Uuid::new_v4().as_bytes();
++            u64::from_le_bytes(bytes[..8].try_into().unwrap()) as f64 / (u64::MAX as f64 + 1.0)
++        })
++    }
++
+     pub fn digest(&mut self, now: i64) -> Result<(), Failure> {
+         if !self.state.fish.iter().any(|f| f.pending_exp > 0 && f.resting_until <= now) { return Ok(()); }
+         let mut next = self.state.clone();
+@@ -585,6 +657,133 @@ mod tests {
+         }
+     }
+ 
++    fn adult_pair(s: &mut GameStore) -> (String, String) {
++        // The starter guppy plus one more adult guppy.
++        let sp = s.catalog.species("poecilia_reticulata").cloned().unwrap();
++        let second = s.new_fish(&sp, Origin::Shop, NOW);
++        let mut next = s.state.clone();
++        next.fish.push(second);
++        for f in &mut next.fish { f.exp = 10000; f.stage = Stage::Adult; }
++        s.commit(next).unwrap();
++        (s.state.fish[0].id.clone(), s.state.fish[1].id.clone())
++    }
++
++    #[test]
++    fn hatch_rate_falls_from_twenty_to_five_percent_with_price() {
++        let b = Catalog::bundled().unwrap().balance.breeding;
++        assert!((b.hatch_rate(20) - 0.20).abs() < 1e-9);
++        assert!((b.hatch_rate(300) - 0.05).abs() < 1e-9);
++        assert!((b.hatch_rate(160) - 0.125).abs() < 1e-9);
++        assert!(b.hatch_rate(100) < b.hatch_rate(50));
++        let c = Catalog::bundled().unwrap();
++        for sp in &c.species { let r = b.hatch_rate(sp.price); assert!((0.05..=0.20).contains(&r), "{}", sp.id); }
++    }
++
++    #[test]
++    fn breeding_costs_each_parent_one_price_per_egg_and_hatches_fry() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        let mut rolls = [0.01, 0.99, 0.19, 0.20, 0.5].into_iter();
++        let out = s.breed_with(&a, &b, 5, NOW, &mut || rolls.next().unwrap()).unwrap();
++        assert_eq!((out.charged, out.refunded, out.hatched.len()), (5, 0, 2)); // 0.01 and 0.19 < 0.20
++        for kid in &out.hatched {
++            assert_eq!((kid.stage, kid.exp, kid.generation, kid.origin.clone()), (Stage::Fry, 0, 1, Origin::Hatched));
++            assert_eq!(kid.parent_ids, vec![a.clone(), b.clone()]);
++            assert_eq!(kid.purchase_price, 20);
++        }
++        assert_eq!(s.state.fish.len(), 4);
++        for id in [&a, &b] {
++            let f = s.state.fish.iter().find(|f| &f.id == id).unwrap();
++            assert_eq!(f.eggs_used, 5);
++            assert_eq!(f.sale_value(), Some(20 * 95)); // 2000 - 5 x 20
++        }
++        // Persisted atomically.
++        let again = store(dir.path());
++        assert_eq!(again.state.fish.len(), 4);
++        assert_eq!(again.state.fish[0].eggs_used, 5);
++    }
++
++    #[test]
++    fn sale_value_never_falls_below_the_purchase_price() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        assert_eq!(s.breed_with(&a, &b, 100, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
++        assert_eq!(s.breed_with(&a, &b, 0, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
++        assert_eq!(s.breed_with(&a, &b, 99, NOW, &mut || 0.99).unwrap().hatched.len(), 0);
++        assert_eq!(s.state.fish[0].sale_value(), Some(20)); // back to the purchase price
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_exhausted");
++        assert_eq!(s.sell(&a).unwrap(), 20);
++    }
++
++    #[test]
++    fn eggs_accumulate_and_the_limit_is_the_more_used_parent() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        s.breed_with(&a, &b, 40, NOW, &mut || 0.99).unwrap();
++        s.state.fish[1].eggs_used = 90; // b is nearly exhausted
++        assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 0.99).unwrap_err().code, "breed_eggs_invalid");
++        s.breed_with(&a, &b, 9, NOW, &mut || 0.99).unwrap();
++        assert_eq!((s.state.fish[0].eggs_used, s.state.fish[1].eggs_used), (49, 99));
++    }
++
++    #[test]
++    fn breeding_rejects_bad_pairs_and_changes_nothing() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        assert_eq!(s.breed_with(&a, &a, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_same_fish");
++        assert_eq!(s.breed_with(&a, "nope", 1, NOW, &mut || 0.0).unwrap_err().code, "fish_not_found");
++        s.state.fish[1].exp = 9999;
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "fish_not_adult");
++        s.state.fish[1].exp = 10000; s.state.fish[1].species_id = "danio_rerio".into();
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "breed_species_mismatch");
++        s.state.fish[1].species_id = s.state.fish[0].species_id.clone();
++        let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
++        assert!(s.breed_with(&a, &b, 3, NOW, &mut || 0.0).is_err());
++        assert_eq!((s.state.fish.len(), s.state.fish[0].eggs_used), (2, 0));
++        s.path = good;
++    }
++
++    #[test]
++    fn full_tank_stops_hatching_and_keeps_unspent_eggs() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        let cap = s.catalog.balance.tank_capacity;
++        let sp = s.catalog.species("danio_rerio").cloned().unwrap();
++        let mut next = s.state.clone();
++        while next.fish.len() < cap - 1 { next.fish.push(s.new_fish(&sp, Origin::Shop, NOW)); }
++        s.commit(next).unwrap(); // one free slot
++        let out = s.breed_with(&a, &b, 10, NOW, &mut || 0.0).unwrap(); // every egg would hatch
++        assert_eq!((out.charged, out.refunded, out.hatched.len()), (1, 9, 1));
++        assert_eq!(s.state.fish.len(), cap);
++        assert_eq!(s.state.fish[0].eggs_used, 1);
++        assert_eq!(s.breed_with(&a, &b, 1, NOW, &mut || 0.0).unwrap_err().code, "tank_full");
++    }
++
++    #[test]
++    fn real_randomness_stays_within_expected_hatch_band() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let (a, b) = adult_pair(&mut s);
++        s.catalog.balance.tank_capacity = 500;
++        let mut hatched = 0u32;
++        let mut spent = 0u32;
++        for _ in 0..3 { // 99 eggs from a fresh pair each time is not possible; reset the counters
++            for f in &mut s.state.fish { f.eggs_used = 0; }
++            let out = s.breed(&a, &b, 99, NOW).unwrap();
++            hatched += out.hatched.len() as u32; spent += out.charged;
++        }
++        let rate = hatched as f64 / spent as f64;
++        assert!((0.08..=0.33).contains(&rate), "rate {rate}");
++    }
++
++    #[test]
++    fn legacy_saves_load_with_zero_eggs_used() {
++        let dir = tempfile::tempdir().unwrap(); let s = store(dir.path());
++        let mut v = serde_json::to_value(&s.state).unwrap();
++        v["fish"][0].as_object_mut().unwrap().remove("eggs_used");
++        fs::write(&s.path, serde_json::to_vec(&v).unwrap()).unwrap(); drop(s);
++        let s = store(dir.path()); assert!(s.read_only.is_none()); assert_eq!(s.state.fish[0].eggs_used, 0);
++    }
++
+     fn store(dir: &Path) -> GameStore {
+         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
+     }
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 302f9d4..5130a59 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -298,6 +298,14 @@ async fn sell_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>,
+     result
+ }
+ 
++#[tauri::command]
++async fn breed_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, first_id: String, second_id: String, eggs: u32) -> Result<engine::game::BreedOutcome, Failure> {
++    let _guard = busy.enter()?;
++    let result = with_core(&core, move |c| c.game.breed(&first_id, &second_id, eggs, engine::now_unix())).await;
++    notify(&app);
++    result
++}
++
+ #[tauri::command]
+ async fn belly_restore(
+     app: AppHandle,
+@@ -495,6 +503,7 @@ pub fn run() {
+             feed,
+             buy,
+             sell_fish,
++            breed_fish,
+             belly_list,
+             belly_restore,
+             belly_recover,
+diff --git a/src/api.ts b/src/api.ts
+index 13627b1..1db8c7b 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -29,7 +29,7 @@ export interface Fish {
+   id: string;
+   species_id: string;
+   name: string;
+-  origin: "starter" | "shop";
++  origin: "starter" | "shop" | "hatched";
+   parent_ids: string[];
+   generation: number;
+   stage: Stage;
+@@ -37,9 +37,24 @@ export interface Fish {
+   pending_exp: number;
+   resting_until: number;
+   purchase_price: number;
++  eggs_used: number;
+   acquired_at: number;
+ }
+ 
++export interface Breeding {
++  hatch_max: number;
++  hatch_min: number;
++  price_low: number;
++  price_high: number;
++}
++
++export interface BreedOutcome {
++  charged: number;
++  refunded: number;
++  hatch_rate: number;
++  hatched: Fish[];
++}
++
+ export interface Settings {
+   quick_dock_enabled: boolean;
+   tank_enabled: boolean;
+@@ -67,6 +82,7 @@ export interface StateView {
+   species: Species[];
+   disclaimer: string;
+   stage_exp: { juvenile: number; adult: number };
++  breeding: Breeding;
+   max_preview_files: number;
+   read_only: Failure | null;
+   recovered_from_backup: boolean;
+@@ -125,6 +141,7 @@ export const api = {
+   feed: (items: Inspection[], fishId: string) => invoke<FeedReport>("feed", { items, fishId }),
+   buy: (speciesId: string, price: number) => invoke<Fish>("buy", { speciesId, price }),
+   sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
++  breed: (firstId: string, secondId: string, eggs: number) => invoke<BreedOutcome>("breed_fish", { firstId, secondId, eggs }),
+   bellyList: () => invoke<BellyEntry[]>("belly_list"),
+   restore: (entryId: string) => invoke<{ path: string; renamed: boolean }>("belly_restore", { entryId }),
+   recover: () => invoke<StateView>("belly_recover"),
+diff --git a/src/i18n.ts b/src/i18n.ts
+index baff4e7..d3ae72e 100644
+--- a/src/i18n.ts
++++ b/src/i18n.ts
+@@ -46,6 +46,10 @@ const reasons: Record<string, string> = {
+   busy: "Đang xử lý một thao tác khác, thử lại sau giây lát",
+   not_enough_shells: "Chưa đủ CBCoin",
+   tank_full: "Bể đã đầy",
++  breed_same_fish: "Hãy chọn hai con cá khác nhau để ghép cặp.",
++  breed_species_mismatch: "Chỉ ghép cặp được hai cá cùng loài.",
++  breed_exhausted: "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.",
++  breed_eggs_invalid: "Số trứng không hợp lệ hoặc vượt mức tối đa cho phép.",
+   price_changed: "Giá đã thay đổi — hãy xem lại trước khi đổi",
+   unknown_species: "Loài này không có trong cửa hàng",
+   save_failed: "Không lưu được tiến trình",
+diff --git a/src/manager.ts b/src/manager.ts
+index 1fc548e..c018962 100644
+--- a/src/manager.ts
++++ b/src/manager.ts
+@@ -277,7 +277,7 @@ function showSpecies(s: Species) {
+         h("dt", {}, "Nhãn"), h("dd", {}, "Có thật"),
+         h("dt", {}, "Sinh sản"), h("dd", {}, s.reproduction === "live_birth" ? "Đẻ con (không có trứng ngoài bụng)" : "Đẻ trứng"),
+         h("dt", {}, "Khi mua"), h("dd", {}, stageName.fry),
+-        h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài — tính năng gia đình cá sẽ có ở bản sau"),
++        h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá"),
+         h("dt", {}, "Nguồn"), h("dd", {}, h("code", {}, s.source)),
+       ),
+     ),
+@@ -315,10 +315,71 @@ function confirmBuy(s: Species) {
+   );
+ }
+ 
++const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
++
++// ---------- breeding ----------
++
++function confirmBreed(fish: Fish) {
++  const partners = state.fish.filter((o) => o.id !== fish.id && o.species_id === fish.species_id && o.stage === "adult" && o.eggs_used < 99);
++  const sp = speciesOf(fish.species_id);
++  if (fish.eggs_used >= 99 || partners.length === 0) {
++    modal(h("div", {},
++      h("h2", {}, `Sinh sản · ${fish.name}`),
++      h("p", {}, fish.eggs_used >= 99
++        ? "Giá trị cá này đã về mức giá mua gốc nên không sinh sản thêm được."
++        : "Cần thêm một con cá cùng loài đã trưởng thành (Lv.100) trong bể để ghép cặp.")
++    ), [{ label: "Đóng", kind: "primary" }]);
++    return;
++  }
++  let partner = partners[0];
++  let eggs = 1;
++  const free = Math.max(0, state.capacity - state.fish.length);
++  const b = state.breeding;
++  const rate = (p: number) => p <= b.price_low ? b.hatch_max : p >= b.price_high ? b.hatch_min : b.hatch_max + (b.hatch_min - b.hatch_max) * (p - b.price_low) / (b.price_high - b.price_low); // same formula as the engine
++  const maxEggs = () => Math.max(1, Math.min(99 - fish.eggs_used, 99 - partner.eggs_used));
++  const summary = h("p", { class: "fine", role: "status" });
++  const eggInput = h("input", { type: "number", min: "1", value: "1", "aria-label": "Số trứng" }) as HTMLInputElement;
++  const refreshSummary = () => {
++    const r = rate(sp?.price ?? fish.purchase_price);
++    eggs = Math.max(1, Math.min(maxEggs(), Math.floor(Number(eggInput.value) || 1)));
++    eggInput.max = String(maxEggs());
++    summary.replaceChildren(...coinText([
++      `Tỷ lệ nở mỗi trứng: ${(r * 100).toFixed(1)}% · dự kiến khoảng ${(eggs * r).toFixed(1)} cá con (Lv.0). `,
++      `Mỗi cá bố mẹ mất ${fish.purchase_price * eggs} CBCoin giá bán: ${saleValue(fish)} → ${fish.purchase_price * Math.max(1, 100 - fish.eggs_used - eggs)} CBCoin `,
++      `(mỗi trứng −${fish.purchase_price}, tối thiểu ${fish.purchase_price}). `,
++      free === 0 ? "Bể đang đầy — cần chỗ trống để cá con nở." : `Bể còn ${free} chỗ; nếu bể đầy trước, trứng chưa dùng được giữ lại.`,
++    ].join("")));
++  };
++  const select = h("select", { "aria-label": "Chọn cá ghép cặp", onchange: (ev: Event) => {
++    partner = partners.find((o) => o.id === (ev.currentTarget as HTMLSelectElement).value) ?? partner;
++    refreshSummary();
++  } }, ...partners.map((o) => h("option", { value: o.id }, `${o.name} · Lv.${Math.floor(o.exp / 100)} · giá bán ${saleValue(o)} CBCoin`)));
++  eggInput.addEventListener("input", refreshSummary);
++  refreshSummary();
++  modal(h("div", { class: "breed-form" },
++    h("h2", {}, `Sinh sản · ${fish.name}`),
++    h("p", {}, "Ghép cặp với cá cùng loài đã trưởng thành. Mỗi trứng trừ giá trị bán của cả hai cá đúng một lần giá mua gốc, nên cá càng sinh sản càng bán được ít."),
++    h("label", {}, "Cá ghép cặp ", select),
++    h("label", {}, "Số trứng ", eggInput),
++    summary,
++  ), [{ label: "Để sau", kind: "ghost" }, { label: "🥚 Sinh sản", kind: "primary", run: async () => {
++    if (working) return;
++    working = true; render();
++    try {
++      const out = await api.breed(fish.id, partner.id, eggs);
++      const n = out.hatched.length;
++      toast(n > 0
++        ? `🥚 Đã đẻ ${out.charged} trứng, nở ${n} cá con (Lv.0)${out.refunded ? ` · giữ lại ${out.refunded} trứng vì bể đầy` : ""}!`
++        : `🥚 Đã đẻ ${out.charged} trứng nhưng chưa quả nào nở (tỷ lệ ${(out.hatch_rate * 100).toFixed(1)}%). Thử lại nhé!`);
++    } catch (e) { fail(e); }
++    finally { working = false; await refresh(); }
++  }}]);
++}
++
+ function confirmSell(fish: Fish) {
+   modal(h("div", {},
+     h("h2", {}, `Gọi thuyền bán ${fish.name}?`),
+-    h("p", {}, `Level 100 · Giá bán: ${fish.purchase_price * 100} CBCoin (giá mua ×100).`),
++    h("p", {}, `Level 100 · Giá bán: ${saleValue(fish)} CBCoin (giá mua ×100${fish.eggs_used ? `, trừ ${fish.eggs_used} trứng đã đẻ` : ""}).`),
+     h("p", { class: "fine" }, "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.")
+   ), [{ label: "Để sau", kind: "ghost" }, { label: "Gọi thuyền", kind: "primary", run: async () => {
+     if (working) return;
+@@ -483,12 +544,16 @@ function renderTank(): Node {
+         h("span", { class: "sci" }, s ? s.scientific_name : f.species_id),
+         h("div", { class: "tags" },
+           h("span", { class: "tag" }, stageName[f.stage]),
+-          h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : "Từ cửa hàng"),
++          h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : f.origin === "hatched" ? `Cá nở trong bể · đời ${f.generation}` : "Từ cửa hàng"),
+         ),
+         h("div", { class: "bar", role: "progressbar", "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` })),
+         h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP · ${f.pending_exp} EXP đang tiêu hóa` : "Level 100 · đã trưởng thành"),
+         f.resting_until > Date.now()/1000 ? h("p", {}, `🫧 Bụng em thành bóng rồi! Nghỉ tới ${formatDate(f.resting_until)} nhé.`) : null,
+-        f.stage === "adult" ? h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${f.purchase_price * 100} CBCoin`) : null,
++        f.stage === "adult" ? h("div", { class: "tags" },
++          h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${saleValue(f)} CBCoin`),
++          h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, "🥚 Sinh sản"),
++        ) : null,
++        f.eggs_used ? h("span", { class: "fine" }, `Đã đẻ ${f.eggs_used} trứng`) : null,
+       ),
+     );
+   });
+diff --git a/src/style.css b/src/style.css
+index f4c050e..04dc676 100644
+--- a/src/style.css
++++ b/src/style.css
+@@ -625,3 +625,19 @@ dialog::backdrop {
+ }
+ .sale-boat { position: fixed; z-index: 10000; inset: 0; background: rgba(4,36,43,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+ .sale-boat img { width: min(440px, 70vw); height: auto; }
++
++.breed-form label {
++  display: flex;
++  flex-direction: column;
++  gap: 4px;
++  font-size: 14px;
++}
++.breed-form input[type="number"] {
++  font: inherit;
++  padding: 8px 10px;
++  border-radius: 10px;
++  border: 1px solid var(--line);
++  background: #fff;
++  color: var(--ink);
++  max-width: 140px;
++}

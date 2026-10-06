@@ -1,0 +1,2062 @@
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/.gitignore new/.gitignore
+--- base/.gitignore	2026-10-03 05:06:01.000000000 +0000
++++ new/.gitignore	2026-10-05 09:11:31.080893239 +0000
+@@ -2,3 +2,4 @@
+ dist/
+ src-tauri/target/
+ src-tauri/gen/
++.runtime-check/
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/hunt.html new/hunt.html
+--- base/hunt.html	2026-10-03 05:06:01.000000000 +0000
++++ new/hunt.html	2026-10-05 09:11:31.080893239 +0000
+@@ -2,4 +2,7 @@
+ <html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Trục vớt Vỏ sò</title></head>
+ <body><main class="hunt"><header><div><span class="eyebrow">TRASHQUARIUM · BẾN THUYỀN</span><h1>Trục vớt Vỏ sò</h1></div><div id="wallet" class="wallet">Đang tải…</div></header>
+ <div class="scene"><canvas id="hunt-canvas" aria-label="Móc đung đưa trên các vỏ sò. Dùng nút Thả móc hoặc Space."></canvas><div id="status" role="status"></div></div>
+-<footer><div class="controls"><button id="drop">Thả móc <kbd>Space</kbd></button><button id="pause">Tạm dừng</button><button id="leave">Rời thuyền</button></div><p>Kéo sò về thuyền để nhận +1. Trượt không mất điểm; sò chưa nhặt được giữ lại.</p></footer></main><script type="module" src="/src/hunt.ts"></script></body></html>
++<div id="catch-notice" role="status" aria-live="polite" hidden></div>
++<footer><div class="controls"><button id="drop">Thả móc <kbd>Space</kbd></button><button id="pause">Tạm dừng</button><button id="collection">Bộ sưu tập</button><button id="sound" aria-pressed="false">Âm thanh: Tắt</button><button id="leave">Rời thuyền</button></div><p>Kéo sò về thuyền để nhận +1. Sò hiếm sáng vàng có cơ hội chứa ngọc trai.</p></footer></main>
++<dialog id="shell-dialog" aria-label="Bộ sưu tập vỏ sò"><div id="shell-dialog-body"></div><form method="dialog"><button>Trở lại thuyền</button></form></dialog>
++<script type="module" src="/src/hunt.ts"></script></body></html>
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/scripts/hunt-preview.html new/scripts/hunt-preview.html
+--- base/scripts/hunt-preview.html	1970-01-01 00:00:00.000000000 +0000
++++ new/scripts/hunt-preview.html	2026-10-05 09:11:31.081893239 +0000
+@@ -0,0 +1,8 @@
++<!doctype html><html lang="vi"><meta charset="utf-8"><title>Hunt QA — không dùng save thật</title><style>body{background:#0c343c;color:#edf8f4;font:16px system-ui;margin:24px}canvas{width:min(960px,100%);height:auto;border:1px solid #47716d;border-radius:16px}section{max-width:960px}</style><h1>QA animation · dữ liệu minh họa, không cấp thưởng</h1><canvas id="preview" width="960" height="390"></canvas><div id="collection"></div><script type="module">
++import {huntArt,ready} from '/src/hunt-art.ts';
++import {drawClaw} from '/src/hunt-motion.ts';
++import {collectionPanel} from '/src/shell-collection.ts';
++const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
++function draw(){if(!ready(huntArt.claw)){requestAnimationFrame(draw);return;}ctx.clearRect(0,0,960,390);ctx.font='18px system-ui';ctx.fillStyle='#edf8f4';[0,.5,1].forEach((closure,i)=>{ctx.fillText(['Mở','Khép giữa','Khép hoàn toàn'][i],70+i*320,30);drawClaw(ctx,huntArt.claw,{x:80+i*320,y:60,width:160,height:220},closure);ctx.beginPath();ctx.arc(160+i*320,60+220*.71,3,0,Math.PI*2);ctx.fillStyle='#ff7654';ctx.fill();ctx.fillStyle='#edf8f4';});}
++draw();document.querySelector('#collection').replaceChildren(collectionPanel({pearls:3,collection:{great:{count:2,rare_count:1,first_found:'2026-10-05'},queen:{count:1,rare_count:0,first_found:'2026-10-05'},variegated:{count:1,rare_count:1,first_found:'2026-10-05'}}}));
++</script></html>
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/scripts/prepare-hunt-art.ps1 new/scripts/prepare-hunt-art.ps1
+--- base/scripts/prepare-hunt-art.ps1	1970-01-01 00:00:00.000000000 +0000
++++ new/scripts/prepare-hunt-art.ps1	2026-10-05 09:11:31.081893239 +0000
+@@ -0,0 +1,33 @@
++param([string]$ManifestPath)
++$ErrorActionPreference = 'Stop'
++Add-Type -AssemblyName System.Drawing
++$project = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
++$items = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
++$target = Join-Path $project 'public/art/hunt'
++New-Item -ItemType Directory -Path $target -Force | Out-Null
++foreach ($item in $items) {
++  if ($item.file -notmatch '^(boat|claw|shell_[012])\.png$') { throw 'Unexpected asset name' }
++  $source = [Drawing.Bitmap]::new($item.source)
++  $output = [Drawing.Bitmap]::new([int]$item.w, [int]$item.h, [Drawing.Imaging.PixelFormat]::Format32bppArgb)
++  $g = [Drawing.Graphics]::FromImage($output)
++  try {
++    $g.Clear([Drawing.Color]::Transparent)
++    $g.CompositingMode = [Drawing.Drawing2D.CompositingMode]::SourceCopy
++    $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
++    $g.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
++    $scale = [Math]::Min($item.w / $source.Width, $item.h / $source.Height)
++    if ($item.file -eq 'boat.png') {
++      # Keep original aspect ratio, translate outlet to the requested anchor.
++      $scale *= 0.85
++      $dx = $item.w * 0.5 - $source.Width * 0.5 * $scale
++      $dy = $item.h * 0.83 - $source.Height * 0.918 * $scale
++    } else {
++      if ($item.file -like 'shell_*') { $scale *= 0.84 }
++      $dx = ($item.w - $source.Width * $scale) / 2
++      $dy = ($item.h - $source.Height * $scale) / 2
++    }
++    $rect = [Drawing.RectangleF]::new($dx, $dy, $source.Width * $scale, $source.Height * $scale)
++    $g.DrawImage($source, $rect)
++    $output.Save((Join-Path $target $item.file), [Drawing.Imaging.ImageFormat]::Png)
++  } finally { $g.Dispose(); $output.Dispose(); $source.Dispose() }
++}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/scripts/test-hunt-art.mjs new/scripts/test-hunt-art.mjs
+--- base/scripts/test-hunt-art.mjs	1970-01-01 00:00:00.000000000 +0000
++++ new/scripts/test-hunt-art.mjs	2026-10-05 09:11:31.081893239 +0000
+@@ -0,0 +1,29 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
++globalThis.Image = class { complete = false; naturalWidth = 0; src = ''; };
++const { anchoredRect, BOAT_HATCH, CLAW_GRAB, CLAW_RING, REST_LENGTH, huntArt, ready } = await import('../src/hunt-art.ts');
++for (const [anchor, w, h] of [[BOAT_HATCH, 120, 90], [CLAW_GRAB, 28, 38.5]]) {
++  for (const [x, y] of [[320, 80], [280, 400], [960, 120]]) {
++    const rect = anchoredRect(x, y, w, h, anchor);
++    assert.ok(Math.abs(rect.x + rect.width * anchor.x - x) < 1e-9);
++    assert.ok(Math.abs(rect.y + rect.height * anchor.y - y) < 1e-9);
++  }
++}
++assert.ok(CLAW_RING.y < CLAW_GRAB.y);
++for (const side of [320, 440, 600, 1080]) {
++  const height = Math.min(38.5, side * REST_LENGTH / (CLAW_GRAB.y - CLAW_RING.y));
++  const rect = anchoredRect(0, side * REST_LENGTH, height * 256 / 352, height, CLAW_GRAB);
++  assert.ok(rect.y + rect.height * CLAW_RING.y >= -1e-9, 'ring above hatch at rest');
++}
++assert.equal(ready(huntArt.boat), false);
++const expected = [['boat.png', 720, 540], ['claw.png', 256, 352], ...[0, 1, 2].map(i => [`shell_${i}.png`, 512, 512])];
++for (const [file, w, h] of expected) {
++  const path = fileURLToPath(new URL(`../public/art/hunt/${file}`, import.meta.url));
++  const bytes = readFileSync(path);
++  assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
++  assert.equal(bytes.readUInt32BE(16), w, file);
++  assert.equal(bytes.readUInt32BE(20), h, file);
++  assert.equal(bytes[25], 6, `${file}: expected RGBA PNG`);
++}
++console.log('PASS: 5 RGBA PNG sizes; boat/claw anchor geometry; loading fallback');
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/scripts/test-hunt-motion.mjs new/scripts/test-hunt-motion.mjs
+--- base/scripts/test-hunt-motion.mjs	1970-01-01 00:00:00.000000000 +0000
++++ new/scripts/test-hunt-motion.mjs	2026-10-05 09:11:31.081893239 +0000
+@@ -0,0 +1,14 @@
++import assert from 'node:assert/strict';
++import { closureStep, drawClaw } from '../src/hunt-motion.ts';
++let closure = 0;
++for (let i=0;i<10;i++) closure = closureStep(closure, 'retracting', 1/30, false, false);
++assert.ok(closure > .99 && closure <= 1);
++assert.equal(closureStep(closure, 'swinging', 1, true, false), closure);
++assert.equal(closureStep(closure, 'swinging', 1/30, false, true), 0);
++assert.equal(closureStep(0, 'settling', 1/30, false, true), 1);
++assert.equal(closureStep(.5, 'swinging', -1, false, false), .5);
++let balance = 0, draws = 0;
++const ctx = { save(){balance++;},restore(){balance--;},translate(){},rotate(){},beginPath(){},rect(){},clip(){},drawImage(){draws++;} };
++drawClaw(ctx,{width:256,height:352},{x:20,y:20,width:28,height:38.5},1);
++assert.equal(balance,0); assert.equal(draws,4);
++console.log('PASS: closure/opening, pause, reduced motion, negative dt, canvas save/restore balance');
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/scripts/validate-hunt-art.ps1 new/scripts/validate-hunt-art.ps1
+--- base/scripts/validate-hunt-art.ps1	1970-01-01 00:00:00.000000000 +0000
++++ new/scripts/validate-hunt-art.ps1	2026-10-05 09:11:31.081893239 +0000
+@@ -0,0 +1,24 @@
++$ErrorActionPreference = 'Stop'
++Add-Type -AssemblyName System.Drawing
++Add-Type -ReferencedAssemblies @([Drawing.Bitmap].Assembly.Location) -TypeDefinition @'
++using System;
++using System.Drawing;
++public static class HuntPngAudit {
++ public static object Read(string file) {
++  using (var b = new Bitmap(file)) {
++   long clear=0, partial=0; int edge=0,minX=b.Width,minY=b.Height,maxX=-1,maxY=-1;
++   for(int y=0;y<b.Height;y++) for(int x=0;x<b.Width;x++) {
++    int a=b.GetPixel(x,y).A;
++    if(a==0)clear++; else if(a<255)partial++;
++    if(a>=128) {minX=Math.Min(x,minX);minY=Math.Min(y,minY);maxX=Math.Max(x,maxX);maxY=Math.Max(y,maxY);if(x==0||y==0||x==b.Width-1||y==b.Height-1)edge++;}
++   }
++   return new {width=b.Width,height=b.Height,transparentPixels=clear,partiallyTransparentPixels=partial,opaqueEdgePixels=edge,leftMargin=minX,topMargin=minY,rightMargin=b.Width-1-maxX,bottomMargin=b.Height-1-maxY,cornerAlpha=new[]{b.GetPixel(0,0).A,b.GetPixel(b.Width-1,0).A,b.GetPixel(0,b.Height-1).A,b.GetPixel(b.Width-1,b.Height-1).A}};
++  }
++ }
++}
++'@
++$root = Join-Path (Split-Path $PSScriptRoot -Parent) 'public/art/hunt'
++@('boat.png','claw.png','shell_0.png','shell_1.png','shell_2.png') | ForEach-Object {
++  $file = Join-Path $root $_
++  [pscustomobject]@{file=$_;sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash;image=[HuntPngAudit]::Read($file)}
++} | ConvertTo-Json -Depth 5
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/api.ts new/src/api.ts
+--- base/src/api.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/src/api.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -34,6 +34,9 @@
+   generation: number;
+   stage: Stage;
+   exp: number;
++  pending_exp: number;
++  resting_until: number;
++  purchase_price: number;
+   acquired_at: number;
+ }
+ 
+@@ -55,7 +58,7 @@
+ 
+ export interface StateView {
+   hunt: HuntView;
+-  shells: number;
++  cbcoins: number;
+   capacity: number;
+   fish: Fish[];
+   daily: { shells: number; exp: number; shell_cap: number; exp_cap: number };
+@@ -100,12 +103,18 @@
+   fish_id: string;
+ }
+ 
+-export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean }
++export type ShellKind = "great" | "queen" | "variegated";
++export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean; kind: ShellKind; rare: boolean; pearl: boolean }
++export interface ShellEntry { count: number; rare_count: number; first_found: string }
++export interface CatchReceipt { shell_id: string; kind: ShellKind; rare: boolean; pearl: boolean; first_of_kind: boolean }
+ export interface HuntSession {
+   id: string; batch_id: string; phase: string; angle: number; length: number;
+   caught_id: string | null; paused: boolean; error: string | null;
+ }
+ export interface HuntView {
++  pearls: number;
++  collection: Partial<Record<ShellKind, ShellEntry>>;
++  last_catch: CatchReceipt | null;
+   batch: { id: string; shells: HuntShell[] } | null;
+   earned: number; daily_cap: number; session: HuntSession | null; waiting: boolean;
+ }
+@@ -115,6 +124,7 @@
+   preview: (paths: string[]) => invoke<Inspection[]>("preview_files", { paths }),
+   feed: (items: Inspection[], fishId: string) => invoke<FeedReport>("feed", { items, fishId }),
+   buy: (speciesId: string, price: number) => invoke<Fish>("buy", { speciesId, price }),
++  sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
+   bellyList: () => invoke<BellyEntry[]>("belly_list"),
+   restore: (entryId: string) => invoke<{ path: string; renamed: boolean }>("belly_restore", { entryId }),
+   recover: () => invoke<StateView>("belly_recover"),
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/hunt-art.ts new/src/hunt-art.ts
+--- base/src/hunt-art.ts	1970-01-01 00:00:00.000000000 +0000
++++ new/src/hunt-art.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -0,0 +1,21 @@
++// Normalized PNG anchors. Game coordinates remain the capture-point coordinates.
++export const BOAT_HATCH = { x: 0.5, y: 0.83 } as const;
++export const CLAW_GRAB = { x: 0.5, y: 0.71 } as const;
++export const CLAW_RING = { x: 0.5, y: 0.04 } as const;
++export const REST_LENGTH = 0.07;
++
++function image(file: string): HTMLImageElement {
++  const result = new Image();
++  result.src = `/art/hunt/${file}`;
++  return result;
++}
++export const huntArt = {
++  boat: image("boat.png"), claw: image("claw.png"),
++  shells: [image("shell_0.png"), image("shell_1.png"), image("shell_2.png")],
++};
++export function ready(image: HTMLImageElement): boolean {
++  return image.complete && image.naturalWidth > 0;
++}
++export function anchoredRect(x: number, y: number, width: number, height: number, anchor: { x: number; y: number }) {
++  return { x: x - width * anchor.x, y: y - height * anchor.y, width, height };
++}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/hunt-motion.ts new/src/hunt-motion.ts
+--- base/src/hunt-motion.ts	1970-01-01 00:00:00.000000000 +0000
++++ new/src/hunt-motion.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -0,0 +1,19 @@
++export function closureStep(current: number, phase: string | undefined, dt: number, paused: boolean, reduced: boolean): number {
++  if (paused) return current;
++  const target = phase === "retracting" || phase === "settling" ? 1 : 0;
++  return reduced ? target : current + (target - current) * Math.min(1, Math.max(0, dt) * 12);
++}
++
++// Animate the existing PNG as three prong regions; no generated art is altered.
++export function drawClaw(ctx: CanvasRenderingContext2D, art: HTMLImageElement, rect: { x: number; y: number; width: number; height: number }, closure: number) {
++  ctx.save(); ctx.translate(rect.x, rect.y);
++  const w = rect.width, h = rect.height, turn = Math.max(0, Math.min(1, closure)) * .42;
++  const region = (left: number, right: number, pivot: number, angle: number) => {
++    ctx.save(); ctx.translate(pivot * w, h * .56); ctx.rotate(angle); ctx.translate(-pivot * w, -h * .56);
++    ctx.beginPath(); ctx.rect(left * w, h * .56, (right - left) * w, h * .44); ctx.clip();
++    ctx.drawImage(art, 0, 0, w, h); ctx.restore();
++  };
++  region(0, .43, .35, -turn); region(.43, .57, .5, 0); region(.57, 1, .65, turn);
++  ctx.drawImage(art, 0, 0, art.width, art.height * .56, 0, 0, w, h * .56);
++  ctx.restore();
++}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/hunt.css new/src/hunt.css
+--- base/src/hunt.css	2026-10-03 05:06:01.000000000 +0000
++++ new/src/hunt.css	2026-10-05 09:11:31.079893239 +0000
+@@ -1 +1,3 @@
+ :root{font-family:system-ui,sans-serif;color:#eaf8f3;background:#092e35;color-scheme:dark}*{box-sizing:border-box}body{margin:0}.hunt{height:100vh;display:flex;flex-direction:column;padding:20px;gap:14px}header{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font-size:24px;margin:4px 0}.eyebrow{font-size:10px;letter-spacing:2px;color:#88c9bd}.wallet{color:#ffdaa1;background:#16464c;padding:12px 16px;border-radius:14px;font-size:14px}.scene{position:relative;flex:1;min-height:0;border:1px solid #3d6868;border-radius:24px;overflow:hidden;background:#164e59}canvas{width:100%;height:100%;display:block;cursor:crosshair}#status{position:absolute;top:14px;left:50%;transform:translateX(-50%);border-radius:20px;background:#082b35df;padding:8px 16px;text-align:center;max-width:85%;font-size:13px;pointer-events:none}.controls{display:flex;gap:10px;justify-content:center}button{font:inherit;border:1px solid #467675;border-radius:14px;background:#16464c;color:#eaf8f3;min-height:46px;padding:10px 20px;cursor:pointer}button:hover{background:#225b61}button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid #ffd39a;outline-offset:3px}#drop{background:#f4c789;color:#263b38;border-color:#f4c789;font-weight:650}kbd{font:10px system-ui;padding:3px 5px;border:1px solid #64716a;border-radius:5px;margin-left:8px}footer p{text-align:center;font-size:12px;color:#98c7c2;margin:10px 0 0}
++:root #shell-dialog{max-width:min(940px,94vw);max-height:85vh;overflow:auto;background:#0c343c;color:#edf8f4;border:1px solid #7ba59b;border-radius:22px;padding:22px}#shell-dialog::backdrop{background:#001c24b3}#shell-dialog form{text-align:right;margin-top:16px}.controls{flex-wrap:wrap}#catch-notice{padding:10px 16px;border-radius:14px;background:#16464c;color:#ffe5a4;font-size:13px}.hunt:has(#catch-notice:not([hidden])) .scene{min-height:130px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
++#status{top:auto;bottom:12px}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/hunt.ts new/src/hunt.ts
+--- base/src/hunt.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/src/hunt.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -1,7 +1,10 @@
+ import "./hunt.css";
+ import { getCurrentWindow } from "@tauri-apps/api/window";
+-import { api, asFailure, type HuntView } from "./api";
++import { api, asFailure, type HuntView, type ShellKind } from "./api";
+ import { reason } from "./i18n";
++import { huntArt, ready, anchoredRect, BOAT_HATCH, CLAW_GRAB, CLAW_RING, REST_LENGTH } from "./hunt-art";
++import { collectionPanel, SHELL_CARDS, shellSprite } from "./shell-collection";
++import { closureStep, drawClaw } from "./hunt-motion";
+ 
+ const canvas = document.getElementById("hunt-canvas") as HTMLCanvasElement;
+ const ctx = canvas.getContext("2d")!;
+@@ -18,6 +21,45 @@
+ let error = "";
+ let last = 0;
+ const ocean = new Image(); ocean.src = "/art/ocean.jpg";
++const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
++const dialog = document.getElementById("shell-dialog") as HTMLDialogElement;
++let closure = 0;
++let seenReceipt: string | null | undefined;
++let previousCatch: string | null = null;
++let previousLength = 0;
++let noticeUntil = 0;
++let resumeAfterCollection = false;
++let soundEnabled = false;
++let audio: AudioContext | null = null;
++const ripples: { x: number; y: number; age: number }[] = [];
++
++function tone(frequency: number, duration: number) {
++  if (!soundEnabled || document.hidden || view?.session?.paused || audio?.state !== "running") return;
++  try {
++    const oscillator = audio.createOscillator(), gain = audio.createGain();
++    oscillator.type = "triangle"; oscillator.frequency.setValueAtTime(frequency, audio.currentTime);
++    gain.gain.setValueAtTime(.04, audio.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
++    oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + duration);
++    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
++  } catch { /* Audio is optional; never blocks gameplay. */ }
++}
++document.getElementById("sound")!.addEventListener("click", async (event) => {
++  const button = event.currentTarget as HTMLButtonElement;
++  try {
++    soundEnabled = !soundEnabled;
++    if (soundEnabled) { audio ??= new AudioContext(); await audio.resume(); }
++  } catch { soundEnabled = false; }
++  button.textContent = `Âm thanh: ${soundEnabled ? "Bật" : "Tắt"}`; button.setAttribute("aria-pressed", String(soundEnabled));
++});
++document.getElementById("collection")!.addEventListener("click", async () => {
++  if (!view || busy || dialog.open) return;
++  resumeAfterCollection = !!view.session && !view.session.paused;
++  if (resumeAfterCollection) await action("pause");
++  if (view.session && !view.session.paused) { resumeAfterCollection = false; return; }
++  document.getElementById("shell-dialog-body")!.replaceChildren(collectionPanel(view));
++  dialog.showModal();
++});
++dialog.addEventListener("close", () => { if (resumeAfterCollection && document.hasFocus()) void action("resume"); resumeAfterCollection = false; });
+ 
+ async function action(action: "drop" | "pause" | "resume" | "leave") {
+   if (!view?.session || busy) return;
+@@ -36,12 +78,20 @@
+ document.getElementById("leave")!.addEventListener("click", leave);
+ window.addEventListener("keydown", (e) => {
+   if (e.code === "Space" && e.target === document.body) { e.preventDefault(); if (!e.repeat) void action("drop"); }
+-  if (e.code === "Escape") void action("pause");
++  if (e.code === "Escape" && !dialog.open) void action("pause");
+ });
+ window.addEventListener("blur", () => action("pause"));
+ 
+-function drawShell(x: number, y: number, size: number, now: number) {
++function drawShell(x: number, y: number, size: number, now: number, kind: ShellKind = "great", rare = false) {
+   const r = 10 + size * 2;
++  const art = huntArt.shells[shellSprite(kind)];
++  if (ready(art)) {
++    const length = r * 2.6;
++    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(x * 3) * .12);
++    if (rare) { ctx.shadowColor = "#ffe5a4"; ctx.shadowBlur = reducedMotion.matches ? 8 : 8 + Math.sin(now / 450) * 2; }
++    ctx.drawImage(art, -length / 2, -length / 2, length, length);
++    ctx.restore(); return;
++  }
+   ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(x * 3) * .12);
+   ctx.shadowColor = "#ffe8b1"; ctx.shadowBlur = 5 + Math.sin(now / 600) * 2;
+   ctx.fillStyle = ["#f6ddaf", "#efbb9e", "#eee3c5"][size]; ctx.strokeStyle = "#a47c64"; ctx.lineWidth = 1.2;
+@@ -53,7 +103,9 @@
+ }
+ function draw(now: number) {
+   requestAnimationFrame(draw);
+-  if (now - last < 1000 / 30) return; last = now;
++  if (now - last < 1000 / 30) return;
++  const dt = Math.min(.1, Math.max(0, (now - last) / 1000)); last = now;
++  closure = closureStep(closure, view?.session?.phase, dt, !!view?.session?.paused || document.hidden, reducedMotion.matches);
+   const rect = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
+   if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+     canvas.width = Math.round(rect.width * dpr); canvas.height = Math.round(rect.height * dpr);
+@@ -62,35 +114,75 @@
+   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+   const grad = ctx.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, "#3c8890"); grad.addColorStop(1, "#143e48"); ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+   if (ocean.complete && ocean.naturalWidth) { ctx.globalAlpha = .4; ctx.drawImage(ocean, 0, 0, w, h); ctx.globalAlpha = 1; }
+-  ctx.fillStyle = "#b9a983"; ctx.beginPath(); ctx.moveTo(0, h * .86); ctx.quadraticCurveTo(w / 2, h * .82, w, h * .87); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+-  const side = Math.min(w, h); const ox = (w - side) / 2;
++  // Leave room above the physics field for the complete sail/mast sprite.
++  const side = Math.min(w, Math.max(1, h - 80)); const ox = (w - side) / 2;
+   const point = (x: number, y: number) => [ox + x * side, y * side + (h - side) / 2];
++  const floor = point(0, .87)[1];
++  ctx.fillStyle = "#b9a983"; ctx.beginPath(); ctx.moveTo(0, floor); ctx.quadraticCurveTo(w / 2, floor - 8, w, floor + 4); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+   const [px, py] = point(.5, .14);
+-  // Original canvas art: boat hull, sail, rig and water ripples.
++  if (ready(huntArt.boat)) {
++    const boat = anchoredRect(px, py, 120, 90, BOAT_HATCH);
++    ctx.drawImage(huntArt.boat, boat.x, boat.y, boat.width, boat.height);
++  } else {
++  // Canvas fallback while art is loading or unavailable.
+   ctx.fillStyle = "#f0be83"; ctx.beginPath(); ctx.moveTo(px - 42, py - 2); ctx.lineTo(px + 42, py - 2); ctx.lineTo(px + 27, py + 15); ctx.lineTo(px - 28, py + 15); ctx.closePath(); ctx.fill();
+   ctx.strokeStyle = "#dbb792"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px, py - 3); ctx.lineTo(px, py - 50); ctx.stroke();
+   ctx.fillStyle = "#f4ead2"; ctx.beginPath(); ctx.moveTo(px - 4, py - 48); ctx.lineTo(px - 4, py - 10); ctx.lineTo(px - 30, py - 10); ctx.closePath(); ctx.fill();
++  }
+   const s = view?.session;
+   for (const sh of view?.batch?.shells ?? []) {
+     if (sh.collected || s?.caught_id === sh.id) continue;
+-    const [x, y] = point(sh.x, sh.y); drawShell(x, y, sh.size, now);
++    const [x, y] = point(sh.x, sh.y); drawShell(x, y, sh.size, now, sh.kind, sh.rare);
+   }
+   const angle = (s?.angle ?? 0) * Math.PI / 180;
+-  const length = Math.max(s?.length ?? 0, .04);
++  const length = Math.max(s?.length ?? 0, REST_LENGTH);
+   const [mx, my] = point(.5 + Math.sin(angle) * length, .14 + Math.cos(angle) * length);
+-  ctx.strokeStyle = "#ece5bf"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(mx, my); ctx.stroke();
++  // At rest the ring must not travel above the hatch on shorter windows.
++  const clawHeight = Math.min(38.5, side * REST_LENGTH / (CLAW_GRAB.y - CLAW_RING.y));
++  const claw = anchoredRect(mx, my, clawHeight * 256 / 352, clawHeight, CLAW_GRAB);
++  const ringX = ready(huntArt.claw) ? claw.x + claw.width * CLAW_RING.x : mx;
++  const ringY = ready(huntArt.claw) ? claw.y + claw.height * CLAW_RING.y : my;
++  ctx.strokeStyle = "#ece5bf"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(ringX, ringY); ctx.stroke();
++  if (ready(huntArt.claw)) {
++    drawClaw(ctx, huntArt.claw, claw, closure);
++  } else {
+   ctx.strokeStyle = "#c9f2ec"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(mx - 9, my - 4); ctx.lineTo(mx - 6, my + 8); ctx.lineTo(mx, my + 12); ctx.lineTo(mx + 6, my + 8); ctx.lineTo(mx + 9, my - 4); ctx.stroke();
++  }
+   const caught = view?.batch?.shells.find((sh) => sh.id === s?.caught_id);
+-  if (caught) drawShell(mx, my + 10, caught.size, now);
++  if (caught) drawShell(mx, my, caught.size, now, caught.kind, caught.rare);
++  if (s && !s.paused && !reducedMotion.matches) {
++    if (previousLength < .12 && s.length >= .12 && s.phase === "extending") { ripples.push({ x: mx, y: py + side * .12, age: 0 }); tone(180, .12); }
++    for (const ripple of ripples) {
++      ripple.age += dt; ctx.save(); ctx.globalAlpha = Math.max(0, 1 - ripple.age / .6);
++      ctx.strokeStyle = "#c6fff4"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(ripple.x, ripple.y, 5 + ripple.age * 30, 2 + ripple.age * 10, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
++    }
++  }
++  for (let i = ripples.length - 1; i >= 0; i--) if (ripples[i].age >= .6 || !s || reducedMotion.matches) ripples.splice(i, 1);
++  previousLength = s?.length ?? 0;
+   const remaining = view?.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
+-  wallet.textContent = `${shells} Vỏ sò · Hôm nay ${view?.earned ?? 0}/${view?.daily_cap ?? 60}`;
++  wallet.textContent = `${shells} CBCoin · ${view?.pearls ?? 0} Ngọc · Hôm nay ${view?.earned ?? 0}/${view?.daily_cap ?? 60}`;
+   drop.disabled = busy || !s || s.paused || s.phase !== "swinging" || (view?.earned ?? 0) >= (view?.daily_cap ?? 60);
+   pause.disabled = !s; pause.textContent = s?.paused ? "Tiếp tục" : "Tạm dừng";
+   status.textContent = error || (s?.error ? reason(s.error) : s?.paused ? "Đã tạm dừng — bấm Tiếp tục khi sẵn sàng" : !s ? "Đã gắp hết! Sò mới sẽ xuất hiện sau." : s.phase === "swinging" ? `${remaining} sò đang chờ · Canh hướng rồi thả móc` : s.phase === "extending" ? "Móc đang xuống…" : "Đang kéo về thuyền…");
++  if (now > noticeUntil) document.getElementById("catch-notice")!.hidden = true;
+ }
+ async function poll() {
+   if (leaving) return;
+-  try { view = await api.huntStatus(); const state = await api.state(); shells = state.shells; }
++  try {
++    view = await api.huntStatus(); const state = await api.state(); shells = state.cbcoins; error = "";
++    if (view.session?.caught_id && view.session.caught_id !== previousCatch) tone(620, .07);
++    previousCatch = view.session?.caught_id ?? null;
++    const receipt = view.last_catch;
++    if (seenReceipt === undefined) seenReceipt = receipt?.shell_id ?? null;
++    else if (receipt && receipt.shell_id !== seenReceipt) {
++      seenReceipt = receipt.shell_id;
++      const card = SHELL_CARDS.find(card => card.id === receipt.kind)!;
++      const notice = document.getElementById("catch-notice")!;
++      notice.textContent = `+${receipt.kind === "great" ? 1 : receipt.kind === "queen" ? 10 : 100} CBCoin · ${card.name}${receipt.rare ? " · Sò hiếm!" : ""}${receipt.pearl ? " · +1 Ngọc trai!" : ""}${receipt.first_of_kind ? ` · Thẻ mới: ${card.fact}` : ""}`;
++      notice.hidden = false; noticeUntil = performance.now() + 7000;
++      tone(receipt.pearl ? 960 : 760, .16);
++    }
++  }
+   catch (e) { error = reason(asFailure(e).code); }
+   window.setTimeout(poll, document.hidden ? 1000 : 100);
+ }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/i18n.ts new/src/i18n.ts
+--- base/src/i18n.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/src/i18n.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -2,8 +2,12 @@
+ import type { Category, Stage } from "./api";
+ 
+ const reasons: Record<string, string> = {
++  fish_full: "Cá no rồi! Hãy chờ hết 2 tiếng nghỉ trước khi cho ăn tiếp.",
++  fish_adult: "Cá đã trưởng thành ở level 100, không nhận thêm EXP.",
++  fish_not_adult: "Chỉ gọi thuyền bán cá đã trưởng thành ở level 100.",
++  duplicate: "File trùng nội dung đã ghi nhận — không chuyển file, không cộng EXP.",
+   hunt_waiting: "Chưa có sò mới; bạn có thể quay lại sau.",
+-  hunt_cap: "Đã nhặt đủ Vỏ sò hôm nay. Sò chưa nhặt được giữ lại.",
++  hunt_cap: "Đã nhặt đủ CBCoin hôm nay. Sò chưa nhặt được giữ lại.",
+   hunt_meeting: "Tắt Chế độ họp để gọi thuyền.",
+   hunt_stale: "Lượt thuyền đã kết thúc; hãy gọi thuyền lại.",
+   hunt_busy: "Móc đang hoạt động; chờ kéo về thuyền.",
+@@ -41,7 +45,7 @@
+   index_write: "Không ghi được danh sách Bụng cá",
+   simulated_crash: "Gián đoạn giữa chừng",
+   busy: "Đang xử lý một thao tác khác, thử lại sau giây lát",
+-  not_enough_shells: "Chưa đủ Vỏ sò",
++  not_enough_shells: "Chưa đủ CBCoin",
+   tank_full: "Bể đã đầy",
+   price_changed: "Giá đã thay đổi — hãy xem lại trước khi đổi",
+   unknown_species: "Loài này không có trong cửa hàng",
+@@ -80,8 +84,8 @@
+ };
+ 
+ export const stageName: Record<Stage, string> = {
+-  fry: "Cá bột",
+-  juvenile: "Cá non",
++  fry: "Cá non",
++  juvenile: "Cá thành niên",
+   adult: "Trưởng thành",
+ };
+ 
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/manager.ts new/src/manager.ts
+--- base/src/manager.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/src/manager.ts	2026-10-05 09:11:31.080893239 +0000
+@@ -3,8 +3,9 @@
+ import { getCurrentWebview } from "@tauri-apps/api/webview";
+ import { getCurrentWindow } from "@tauri-apps/api/window";
+ import { open } from "@tauri-apps/plugin-dialog";
+-import { api, asFailure, type BellyEntry, type FeedReport, type Inspection, type Species, type StateView } from "./api";
++import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
+ import { attentionNote, categoryName, formatDate, formatSize, reason, stageName } from "./i18n";
++import { collectionPanel } from "./shell-collection";
+ 
+ type Tab = "shop" | "feed" | "belly" | "tank" | "settings" | "hunt";
+ type Child = Node | string | null | undefined | false;
+@@ -151,9 +152,9 @@
+ 
+ function renderStats() {
+   $("stats").replaceChildren(
+-    h("span", { class: "pill shells", title: "Vỏ sò là điểm trong game, không phải tiền thật" }, h("b", {}, String(state.shells)), "Vỏ sò"),
++    h("span", { class: "pill shells", title: "CBCoin là điểm trong game, không phải tiền thật" }, h("b", {}, String(state.cbcoins)), "CBCoin"),
+     h("span", { class: "pill" }, h("b", {}, `${state.fish.length}/${state.capacity}`), "cá trong bể"),
+-    h("span", { class: "pill", title: "Hạn mức Vỏ sò nhận từ cho cá ăn mỗi ngày" }, "Hôm nay", h("b", {}, `${state.daily.shells}/${state.daily.shell_cap}`)),
++    h("span", { class: "pill" }, "EXP hôm nay", h("b", {}, String(state.daily.exp))),
+   );
+ }
+ 
+@@ -201,7 +202,7 @@
+     ["feed", "Cho cá ăn"],
+     ["belly", "Bụng cá", state.held_count],
+     ["tank", "Bể của tôi"],
+-    ["hunt", "Trục vớt Vỏ sò"],
++    ["hunt", "Trục vớt CBCoin"],
+     ["settings", "Cài đặt"],
+   ];
+   $("tabs").replaceChildren(
+@@ -225,11 +226,11 @@
+ function renderShop(): Node {
+   const full = state.fish.length >= state.capacity;
+   const cards = state.species.map((s) => {
+-    const short = s.price - state.shells;
++    const short = s.price - state.cbcoins;
+     const buy = h("button", {
+       class: "primary small",
+       disabled: working || full || short > 0 || !!state.read_only,
+-      title: full ? "Bể đã đầy" : short > 0 ? `Còn thiếu ${short} Vỏ sò` : undefined,
++      title: full ? "Bể đã đầy" : short > 0 ? `Còn thiếu ${short} CBCoin` : undefined,
+       onclick: () => confirmBuy(s),
+     }, full ? "Bể đầy" : short > 0 ? `Thiếu ${short}` : "Đổi");
+     return h("article", { class: "card" },
+@@ -243,7 +244,7 @@
+           state.dex[s.id]?.owned ? h("span", { class: "tag" }, "Đã có") : null,
+         ),
+         h("div", { class: "actions" },
+-          h("span", { class: "price" }, `${s.price} Vỏ sò`),
++          h("span", { class: "price" }, `${s.price} CBCoin`),
+           h("span", {},
+             h("button", { class: "ghost small", onclick: () => showSpecies(s) }, "Chi tiết"), " ",
+             buy,
+@@ -254,7 +255,7 @@
+   });
+   return h("section", {},
+     h("div", { class: "section-head" }, h("h2", {}, "Cửa hàng · 10 loài cá thật")),
+-    h("p", { class: "lead" }, "Dọn file an toàn → nhận Vỏ sò → chọn cá. Vỏ sò là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời."),
++    h("p", { class: "lead" }, "Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời."),
+     h("div", { class: "grid" }, ...cards),
+     h("p", { class: "fine", style: "margin-top:16px" }, state.disclaimer),
+   );
+@@ -271,7 +272,7 @@
+       h("dl", { class: "kv" },
+         h("dt", {}, "Nhãn"), h("dd", {}, "Có thật"),
+         h("dt", {}, "Sinh sản"), h("dd", {}, s.reproduction === "live_birth" ? "Đẻ con (không có trứng ngoài bụng)" : "Đẻ trứng"),
+-        h("dt", {}, "Khi mua"), h("dd", {}, stageName[s.stage_on_purchase]),
++        h("dt", {}, "Khi mua"), h("dd", {}, stageName.fry),
+         h("dt", {}, "Ghép cặp"), h("dd", {}, "Chỉ cùng loài — tính năng gia đình cá sẽ có ở bản sau"),
+         h("dt", {}, "Nguồn"), h("dd", {}, h("code", {}, s.source)),
+       ),
+@@ -283,9 +284,9 @@
+ function confirmBuy(s: Species) {
+   modal(
+     h("div", {},
+-      h("h2", {}, `Đổi ${s.price} Vỏ sò lấy ${s.name}?`),
+-      h("p", { style: "margin-top:8px" }, `Sau khi đổi còn ${state.shells - s.price} Vỏ sò · bể ${state.fish.length + 1}/${state.capacity}.`),
+-      h("p", { class: "fine" }, "Vỏ sò là điểm trong game, không dùng tiền thật."),
++      h("h2", {}, `Đổi ${s.price} CBCoin lấy ${s.name}?`),
++      h("p", { style: "margin-top:8px" }, `Sau khi đổi còn ${state.cbcoins - s.price} CBCoin · bể ${state.fish.length + 1}/${state.capacity}.`),
++      h("p", { class: "fine" }, "CBCoin là điểm trong game, không dùng tiền thật."),
+     ),
+     [
+       { label: "Để sau", kind: "ghost" },
+@@ -310,6 +311,30 @@
+   );
+ }
+ 
++function confirmSell(fish: Fish) {
++  modal(h("div", {},
++    h("h2", {}, `Gọi thuyền bán ${fish.name}?`),
++    h("p", {}, `Level 100 · Giá bán: ${fish.purchase_price * 100} CBCoin (giá mua ×100).`),
++    h("p", { class: "fine" }, "Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục.")
++  ), [{ label: "Để sau", kind: "ghost" }, { label: "Gọi thuyền", kind: "primary", run: async () => {
++    if (working) return;
++    working = true; render();
++    const boat = h("div", { class: "sale-boat", role: "status" },
++      h("img", { src: "/art/hunt/boat.png", alt: "Thuyền đến đón cá trưởng thành" }),
++      h("p", {}, `Thuyền đang đến đón ${fish.name}…`)
++    );
++    document.body.append(boat);
++    try {
++      await boat.animate([{ transform: "translateX(-100vw)", opacity: 0 }, { transform: "translateX(0)", opacity: 1 }], {
++        duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1200, fill: "forwards"
++      }).finished;
++      const coins = await api.sell(fish.id);
++      toast(`⛵ Thuyền đã đón ${fish.name}! +${coins} CBCoin`);
++    } catch (e) { fail(e); }
++    finally { boat.remove(); working = false; await refresh(); }
++  }}]);
++}
++
+ function renderFeed(): Node {
+   const okCount = preview.filter((p) => p.ok).length;
+   const choose = async () => {
+@@ -337,8 +362,8 @@
+   );
+   const fishSelect = h("select", {
+     "aria-label": "Cá được cho ăn",
+-    onchange: (e: Event) => (selectedFish = (e.target as HTMLSelectElement).value),
+-  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${f.name} · ${stageName[f.stage]} · ${f.exp} EXP`)));
++    onchange: (e: Event) => { selectedFish = (e.target as HTMLSelectElement).value; render(); },
++  }, ...state.fish.map((f) => h("option", { value: f.id, selected: f.id === selectedFish }, `${f.name} · Lv.${Math.floor(f.exp / 100)} · ${stageName[f.stage]}${f.resting_until > Date.now()/1000 ? " · Đang no" : ""}`)));
+   return h("section", {},
+     h("div", { class: "section-head" }, h("h2", {}, "Cho cá ăn")),
+     h("p", { class: "lead" }, "Chọn file bạn không cần nữa. File được chuyển vào Bụng cá và có thể nhả lại bất cứ lúc nào — game không bao giờ xóa file. Chuyển trong cùng ổ đĩa không làm tăng dung lượng trống."),
+@@ -361,14 +386,14 @@
+         fishSelect,
+         h("button", {
+           class: "primary",
+-          disabled: working || okCount === 0 || !selectedFish || !!state.read_only || !!state.belly_error,
++          disabled: working || okCount === 0 || !selectedFish || !!state.read_only || !!state.belly_error || !!state.fish.find(f => f.id === selectedFish && (f.exp >= 10000 || f.resting_until > Date.now()/1000)),
+           onclick: feed,
+         }, working ? "Đang xử lý…" : okCount ? `Cho cá ăn ${okCount} file` : "Chưa có file hợp lệ"),
+         h("ul", {},
+           h("li", {}, "Mỗi file được kiểm tra lại ngay trước khi chuyển."),
+           h("li", {}, "Chỉ nhận file cùng ổ đĩa với Bụng cá; không bao giờ sao chép rồi xóa."),
+-          h("li", {}, "Chống thưởng trùng bằng dấu vân tay đọc tối đa 1 MiB đầu + kích thước, xử lý trên máy. Đây không phải checksum toàn file: hai file khác nhau đôi khi bị coi là trùng."),
+-          h("li", {}, "Nhả file ra không thu hồi Vỏ sò đã nhận; cho ăn lại cùng file không được thưởng thêm."),
++          h("li", {}, "File mới được so toàn bộ nội dung bằng SHA-256 trên máy. Copy hoặc đổi tên không được EXP lần nữa. Lịch sử cũ dùng dấu vân tay đầu file để chặn thưởng lặp."),
++          h("li", {}, "Nhả file ra không thu hồi EXP đã nhận. Mỗi 20 MB là một bậc 20 EXP; 100 EXP = 1 level. Mỗi 5 level nghỉ 2 tiếng, EXP dư được giữ để tiêu hóa sau."),
+         ),
+       ),
+     ),
+@@ -382,8 +407,8 @@
+     h("strong", {}, `Đã đưa ${moved} file vào Bụng cá.`),
+     r.reward
+       ? h("div", {},
+-          `+${r.reward.shells} Vỏ sò · +${r.reward.exp} EXP`,
+-          r.reward.duplicates ? ` · ${r.reward.duplicates} file trùng không tính thưởng` : "",
++          `+${r.reward.exp} EXP · ${r.reward.duplicates} file trùng không ghi nhận`,
++
+           r.reward.capped ? " · đã chạm hạn mức hôm nay" : "",
+         )
+       : null,
+@@ -450,14 +475,16 @@
+     return h("article", { class: "card fish-card" },
+       fishArt(s),
+       h("div", { class: "body" },
+-        h("h3", {}, f.name),
++        h("h3", {}, `${f.name} · Lv.${Math.floor(f.exp / 100)}`),
+         h("span", { class: "sci" }, s ? s.scientific_name : f.species_id),
+         h("div", { class: "tags" },
+           h("span", { class: "tag" }, stageName[f.stage]),
+           h("span", { class: "tag" }, f.origin === "starter" ? "Cá khởi đầu" : "Từ cửa hàng"),
+         ),
+         h("div", { class: "bar", role: "progressbar", "aria-valuenow": String(pct), "aria-valuemin": "0", "aria-valuemax": "100" }, h("i", { style: `width:${pct}%` })),
+-        h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP tới ${stageName[f.stage === "fry" ? "juvenile" : "adult"]}` : `${f.exp} EXP · đã trưởng thành`),
++        h("span", { class: "fine" }, next ? `${f.exp} / ${next} EXP · ${f.pending_exp} EXP đang tiêu hóa` : "Level 100 · đã trưởng thành"),
++        f.resting_until > Date.now()/1000 ? h("p", {}, `🫧 Bụng em thành bóng rồi! Nghỉ tới ${formatDate(f.resting_until)} nhé.`) : null,
++        f.stage === "adult" ? h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, `⛵ Gọi thuyền bán · ${f.purchase_price * 100} CBCoin`) : null,
+       ),
+     );
+   });
+@@ -466,7 +493,7 @@
+       h("h2", {}, "Bể của tôi"),
+       h("span", { class: "fine" }, `Fishdex: đã sở hữu ${owned}/${state.species.length} loài`),
+     ),
+-    h("p", { class: "lead" }, "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá bột → cá non → trưởng thành."),
++    h("p", { class: "lead" }, "Cá không bao giờ chết hay bỏ đi khi bạn nghỉ chơi. Cho cá ăn để cá lớn từ cá non → thành niên (Lv.50) → trưởng thành (Lv.100)."),
+     h("div", { class: "grid" }, ...cards),
+   );
+ }
+@@ -474,8 +501,8 @@
+ function renderHunt(): Node {
+   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
+   return h("section", { class: "settings" },
+-    h("h2", {}, "Trục vớt Vỏ sò"),
+-    h("p", { class: "lead" }, "Gọi thuyền, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận Vỏ sò."),
++    h("h2", {}, "Trục vớt vỏ sò"),
++    h("p", { class: "lead" }, "Gọi thuyền, canh móc đung đưa rồi thả để gắp sò. Kéo về thuyền mới nhận CBCoin."),
+     h("div", { class: "setting" }, h("div", {},
+       h("h3", {}, remaining ? `${remaining} sò đang chờ dưới đáy` : "Chưa thấy sò mới"),
+       h("p", {}, "Sò xuất hiện từng đợt 1–10, thời gian không cố định. Sò được giữ lại khi bạn bận. Lần đầu có 3 sò hướng dẫn.")),
+@@ -483,6 +510,7 @@
+         onclick: () => api.startHunt().then(refresh, fail) }, "Gọi thuyền")),
+     h("p", {}, `Đã nhặt hôm nay: ${state.hunt.earned}/${state.hunt.daily_cap}. Hạn mức riêng với cho cá ăn; không thưởng EXP.`),
+     h("p", { class: "fine" }, "Click vùng chơi hoặc Space để thả móc. Trượt không mất điểm. Chế độ họp tạm dừng; rời thuyền giữ sò chưa nhặt."),
++    collectionPanel(state.hunt),
+   );
+ }
+ 
+@@ -545,7 +573,7 @@
+   modal(
+     h("div", {},
+       h("h2", {}, "Chào mừng tới TrashQuarium"),
+-      h("p", { style: "margin-top:8px" }, `Bạn được tặng ${starter ? starter.name : "một chú cá"} và ${state.shells} Vỏ sò để mở cửa hàng.`),
++      h("p", { style: "margin-top:8px" }, `Bạn được tặng ${starter ? starter.name : "một chú cá"} và ${state.cbcoins} CBCoin để mở cửa hàng.`),
+       h("p", {}, "• Bể cá desktop (tùy chọn) bơi dưới biểu tượng desktop, không che ứng dụng. Bật trong Cài đặt."),
+       h("p", {}, "• Cho cá ăn bằng file bạn không cần nữa: file vào Bụng cá, luôn nhả lại được, không bao giờ bị xóa."),
+       h("p", { class: "fine" }, "Không cần dùng file thật — bạn có thể thử bằng file mẫu, hoặc chỉ chăm cá và mua cá bằng quà tặng."),
+@@ -584,6 +612,7 @@
+   await refresh();
+   if (!state) return;
+   await listen("state-changed", refresh);
++  setInterval(() => { if (!working && preview.length === 0) void refresh(); }, 15000);
+   const route = async () => {
+     const next = await api.takeRoute();
+     if (next && ["shop", "feed", "belly", "tank", "settings", "hunt"].includes(next)) {
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/shell-collection.css new/src/shell-collection.css
+--- base/src/shell-collection.css	1970-01-01 00:00:00.000000000 +0000
++++ new/src/shell-collection.css	2026-10-05 09:11:31.080893239 +0000
+@@ -0,0 +1 @@
++.shell-collection{color:inherit}.shell-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.shell-card{padding:16px;border:1px solid #47716d;border-radius:18px;background:#143f46;color:#edf8f4}.shell-card img{width:100%;height:112px;object-fit:contain}.shell-card h3{font-size:17px;margin:8px 0}.shell-card p{font-size:13px;line-height:1.5}.shell-card a{color:#9de2df;font-size:12px}.shell-meta,.shell-note{font-size:12px;opacity:.8;line-height:1.6}.shell-card.locked img{filter:grayscale(1);opacity:.35}@media(max-width:760px){.shell-grid{grid-template-columns:1fr}.shell-card img{height:96px}}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/shell-collection.ts new/src/shell-collection.ts
+--- base/src/shell-collection.ts	1970-01-01 00:00:00.000000000 +0000
++++ new/src/shell-collection.ts	2026-10-05 09:11:31.080893239 +0000
+@@ -0,0 +1,34 @@
++import type { HuntView, ShellKind } from "./api";
++import "./shell-collection.css";
++
++export const SHELL_CARDS = [
++  { id: "great", sprite: 0, name: "Sò điệp lớn", taxon: "Pecten maximus", fact: "Sò điệp lớn có nhiều mắt nhỏ dọc mép áo. Nó có thể khép vỏ hoặc bơi để phản ứng với chuyển động và bóng tối.", habitat: "Sống ở biển, trên nền cát hoặc sỏi.", source: "https://www.marlin.ac.uk/species/detail/1398" },
++  { id: "queen", sprite: 1, name: "Sò điệp queen", taxon: "Aequipecten opercularis", fact: "Cá thể non có thể bám nền bằng sợi tơ chân. Khi lớn, chúng có thể rời điểm bám và bơi tự do.", habitat: "Gặp trên nền cát hoặc sỏi, tới độ sâu khoảng 100 m.", source: "https://www.marlin.ac.uk/species/detail/1997/1000" },
++  { id: "variegated", sprite: 2, name: "Sò điệp đa sắc", taxon: "Mimachlamys varia", fact: "Vỏ loài này có nhiều màu tự nhiên, từ trắng, hồng tới tím. Nó có thể sống tự do hoặc bám nền bằng sợi tơ chân.", habitat: "Thường gặp trên nền đá, kể cả trong phần bám của tảo.", source: "https://www.marlin.ac.uk/species/detail/2086" },
++] as const;
++export function shellSprite(kind: ShellKind): number { return SHELL_CARDS.find(card => card.id === kind)?.sprite ?? 0; }
++
++function node(tag: string, text = "", className = ""): HTMLElement {
++  const el = document.createElement(tag); el.textContent = text; el.className = className; return el;
++}
++export function collectionPanel(view: HuntView): HTMLElement {
++  const panel = node("section", "", "shell-collection");
++  const unlocked = SHELL_CARDS.filter(card => (view.collection[card.id]?.count ?? 0) > 0).length;
++  panel.append(node("h2", `Bộ sưu tập vỏ sò · ${unlocked}/3`));
++  panel.append(node("p", `${view.pearls} ngọc trai · Nhặt loại sò lần đầu để mở thẻ tìm hiểu.`));
++  const grid = node("div", "", "shell-grid");
++  for (const card of SHELL_CARDS) {
++    const entry = view.collection[card.id];
++    const article = node("article", "", `shell-card${entry ? "" : " locked"}`);
++    const img = document.createElement("img"); img.src = `/art/hunt/shell_${card.sprite}.png`; img.alt = entry ? `Minh họa stylized: ${card.name}` : "Loại sò chưa khám phá";
++    article.append(img, node("h3", entry ? card.name : "Chưa khám phá"));
++    article.append(node("p", `${["Trắng", "Đỏ", "Tím"][card.sprite]} · ${[1,10,100][card.sprite]} CBCoin khi kéo về thuyền`, "shell-meta"));
++    if (entry) {
++      article.append(node("i", card.taxon), node("p", card.fact), node("p", card.habitat), node("p", `Đã nhặt ${entry.count} · Hiếm ${entry.rare_count} · Lần đầu ${entry.first_found}`, "shell-meta"));
++      const source = document.createElement("a"); source.href = card.source; source.target = "_blank"; source.rel = "noopener noreferrer"; source.textContent = "Nguồn: MarLIN / Marine Biological Association"; article.append(source);
++    } else article.append(node("p", "Kéo sò về thuyền để mở thẻ kiến thức."));
++    grid.append(article);
++  }
++  panel.append(grid, node("p", "Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc.", "shell-note"));
++  return panel;
++}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/style.css new/src/style.css
+--- base/src/style.css	2026-10-03 05:06:01.000000000 +0000
++++ new/src/style.css	2026-10-05 09:11:31.080893239 +0000
+@@ -621,3 +621,5 @@
+     transition: none !important;
+   }
+ }
++.sale-boat { position: fixed; z-index: 10000; inset: 0; background: rgba(4,36,43,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
++.sale-boat img { width: min(440px, 70vw); height: auto; }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src/tank.ts new/src/tank.ts
+--- base/src/tank.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/src/tank.ts	2026-10-05 09:11:31.079893239 +0000
+@@ -2,6 +2,8 @@
+ // computer is idle or Meeting Mode is on, nothing when the window is hidden.
+ import { listen } from "@tauri-apps/api/event";
+ import { api, type Fish, type StateView } from "./api";
++import { huntArt, ready } from "./hunt-art";
++import { shellSprite } from "./shell-collection";
+ 
+ const VISIBLE_FPS = 30;
+ const QUIET_FPS = 10;
+@@ -176,11 +178,21 @@
+     const x = shell.x * width;
+     const y = height * (0.82 + (shell.y - 0.65) * 0.38);
+     const r = 10 + shell.size * 2;
++    const art = huntArt.shells[shellSprite(shell.kind)];
++    if (ready(art)) {
++      const length = r * 2.6;
++      ctx.save();
++      if (shell.rare) { ctx.shadowColor = "#ffe5a4"; ctx.shadowBlur = 8; }
++      ctx.drawImage(art, x - length / 2, y - length / 2, length, length);
++      ctx.restore();
++      continue;
++    }
+     ctx.save(); ctx.translate(x, y);
+     ctx.fillStyle = "#f5d8a2"; ctx.strokeStyle = "#b18c6d"; ctx.lineWidth = 1;
+     ctx.beginPath(); ctx.moveTo(0, r * .5); ctx.bezierCurveTo(-r * 1.4, 0, -r, -r, 0, -r); ctx.bezierCurveTo(r, -r, r * 1.4, 0, 0, r * .5); ctx.fill(); ctx.stroke();
+     for (let n = -2; n <= 2; n++) { ctx.beginPath(); ctx.moveTo(0, r * .4); ctx.lineTo(n * r * .3, -r * .7); ctx.stroke(); }
+     ctx.restore();
++
+   }
+   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
+   for (const b of bubbles) {
+@@ -208,6 +220,15 @@
+       drawFallbackFish(len);
+     }
+     ctx.restore();
++    if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
++      const jokes = ["No căng vảy! Cho em ngủ tí 💤", "Bụng em thành bóng rồi!", "Đừng thêm buffet… em xin thua!", "Đang tiêu hóa, đừng gọi em đi gym!"];
++      const text = jokes[Math.floor(s.fish.exp / 500) % jokes.length];
++      ctx.save(); ctx.font = "13px sans-serif";
++      const bubbleWidth = ctx.measureText(text).width + 20;
++      const x = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2)), y = Math.max(4, s.y - len * .55 - 28);
++      ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.beginPath(); ctx.roundRect(x, y, bubbleWidth, 25, 10); ctx.fill();
++      ctx.fillStyle = "#17434b"; ctx.fillText(text, x + 10, y + 17); ctx.restore();
++    }
+   }
+ }
+ 
+@@ -252,6 +273,7 @@
+   window.addEventListener("resize", resize);
+   await refresh();
+   await listen("state-changed", refresh);
++  setInterval(refresh, 15000);
+   await pollIdle();
+   setInterval(pollIdle, 5000);
+   requestAnimationFrame(frame);
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/config/balance.json new/src-tauri/config/balance.json
+--- base/src-tauri/config/balance.json	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/config/balance.json	2026-10-05 09:11:31.077893239 +0000
+@@ -5,7 +5,7 @@
+   "max_preview_files": 50,
+   "max_file_bytes": 4294967296,
+   "fingerprint_bytes": 1048576,
+-  "stage_exp": { "juvenile": 20, "adult": 60 },
++  "stage_exp": { "juvenile": 5000, "adult": 10000 },
+   "economy": {
+     "welcome_shells": 40,
+     "base_shells": 2,
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/config/species.json new/src-tauri/config/species.json
+--- base/src-tauri/config/species.json	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/config/species.json	2026-10-05 09:11:31.077893239 +0000
+@@ -11,7 +11,7 @@
+       "price": 25,
+       "sprite": "fish/cyprinus_carpio.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá chép có râu ở gần miệng; đừng nhầm mọi cá vàng với cá chép.",
+       "source": "https://www.fishbase.se/summary/Cyprinus-carpio.html",
+       "editorial_status": "draft"
+@@ -25,7 +25,7 @@
+       "price": 30,
+       "sprite": "fish/carassius_auratus.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá vàng có tên khoa học Carassius auratus; màu và dạng vây trong nuôi cảnh rất đa dạng.",
+       "source": "https://www.fishbase.se/summary/Carassius-auratus.html",
+       "editorial_status": "draft"
+@@ -39,7 +39,7 @@
+       "price": 20,
+       "sprite": "fish/poecilia_reticulata.png",
+       "reproduction": "live_birth",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá bảy màu sinh con sống. Trứng trong game chỉ là biểu tượng chờ đón cá con.",
+       "source": "https://www.fishbase.se/summary/Poecilia-reticulata.html",
+       "editorial_status": "draft"
+@@ -53,7 +53,7 @@
+       "price": 45,
+       "sprite": "fish/betta_splendens.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá betta có tên khoa học Betta splendens. Bể chung trong game không phải hướng dẫn nuôi chung.",
+       "source": "https://www.fishbase.se/summary/Betta-splendens.html",
+       "editorial_status": "draft"
+@@ -67,7 +67,7 @@
+       "price": 35,
+       "sprite": "fish/paracheirodon_innesi.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá neon có tên khoa học Paracheirodon innesi; không phải cá neon vua.",
+       "source": "https://www.fishbase.se/summary/Paracheirodon-innesi.html",
+       "editorial_status": "draft"
+@@ -81,7 +81,7 @@
+       "price": 60,
+       "sprite": "fish/pterophyllum_scalare.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá thần tiên nước ngọt có tên khoa học Pterophyllum scalare.",
+       "source": "https://www.fishbase.se/summary/Pterophyllum-scalare.html",
+       "editorial_status": "draft"
+@@ -95,7 +95,7 @@
+       "price": 20,
+       "sprite": "fish/danio_rerio.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá ngựa vằn Danio rerio là loài được dùng trong nghiên cứu sinh học.",
+       "source": "https://www.fishbase.se/summary/Danio-rerio.html",
+       "editorial_status": "draft"
+@@ -109,7 +109,7 @@
+       "price": 35,
+       "sprite": "fish/xiphophorus_hellerii.png",
+       "reproduction": "live_birth",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Cá kiếm sinh con sống. Phần đuôi dạng kiếm thường thấy ở cá đực.",
+       "source": "https://www.fishbase.se/summary/Xiphophorus-hellerii.html",
+       "editorial_status": "draft"
+@@ -123,7 +123,7 @@
+       "price": 55,
+       "sprite": "fish/trichopodus_leerii.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Tên khoa học của cá sặc trân châu là Trichopodus leerii.",
+       "source": "https://www.fishbase.se/summary/Trichopodus-leerii.html",
+       "editorial_status": "draft"
+@@ -137,10 +137,10 @@
+       "price": 80,
+       "sprite": "fish/symphysodon_aequifasciatus.png",
+       "reproduction": "egg",
+-      "stage_on_purchase": "juvenile",
++      "stage_on_purchase": "fry",
+       "fact": "Mục này minh họa Symphysodon aequifasciatus; phân loại trong nhóm cá đĩa có các quan điểm khác nhau.",
+       "source": "https://www.fishbase.se/summary/Symphysodon-aequifasciatus.html",
+       "editorial_status": "draft"
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/app.rs new/src-tauri/src/engine/app.rs
+--- base/src-tauri/src/engine/app.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/app.rs	2026-10-05 09:11:31.075893239 +0000
+@@ -46,7 +46,7 @@
+ #[derive(Serialize, Clone, Debug)]
+ pub struct StateView {
+     pub hunt: super::hunt::HuntView,
+-    pub shells: u64,
++    pub cbcoins: u64,
+     pub capacity: usize,
+     pub fish: Vec<Fish>,
+     pub daily: DailyView,
+@@ -81,11 +81,18 @@
+ 
+     pub fn preview(&self, paths: &[String]) -> Vec<Inspection> {
+         let mut seen = std::collections::HashSet::new();
++        let mut content = std::collections::HashSet::new();
+         paths
+             .iter()
+             .filter(|p| seen.insert(p.as_str()))
+             .take(self.game.catalog().balance.max_preview_files)
+-            .map(|p| guard::inspect(&self.policy, Path::new(p)))
++            .map(|p| {
++                let mut item = guard::inspect(&self.policy, Path::new(p));
++                if item.ok && (item.fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp) || !content.insert(fp.clone())) || item.legacy_fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp))) {
++                    item.ok = false; item.code = "duplicate".into();
++                }
++                item
++            })
+             .collect()
+     }
+ 
+@@ -93,6 +100,9 @@
+         if let Some(e) = &self.game.read_only {
+             return Err(e.clone());
+         }
++        self.reconcile()?;
++        self.game.digest(now_unix())?;
++        self.game.can_feed(fish_id, now_unix())?;
+         if !self.game.state.fish.iter().any(|f| f.id == fish_id) {
+             return Err(Failure::new("fish_not_found", fish_id));
+         }
+@@ -100,24 +110,32 @@
+         if items.len() > limit {
+             return Err(Failure::new("too_many_files", limit));
+         }
+-        let vault = self.belly.as_mut().map_err(|e| e.clone())?;
+         let mut files = Vec::new();
++        let mut total = RewardSummary::default();
++        let mut reward_error = None;
+         for item in items {
+-            let outcome = if !item.ok {
++            // Never trust client-supplied hashes, including legacy compatibility metadata.
++            let verified = if self.game.can_feed(fish_id, now_unix()).is_ok() && item.ok { guard::inspect(&self.policy, Path::new(&item.path)) } else { item.clone() };
++            let outcome = if let Err(e) = self.game.can_feed(fish_id, now_unix()) {
++                FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: e.code, undetermined: false }
++            } else if verified.fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp)) || verified.legacy_fingerprint.as_ref().is_some_and(|fp| self.game.state.ledger.fingerprints.contains(fp)) {
++                total.duplicates += 1;
++                FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: "duplicate".into(), undetermined: false }
++            } else if !item.ok {
+                 FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: item.code.clone(), undetermined: false }
+             } else {
+-                match vault.swallow(&self.policy, item, fish_id) {
++                match self.belly.as_mut().map_err(|e| e.clone())?.swallow(&self.policy, item, fish_id) {
+                     Ok(_) => FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: true, code: "ok".into(), undetermined: false },
+                     Err(e) => FeedOutcome { path: item.path.clone(), name: item.name.clone(), ok: false, code: e.code, undetermined: e.undetermined },
+                 }
+             };
+             files.push(outcome);
++            match self.reconcile() {
++                Ok(r) => { total.files += r.files; total.exp += r.exp; total.duplicates += r.duplicates; total.not_rewardable += r.not_rewardable; }
++                Err(e) => { reward_error = Some(e); break; }
++            }
+         }
+-        let (reward, reward_error) = match self.reconcile() {
+-            Ok(r) => (Some(r), None),
+-            Err(e) => (None, Some(e)),
+-        };
+-        Ok(FeedReport { files, reward, reward_error })
++        Ok(FeedReport { files, reward: Some(total), reward_error })
+     }
+ 
+     pub fn restore(&mut self, entry_id: &str) -> Result<RestoreOutcome, Failure> {
+@@ -152,7 +170,7 @@
+         let s = &self.game.state;
+         StateView {
+             hunt: self.game.hunt_view(),
+-            shells: s.wallet.shells,
++            cbcoins: s.wallet.cbcoins,
+             capacity: c.balance.tank_capacity,
+             fish: s.fish.clone(),
+             daily: DailyView {
+@@ -183,6 +201,39 @@
+     use crate::engine::guard::tests::Sandbox;
+     use std::fs;
+ 
++    #[test]
++    fn hunger_stops_batch_before_moving_more_files() {
++        let s = Sandbox::new(); let mut c = core(&s); let fish = c.game.state.fish[0].id.clone();
++        let paths: Vec<_> = (0..30).map(|i| s.file(&format!("docs/{i}.txt"), &format!("unique-{i}"))).collect();
++        let preview = c.preview(&paths.iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<_>>());
++        let report = c.feed(&preview,&fish).unwrap();
++        assert_eq!(report.files.iter().filter(|f|f.ok).count(),25);
++        assert_eq!(report.reward.unwrap().exp,500);
++        for p in &paths[25..] { assert!(p.exists()); }
++        assert_eq!(c.game.state.fish[0].exp,500);
++        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_full");
++        c.game.state.fish[0].exp=10000; c.game.state.fish[0].resting_until=0;
++        assert_eq!(c.feed(&preview[25..],&fish).unwrap_err().code,"fish_adult");
++        assert!(paths[25].exists());
++    }
++
++    #[test]
++    fn copies_different_tails_and_legacy_history_are_filtered() {
++        let s=Sandbox::new();let mut c=core(&s);let fish=c.game.state.fish[0].id.clone();
++        let a=s.file("docs/a.txt","0123456789abcdefTAIL-A");
++        let b=s.file("docs/b.txt","0123456789abcdefTAIL-B");
++        let copy=s.file("docs/copy.txt","0123456789abcdefTAIL-A");
++        let paths=vec![a.to_string_lossy().into_owned(),b.to_string_lossy().into_owned(),copy.to_string_lossy().into_owned()];
++        let preview=c.preview(&paths); assert!(preview[0].ok&&preview[1].ok);assert_eq!(preview[2].code,"duplicate");
++        let report=c.feed(&preview,&fish).unwrap();assert_eq!(report.reward.unwrap().exp,40);assert!(copy.exists());
++        let old=s.file("docs/old.txt","already paid legacy data");
++        let fp=guard::legacy_fingerprint(&old,fs::metadata(&old).unwrap().len(),s.policy.fingerprint_bytes).unwrap();
++        c.game.state.ledger.fingerprints.push_back(fp);
++        assert_eq!(c.preview(&[old.to_string_lossy().into_owned()])[0].code,"duplicate");assert!(old.exists());
++        let mut spoofed = guard::inspect(&s.policy,&old); spoofed.legacy_fingerprint=None;
++        let report=c.feed(&[spoofed],&fish).unwrap();assert_eq!(report.reward.unwrap().exp,0);assert!(old.exists());
++    }
++
+     fn core(s: &Sandbox) -> AppCore {
+         AppCore::open(s.policy.data_root.clone(), s.policy.clone(), Catalog::bundled().unwrap())
+     }
+@@ -199,8 +250,8 @@
+         let report = c.feed(&preview, &fish).unwrap();
+         assert!(report.files[0].ok);
+         assert_eq!(report.files[1].code, "extension");
+-        assert_eq!(report.reward.unwrap().shells, 2);
+-        assert_eq!(c.view().shells, 42);
++        assert_eq!(report.reward.unwrap().exp, 20);
++        assert_eq!(c.view().cbcoins, 40);
+         assert!(!a.exists() && b.exists());
+         // Restore does not claw back the reward; feeding the same bytes again pays nothing.
+         let id = c.held_entries()[0].id.clone();
+@@ -209,7 +260,8 @@
+         let again = c.preview(&[a.to_string_lossy().into()]);
+         let r = c.feed(&again, &fish).unwrap().reward.unwrap();
+         assert_eq!((r.shells, r.duplicates), (0, 1));
+-        assert_eq!(c.view().shells, 42);
++        assert_eq!(c.view().cbcoins, 40);
++        assert!(a.exists(), "duplicate stays in its original location");
+     }
+ 
+     #[test]
+@@ -229,8 +281,9 @@
+         fs::remove_dir(s.policy.data_root.join("game_save.json")).unwrap();
+         fs::rename(s.root.join("moved-save.json"), s.policy.data_root.join("game_save.json")).unwrap();
+         let c = core(&s);
+-        assert_eq!(c.view().shells, 42);
++        assert_eq!(c.view().cbcoins, 40);
++        assert_eq!(c.view().fish[0].exp, 20);
+         drop(c);
+-        assert_eq!(core(&s).view().shells, 42, "paid exactly once");
++        assert_eq!(core(&s).view().fish[0].exp, 20, "paid exactly once");
+     }
+ }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/catalog.rs new/src-tauri/src/engine/catalog.rs
+--- base/src-tauri/src/engine/catalog.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/catalog.rs	2026-10-05 09:11:31.076893239 +0000
+@@ -4,7 +4,6 @@
+ use serde::{Deserialize, Serialize};
+ use std::collections::{BTreeMap, HashSet};
+ 
+-use super::guard::Category;
+ 
+ const SPECIES_JSON: &str = include_str!("../../config/species.json");
+ const BALANCE_JSON: &str = include_str!("../../config/balance.json");
+@@ -59,17 +58,6 @@
+     pub max_fingerprints: usize,
+ }
+ 
+-impl Economy {
+-    pub fn category_mult(&self, c: Category) -> f64 {
+-        let key = match c {
+-            Category::Doc => "doc",
+-            Category::Media => "media",
+-            Category::Tech => "tech",
+-        };
+-        self.category_multiplier.get(key).copied().unwrap_or(1.0)
+-    }
+-}
+-
+ #[derive(Serialize, Deserialize, Clone, Debug)]
+ pub struct Balance {
+     #[serde(default)]
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/fsops.rs new/src-tauri/src/engine/fsops.rs
+--- base/src-tauri/src/engine/fsops.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/fsops.rs	2026-10-05 09:11:31.076893239 +0000
+@@ -74,6 +74,8 @@
+ /// default macOS volumes are case-insensitive, so compare case-insensitively there.
+ pub fn path_key(path: &Path) -> String {
+     let s = path.to_string_lossy().replace('\\', "/");
++    #[cfg(windows)]
++    let s = if s.starts_with("//?/") && s.as_bytes().get(5) == Some(&b':') { s[4..].to_string() } else { s };
+     let s = s.trim_end_matches('/').to_string();
+     if cfg!(any(windows, target_os = "macos")) {
+         s.to_lowercase()
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/game.rs new/src-tauri/src/engine/game.rs
+--- base/src-tauri/src/engine/game.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/game.rs	2026-10-05 09:11:31.075893239 +0000
+@@ -1,4 +1,4 @@
+-//! Game save: fish, wallet (Vỏ sò), reward ledger, Fishdex flags and settings.
++//! Game save: fish, CBCoin wallet, reward ledger, Fishdex flags and settings.
+ //!
+ //! Every change is made on a copy and only becomes current after the atomic
+ //! save succeeds, so a failed save never loses shells or creates a fish.
+@@ -12,7 +12,7 @@
+ use super::save::{self, Loaded};
+ use super::Failure;
+ 
+-pub const SCHEMA_VERSION: u64 = 2;
++pub const SCHEMA_VERSION: u64 = 4;
+ pub const RULES_VERSION: u32 = 1;
+ pub const RENDERER_VERSION: u32 = 1;
+ const BACKUPS: usize = 3;
+@@ -49,6 +49,9 @@
+     pub generation: u32,
+     pub stage: Stage,
+     pub exp: u64,
++    #[serde(default)] pub pending_exp: u64,
++    #[serde(default)] pub resting_until: i64,
++    #[serde(default)] pub purchase_price: u64,
+     pub traits: BTreeMap<String, String>,
+     pub visual_recipe: VisualRecipe,
+     pub rules_version: u32,
+@@ -57,16 +60,15 @@
+ 
+ #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+ pub struct Wallet {
+-    pub shells: u64,
++    #[serde(alias = "shells")] pub cbcoins: u64,
++    #[serde(default)] pub pearls: u64,
+ }
+ 
+ #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+ pub struct RewardLedger {
+     /// Every Belly receipt already settled, rewarded or not. Never pruned.
+     pub receipts: BTreeSet<String>,
+-    /// Fingerprints already rewarded, oldest first. Bounded by
+-    /// `economy.max_fingerprints`; beyond that the oldest are forgotten, so
+-    /// duplicate protection is not permanent.
++    /// Fingerprints already rewarded, never pruned (copy/rename protection).
+     pub fingerprints: VecDeque<String>,
+ }
+ 
+@@ -136,6 +138,9 @@
+             if f.species_id.is_empty() {
+                 return Err(format!("fish {} has no species", f.id));
+             }
++            if self.schema_version >= 4 && (f.exp > 10000 || f.pending_exp > 10000 - f.exp || f.resting_until < 0) {
++                return Err(format!("invalid growth state {}", f.id));
++            }
+         }
+         if !self.daily.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.daily.date, "%Y-%m-%d").is_err() {
+             return Err(format!("invalid daily date {:?}", self.daily.date));
+@@ -181,8 +186,31 @@
+             if version == 1 {
+                 v["shell_hunt"] = serde_json::to_value(super::hunt::HuntState::default()).map_err(|e| e.to_string())?;
+                 v["settings"]["quick_dock_enabled"] = serde_json::Value::Bool(true);
++            } else if version != 2 && version != 3 && version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
++            if version == 1 || version == 2 {
++                // Keep legacy batches/IDs and never reroll rare rewards during migration.
++                if let Some(shells) = v.get_mut("shell_hunt").and_then(|h| h.get_mut("batch")).and_then(|b| b.get_mut("shells")).and_then(serde_json::Value::as_array_mut) {
++                    for shell in shells {
++                        shell["kind"] = serde_json::json!(match shell["size"].as_u64().unwrap_or(0) { 1 => "queen", 2 => "variegated", _ => "great" });
++                        shell["rare"] = serde_json::json!(false);
++                        shell["pearl"] = serde_json::json!(false);
++                    }
++                }
+                 v["schema_version"] = serde_json::Value::from(SCHEMA_VERSION);
+-            } else if version != SCHEMA_VERSION { return Err("unsupported save schema".into()); }
++            }
++            if version < 4 {
++                if let Some(fish) = v.get_mut("fish").and_then(serde_json::Value::as_array_mut) {
++                    for f in fish {
++                        // Preserve achieved life stage; scale legacy progress to new thresholds.
++                        let old = f["exp"].as_u64().unwrap_or(0);
++                        let exp = match f["stage"].as_str() { Some("adult") => 10000, Some("juvenile") => 5000 + old.saturating_sub(20).min(39) * 100, _ => old.min(19) * 250 };
++                        f["exp"] = serde_json::json!(exp);
++                        let price = f["species_id"].as_str().and_then(|id| store.catalog.species(id)).map(|s| s.price).unwrap_or(0);
++                        f["purchase_price"] = serde_json::json!(price);
++                    }
++                }
++                v["schema_version"] = serde_json::json!(SCHEMA_VERSION);
++            }
+             let s: GameState = serde_json::from_value(v).map_err(|e| e.to_string())?;
+             s.validate()?;
+             Ok(s)
+@@ -195,7 +223,7 @@
+                     fresh.fish.push(store.new_fish(&sp, Origin::Starter, now));
+                     mark_owned(&mut fresh, &sp.id);
+                 }
+-                fresh.wallet.shells = store.catalog.balance.economy.welcome_shells;
++                fresh.wallet.cbcoins = store.catalog.balance.economy.welcome_shells;
+                 fresh.welcome_granted = true;
+                 if let Err(e) = store.commit(fresh) {
+                     store.read_only = Some(e);
+@@ -230,12 +258,7 @@
+     }
+ 
+     fn new_fish(&self, species: &Species, origin: Origin, now: i64) -> Fish {
+-        let stage = match species.stage_on_purchase.as_str() {
+-            "fry" => Stage::Fry,
+-            "adult" => Stage::Adult,
+-            _ => Stage::Juvenile,
+-        };
+-        let thresholds = &self.catalog.balance.stage_exp;
++        let stage = Stage::Fry;
+         Fish {
+             id: uuid::Uuid::new_v4().to_string(),
+             species_id: species.id.clone(),
+@@ -244,11 +267,7 @@
+             parent_ids: Vec::new(),
+             generation: 0,
+             stage,
+-            exp: match stage {
+-                Stage::Fry => 0,
+-                Stage::Juvenile => thresholds.juvenile,
+-                Stage::Adult => thresholds.adult,
+-            },
++            exp: 0, pending_exp: 0, resting_until: 0, purchase_price: species.price,
+             traits: BTreeMap::new(),
+             visual_recipe: VisualRecipe { base: species.id.clone(), renderer_version: RENDERER_VERSION },
+             rules_version: RULES_VERSION,
+@@ -270,18 +289,44 @@
+         if self.state.fish.len() >= self.catalog.balance.tank_capacity {
+             return Err(Failure::new("tank_full", self.catalog.balance.tank_capacity));
+         }
+-        if self.state.wallet.shells < species.price {
+-            return Err(Failure::new("not_enough_shells", species.price - self.state.wallet.shells));
++        if self.state.wallet.cbcoins < species.price {
++            return Err(Failure::new("not_enough_shells", species.price - self.state.wallet.cbcoins));
+         }
+         let fish = self.new_fish(&species, Origin::Shop, now);
+         let mut next = self.state.clone();
+-        next.wallet.shells -= species.price;
++        next.wallet.cbcoins -= species.price;
+         next.fish.push(fish.clone());
+         mark_owned(&mut next, &species.id);
+         self.commit(next)?;
+         Ok(fish)
+     }
+ 
++    pub fn can_feed(&self, fish_id: &str, now: i64) -> Result<(), Failure> {
++        let f = self.state.fish.iter().find(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
++        if f.exp >= 10000 { return Err(Failure::new("fish_adult", "level 100")); }
++        if f.resting_until > now { return Err(Failure::new("fish_full", f.resting_until)); }
++        Ok(())
++    }
++
++    /// Calling the sale boat transfers only the game fish, never its Belly files.
++    pub fn sell(&mut self, fish_id: &str) -> Result<u64, Failure> {
++        let mut next = self.state.clone();
++        let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
++        if next.fish[i].exp < 10000 { return Err(Failure::new("fish_not_adult", "level 100 required")); }
++        let price = next.fish[i].purchase_price.checked_mul(100).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
++        next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
++        next.fish.remove(i);
++        self.commit(next)?;
++        Ok(price)
++    }
++
++    pub fn digest(&mut self, now: i64) -> Result<(), Failure> {
++        if !self.state.fish.iter().any(|f| f.pending_exp > 0 && f.resting_until <= now) { return Ok(()); }
++        let mut next = self.state.clone();
++        for f in &mut next.fish { digest_fish(f, now); }
++        self.commit(next)
++    }
++
+     /// Settles every Belly receipt not yet in the ledger, exactly once: the
+     /// wallet, EXP and ledger are written in one atomic save. If the save fails
+     /// nothing changes and the receipts stay pending for the next attempt.
+@@ -294,8 +339,6 @@
+         if pending.is_empty() {
+             return Ok(summary);
+         }
+-        let eco = self.catalog.balance.economy.clone();
+-        let thresholds = self.catalog.balance.stage_exp.clone();
+         let mut next = self.state.clone();
+         roll_day(&mut next.daily, today);
+         for e in pending {
+@@ -309,44 +352,17 @@
+                 continue;
+             }
+             next.ledger.fingerprints.push_back(e.fingerprint.clone());
+-            while next.ledger.fingerprints.len() > eco.max_fingerprints {
+-                next.ledger.fingerprints.pop_front();
+-            }
+-            let diminish = (1.0 - eco.diminish_step * next.daily.rewarded as f64).max(eco.diminish_min);
+-            let size_factor = ((e.size as f64 / 1024.0 + 1.0).log10() / eco.size_log_divisor).clamp(eco.size_min, eco.size_max);
+-            let age_days = ((now - e.modified_unix) as f64 / 86400.0).max(0.0);
+-            let age_factor = if age_days < eco.age_recent_days {
+-                eco.age_recent_mult
+-            } else if age_days <= eco.age_old_days {
+-                eco.age_middle_mult
+-            } else {
+-                eco.age_old_mult
+-            };
+-            let exp_room = eco.daily_exp_cap.saturating_sub(next.daily.exp);
+-            let shell_room = eco.daily_shell_cap.saturating_sub(next.daily.shells);
+-            let exp = ((eco.base_exp * eco.category_mult(e.category) * size_factor * age_factor * diminish).round() as u64).min(exp_room);
+-            let shells = ((eco.base_shells * diminish).round() as u64).max(1).min(shell_room);
+-            if shells == 0 || exp_room == 0 {
+-                summary.capped = true;
+-            }
++            let exp = file_exp(e.size);
+             next.daily.rewarded += 1;
+-            next.daily.exp += exp;
+-            next.daily.shells += shells;
+-            next.wallet.shells += shells;
+             if let Some(fish) = next.fish.iter_mut().find(|f| f.id == e.fish_id) {
+-                fish.exp += exp;
+-                let grown = if fish.exp >= thresholds.adult {
+-                    Stage::Adult
+-                } else if fish.exp >= thresholds.juvenile {
+-                    Stage::Juvenile
+-                } else {
+-                    Stage::Fry
+-                };
+-                fish.stage = fish.stage.max(grown);
++                let room = 10000u64.saturating_sub(fish.exp + fish.pending_exp);
++                let credited = exp.min(room);
++                fish.pending_exp += credited;
++                digest_fish(fish, now);
++                summary.exp += credited;
++                next.daily.exp += credited;
+             }
+             summary.files += 1;
+-            summary.shells += shells;
+-            summary.exp += exp;
+         }
+         self.commit(next)?;
+         Ok(summary)
+@@ -360,7 +376,7 @@
+ 
+     pub fn hunt_view(&self) -> super::hunt::HuntView {
+         let h = &self.state.shell_hunt;
+-        super::hunt::HuntView { batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
++        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
+     }
+ 
+     pub fn start_hunt(&mut self, today: &str) -> Result<super::hunt::HuntView, Failure> {
+@@ -419,9 +435,16 @@
+                     if s.phase == "settling" {
+                         if let Some(shell) = b.shells.iter().find(|sh| Some(&sh.id) == s.caught_id.as_ref() && !sh.collected) {
+                             let id = shell.id.clone();
++                            let kind = shell.kind; let rare = shell.rare; let pearl = shell.pearl;
++                            let first_of_kind = !next.shell_hunt.collection.contains_key(&kind);
++                            let entry = next.shell_hunt.collection.entry(kind).or_insert_with(|| super::hunt::CollectionEntry { count: 0, rare_count: 0, first_found: today.into() });
++                            entry.count = entry.count.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "collection"))?;
++                            if rare { entry.rare_count = entry.rare_count.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "rare collection"))?; }
++                            if pearl { next.wallet.pearls = next.wallet.pearls.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", "pearls"))?; }
++                            next.shell_hunt.last_catch = Some(super::hunt::CatchReceipt { shell_id: id.clone(), kind, rare, pearl, first_of_kind });
+                             next.shell_hunt.batch.as_mut().unwrap().shells.iter_mut().find(|sh| sh.id == id).unwrap().collected = true;
+                             next.shell_hunt.earned += 1;
+-                            next.wallet.shells = next.wallet.shells.checked_add(1).ok_or_else(|| Failure::new("wallet_overflow", ""))?;
++                            next.wallet.cbcoins = next.wallet.cbcoins.checked_add(shell_value(kind)).ok_or_else(|| Failure::new("wallet_overflow", ""))?;
+                             changed = true;
+                         }
+                     }
+@@ -451,6 +474,23 @@
+     pub fn checkpoint_hunt(&mut self) -> Result<(), Failure> { self.commit(self.state.clone()) }
+ }
+ 
++pub fn shell_value(kind: super::hunt::ShellKind) -> u64 {
++    match kind { super::hunt::ShellKind::Great => 1, super::hunt::ShellKind::Queen => 10, super::hunt::ShellKind::Variegated => 100 }
++}
++
++/// Decimal MB, strict upper bounds: exactly 20 MB belongs to the 40 EXP tier.
++pub fn file_exp(bytes: u64) -> u64 { (bytes / 20_000_000 + 1).saturating_mul(20) }
++
++fn digest_fish(f: &mut Fish, now: i64) {
++    if f.resting_until > now || f.pending_exp == 0 || f.exp >= 10000 { return; }
++    let boundary = ((f.exp / 500 + 1) * 500).min(10000);
++    let amount = f.pending_exp.min(boundary - f.exp);
++    f.exp += amount; f.pending_exp -= amount;
++    f.stage = if f.exp >= 10000 { Stage::Adult } else if f.exp >= 5000 { Stage::Juvenile } else { Stage::Fry };
++    if f.exp == boundary && f.exp < 10000 { f.resting_until = now.saturating_add(7200); }
++    if f.exp == 10000 { f.pending_exp = 0; f.resting_until = 0; }
++}
++
+ fn mark_owned(state: &mut GameState, species_id: &str) {
+     let entry = state.dex.entry(species_id.to_string()).or_default();
+     entry.seen = true;
+@@ -475,6 +515,76 @@
+     const NOW: i64 = 1_790_000_000;
+     const OLD: i64 = NOW - 90 * 86400;
+ 
++    #[test]
++    fn size_tiers_are_strict_decimal_mb() {
++        for (bytes, exp) in [(0,20),(19_999_999,20),(20_000_000,40),(39_999_999,40),(40_000_000,60),(59_999_999,60),(60_000_000,80),(4_000_000_000,4020)] {
++            assert_eq!(file_exp(bytes), exp);
++        }
++    }
++
++    #[test]
++    fn v3_save_migrates_currency_stage_price_and_keeps_ledger() {
++        let dir=tempfile::tempdir().unwrap();let s=store(dir.path());let mut v=serde_json::to_value(&s.state).unwrap();
++        v["schema_version"]=serde_json::json!(3);v["wallet"].as_object_mut().unwrap().remove("cbcoins");v["wallet"]["shells"]=serde_json::json!(123);
++        v["fish"][0]["stage"]=serde_json::json!("adult");v["fish"][0]["exp"]=serde_json::json!(60);
++        for key in ["purchase_price","resting_until","pending_exp"] {v["fish"][0].as_object_mut().unwrap().remove(key);}
++        v["ledger"]["fingerprints"]=serde_json::json!(["p1m:legacy"]);
++        fs::write(&s.path,serde_json::to_vec(&v).unwrap()).unwrap();drop(s);
++        let mut s=store(dir.path());assert!(s.read_only.is_none());assert_eq!(s.state.wallet.cbcoins,123);
++        assert_eq!(s.state.fish[0].exp,10000);assert_eq!(s.state.fish[0].stage,Stage::Adult);
++        assert!(s.state.ledger.fingerprints.contains(&"p1m:legacy".into()));
++        let id=s.state.fish[0].id.clone();let price=s.state.fish[0].purchase_price;s.sell(&id).unwrap();
++        assert_eq!(store(dir.path()).state.wallet.cbcoins,123+price*100);
++    }
++
++    #[test]
++    fn duplicate_history_is_not_pruned_and_sale_overflow_is_atomic() {
++        let dir=tempfile::tempdir().unwrap();let mut s=store(dir.path());s.catalog.balance.economy.max_fingerprints=1;
++        let id=s.state.fish[0].id.clone();s.apply_receipts(&[entry("a","A",&id,true),entry("b","B",&id,true)],"2026-10-05",NOW).unwrap();
++        assert_eq!(s.apply_receipts(&[entry("c","A",&id,true)],"2026-10-05",NOW).unwrap().duplicates,1);
++        s.state.fish[0].exp=10000;s.state.fish[0].stage=Stage::Adult;s.state.wallet.cbcoins=u64::MAX;
++        assert_eq!(s.sell(&id).unwrap_err().code,"wallet_overflow");assert_eq!(s.state.fish.len(),1);assert_eq!(s.state.wallet.cbcoins,u64::MAX);
++    }
++
++    #[test]
++    fn growth_rest_bank_restart_adult_and_sale() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        let id = s.state.fish[0].id.clone();
++        let mut e = entry("big", "big-hash", &id, true); e.size = 599_999_999;
++        assert_eq!(s.apply_receipts(&[e], "2026-10-05", NOW).unwrap().exp, 600);
++        assert_eq!((s.state.fish[0].exp, s.state.fish[0].pending_exp), (500,100));
++        assert_eq!(s.can_feed(&id, NOW+7199).unwrap_err().code, "fish_full");
++        drop(s); let mut s = store(dir.path());
++        s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,500);
++        s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(600,0));
++        assert!(s.can_feed(&id,NOW+7200).is_ok());
++        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_adult");
++        s.state.fish[0].exp = 4900; s.state.fish[0].pending_exp = 200; s.state.fish[0].resting_until = 0;
++        s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,5000);
++        s.state.fish[0].exp = 9900; s.state.fish[0].pending_exp = 100; s.state.fish[0].resting_until = 0;
++        s.digest(NOW+14400).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Adult);
++        assert_eq!(s.can_feed(&id,NOW+14400).unwrap_err().code,"fish_adult");
++        let paid = s.state.fish[0].purchase_price;
++        let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
++        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,40);
++        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,40+paid*100);
++        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_found");
++        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,40+paid*100);
++    }
++
++    #[test]
++    fn all_shell_colors_credit_coin_values_once() {
++        use super::super::hunt::ShellKind;
++        for (kind,value) in [(ShellKind::Great,1),(ShellKind::Queen,10),(ShellKind::Variegated,100)] {
++            let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
++            let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.kind=kind; shell.pearl=false; let id=shell.id.clone();
++            let session=s.hunt_session.as_mut().unwrap(); session.phase="settling".into();session.caught_id=Some(id.clone());
++            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,40+value);
++            let session=s.hunt_session.as_mut().unwrap();session.phase="settling".into();session.caught_id=Some(id);
++            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,40+value);
++        }
++    }
++
+     fn store(dir: &Path) -> GameStore {
+         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
+     }
+@@ -503,13 +613,13 @@
+     fn new_profile_gets_starter_and_welcome_once() {
+         let dir = tempfile::tempdir().unwrap();
+         let mut s = store(dir.path());
+-        assert_eq!(s.state.wallet.shells, 40);
++        assert_eq!(s.state.wallet.cbcoins, 40);
+         assert_eq!(s.state.fish.len(), 1);
+         assert_eq!(s.state.fish[0].origin, Origin::Starter);
+         assert!(s.state.fish[0].parent_ids.is_empty());
+         s.purchase("danio_rerio", 20, NOW).unwrap();
+         let s = store(dir.path());
+-        assert_eq!(s.state.wallet.shells, 20, "welcome credit must not be granted again");
++        assert_eq!(s.state.wallet.cbcoins, 20, "welcome credit must not be granted again");
+         assert_eq!(s.state.fish.len(), 2);
+     }
+ 
+@@ -523,8 +633,8 @@
+         let f = s.purchase("danio_rerio", 20, NOW).unwrap();
+         assert_eq!(f.origin, Origin::Shop);
+         assert_eq!(f.name, "Cá ngựa vằn");
+-        assert_eq!(f.stage, Stage::Juvenile);
+-        assert_eq!(s.state.wallet.shells, 20);
++        assert_eq!(f.stage, Stage::Fry);
++        assert_eq!(s.state.wallet.cbcoins, 20);
+         assert!(s.state.dex["danio_rerio"].owned);
+     }
+ 
+@@ -532,13 +642,13 @@
+     fn full_tank_blocks_purchase_without_charging() {
+         let dir = tempfile::tempdir().unwrap();
+         let mut s = store(dir.path());
+-        s.state.wallet.shells = 10_000;
++        s.state.wallet.cbcoins = 10_000;
+         while s.state.fish.len() < 12 {
+             s.purchase("danio_rerio", 20, NOW).unwrap();
+         }
+-        let before = s.state.wallet.shells;
++        let before = s.state.wallet.cbcoins;
+         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "tank_full");
+-        assert_eq!(s.state.wallet.shells, before);
++        assert_eq!(s.state.wallet.cbcoins, before);
+     }
+ 
+     #[test]
+@@ -547,7 +657,7 @@
+         let mut s = store(dir.path());
+         s.path = dir.path().join("missing-dir/game.json");
+         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "save_failed");
+-        assert_eq!(s.state.wallet.shells, 40);
++        assert_eq!(s.state.wallet.cbcoins, 40);
+         assert_eq!(s.state.fish.len(), 1);
+     }
+ 
+@@ -558,11 +668,11 @@
+         let fish = s.state.fish[0].id.clone();
+         let entries = vec![entry("r1", "fp1", &fish, true)];
+         let first = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
+-        assert_eq!(first.shells, 2);
++        assert_eq!(first.shells, 0);
+         assert!(first.exp > 0);
+         let replay = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
+         assert_eq!(replay, RewardSummary::default());
+-        assert_eq!(s.state.wallet.shells, 42);
++        assert_eq!(s.state.wallet.cbcoins, 40);
+     }
+ 
+     #[test]
+@@ -579,19 +689,20 @@
+     }
+ 
+     #[test]
+-    fn daily_cap_holds_and_clock_rollback_does_not_reset_it() {
++    fn feeding_exp_has_no_old_daily_diminish_or_currency_reward() {
+         let dir = tempfile::tempdir().unwrap();
+         let mut s = store(dir.path());
+         let fish = s.state.fish[0].id.clone();
+         let many: Vec<_> = (0..200).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
+         let r = s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
+-        assert_eq!(r.shells, 100);
+-        assert!(r.capped);
++        assert_eq!(r.shells, 0);
++        assert_eq!(r.exp, 4000);
++        assert!(!r.capped);
+         let more: Vec<_> = (200..210).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
+         let back = s.apply_receipts(&more, "2026-09-28", NOW).unwrap();
+         assert_eq!(back.shells, 0, "turning the clock back must not reopen the cap");
+         let next: Vec<_> = (300..301).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
+-        assert!(s.apply_receipts(&next, "2026-09-30", NOW).unwrap().shells >= 1);
++        assert_eq!(s.apply_receipts(&next, "2026-09-30", NOW).unwrap().exp, 20);
+     }
+ 
+     #[test]
+@@ -603,9 +714,9 @@
+         let good = s.path.clone();
+         s.path = dir.path().join("missing-dir/game.json");
+         assert!(s.apply_receipts(&entries, "2026-09-29", NOW).is_err());
+-        assert_eq!(s.state.wallet.shells, 40);
++        assert_eq!(s.state.wallet.cbcoins, 40);
+         s.path = good;
+-        assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().shells, 2);
++        assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().exp, 20);
+     }
+ 
+     #[test]
+@@ -615,7 +726,8 @@
+         let fish = s.state.fish[0].id.clone();
+         let many: Vec<_> = (0..20).map(|i| entry(&format!("r{i}"), &format!("fp{i}"), &fish, true)).collect();
+         s.apply_receipts(&many, "2026-09-29", NOW).unwrap();
+-        assert_eq!(s.state.fish[0].stage, Stage::Adult);
++        assert_eq!(s.state.fish[0].stage, Stage::Fry);
++        assert_eq!(s.state.fish[0].exp, 400);
+     }
+ 
+     #[test]
+@@ -648,8 +760,8 @@
+         fs::write(&s.path, serde_json::to_vec(&old).unwrap()).unwrap();
+         drop(s);
+         let s = store(dir.path());
+-        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, 2);
+-        assert_eq!(s.state.wallet.shells, 20); assert_eq!(s.state.fish.len(), 2);
++        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, SCHEMA_VERSION);
++        assert_eq!(s.state.wallet.cbcoins, 20); assert_eq!(s.state.fish.len(), 2);
+         assert_eq!(s.state.fish[0].id, id); assert!(s.state.ledger.receipts.contains("paid"));
+         assert!(s.state.settings.quick_dock_enabled);
+     }
+@@ -659,17 +771,18 @@
+         let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+         let view = s.start_hunt("2026-10-03").unwrap();
+         let b = view.batch.unwrap(); let id = b.shells[0].id.clone();
++        s.state.shell_hunt.batch.as_mut().unwrap().shells[0].kind = super::super::hunt::ShellKind::Great;
+         let session = s.hunt_session.as_mut().unwrap();
+         session.phase = "settling".into(); session.caught_id = Some(id.clone());
+         let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
+         assert!(s.tick_hunt(100, "2026-10-03").is_err());
+-        assert_eq!(s.state.wallet.shells, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
++        assert_eq!(s.state.wallet.cbcoins, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+         s.path = good;
+         assert!(s.tick_hunt(100, "2026-10-03").unwrap());
+-        assert_eq!(s.state.wallet.shells, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
++        assert_eq!(s.state.wallet.cbcoins, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
+         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
+-        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.shells, 41);
+-        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.shells, 41);
++        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 41);
++        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 41);
+         assert_eq!(loaded.state.shell_hunt.batch.as_ref().unwrap().remaining(), 2);
+         assert!(loaded.hunt_session.is_none());
+     }
+@@ -688,4 +801,82 @@
+         s.state.shell_hunt.earned = 60;
+         assert_eq!(s.start_hunt("2026-10-02").unwrap_err().code, "hunt_cap");
+     }
++
++    #[test]
++    fn rare_pearl_collection_reward_is_atomic_and_replay_safe() {
++        use super::super::hunt::ShellKind;
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        s.start_hunt("2026-10-05").unwrap();
++        let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0];
++        shell.kind = ShellKind::Queen; shell.rare = true; shell.pearl = true;
++        let id = shell.id.clone();
++        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id.clone());
++        let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
++        assert!(s.tick_hunt(100, "2026-10-05").is_err());
++        assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty()); assert!(s.state.shell_hunt.last_catch.is_none());
++        s.path = good; s.tick_hunt(100, "2026-10-05").unwrap();
++        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 50);
++        let entry = &s.state.shell_hunt.collection[&ShellKind::Queen]; assert_eq!((entry.count, entry.rare_count), (1,1));
++        assert!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind);
++        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
++        s.tick_hunt(100, "2026-10-05").unwrap();
++        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.shell_hunt.collection[&ShellKind::Queen].count, 1);
++        drop(s); let mut loaded = store(dir.path());
++        assert_eq!(loaded.state.wallet.pearls, 1); assert_eq!(loaded.state.shell_hunt.collection[&ShellKind::Queen].rare_count, 1);
++        loaded.tick_hunt(100, "2026-10-06").unwrap();
++        assert_eq!(loaded.state.shell_hunt.earned, 0); assert_eq!(loaded.state.shell_hunt.collection[&ShellKind::Queen].count, 1);
++    }
++
++    #[test]
++    fn v2_migration_keeps_batch_and_does_not_reroll_rewards() {
++        use super::super::hunt::ShellKind;
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
++        s.start_hunt("2026-10-05").unwrap();
++        let batch_id = s.state.shell_hunt.batch.as_ref().unwrap().id.clone();
++        let mut legacy = serde_json::to_value(&s.state).unwrap();
++        legacy["schema_version"] = serde_json::json!(2);
++        legacy["wallet"].as_object_mut().unwrap().remove("pearls");
++        legacy["shell_hunt"].as_object_mut().unwrap().remove("collection");
++        legacy["shell_hunt"].as_object_mut().unwrap().remove("last_catch");
++        for shell in legacy["shell_hunt"]["batch"]["shells"].as_array_mut().unwrap() {
++            for key in ["kind", "rare", "pearl"] { shell.as_object_mut().unwrap().remove(key); }
++        }
++        fs::write(&s.path, serde_json::to_vec(&legacy).unwrap()).unwrap(); drop(s);
++        let loaded = store(dir.path()); assert!(loaded.read_only.is_none());
++        let batch = loaded.state.shell_hunt.batch.as_ref().unwrap(); assert_eq!(batch.id, batch_id);
++        for shell in &batch.shells {
++            assert!(!shell.rare && !shell.pearl);
++            assert_eq!(shell.kind, match shell.size {1=>ShellKind::Queen,2=>ShellKind::Variegated,_=>ShellKind::Great});
++        }
++        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 40); assert!(loaded.state.shell_hunt.collection.is_empty());
++    }
++
++    #[test]
++    fn pearl_overflow_and_daily_cap_do_not_grant_collection() {
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
++        let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.rare = true; shell.pearl = true; let id = shell.id.clone();
++        let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
++        s.state.wallet.pearls = u64::MAX;
++        assert_eq!(s.tick_hunt(100, "2026-10-05").unwrap_err().code, "wallet_overflow");
++        assert!(s.state.shell_hunt.collection.is_empty()); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
++        s.state.wallet.pearls = 0; s.state.shell_hunt.earned = s.catalog.balance.shell_hunt.daily_cap;
++        s.tick_hunt(100, "2026-10-05").unwrap(); assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty());
++    }
++
++    #[test]
++    fn collection_survives_finished_batch_and_repeat_discovery() {
++        use super::super::hunt::ShellKind;
++        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
++        for shell in &mut s.state.shell_hunt.batch.as_mut().unwrap().shells { shell.kind = ShellKind::Great; shell.rare = false; shell.pearl = false; }
++        let ids: Vec<_> = s.state.shell_hunt.batch.as_ref().unwrap().shells.iter().map(|s| s.id.clone()).collect();
++        for (index, id) in ids.iter().enumerate() {
++            let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id.clone());
++            s.tick_hunt(100, "2026-10-05").unwrap();
++            assert_eq!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind, index == 0);
++        }
++        assert!(s.state.shell_hunt.batch.is_none()); assert!(s.hunt_session.is_none());
++        assert_eq!(s.hunt_view().collection[&ShellKind::Great].count, 3);
++        drop(s); let loaded = store(dir.path()); assert_eq!(loaded.hunt_view().collection[&ShellKind::Great].count, 3);
++        assert_eq!(loaded.state.wallet.cbcoins, 43); assert_eq!(loaded.state.wallet.pearls, 0);
++    }
+ }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/guard.rs new/src-tauri/src/engine/guard.rs
+--- base/src-tauri/src/engine/guard.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/guard.rs	2026-10-05 09:11:31.076893239 +0000
+@@ -1,8 +1,7 @@
+ //! FileGuard: decides whether a user-selected file may go into the Belly.
+ //!
+ //! Fail-closed: anything that cannot be checked is refused. Inspection never
+-//! modifies the file; it only reads metadata and at most the first
+-//! `fingerprint_bytes` bytes for the duplicate-reward fingerprint.
++//! modifies the file; duplicate protection reads the whole file in bounded chunks.
+ 
+ use serde::{Deserialize, Serialize};
+ use sha2::{Digest, Sha256};
+@@ -114,6 +113,7 @@
+     pub category: Option<Category>,
+     pub modified_unix: i64,
+     pub fingerprint: Option<String>,
++    #[serde(default)] pub legacy_fingerprint: Option<String>,
+ }
+ 
+ impl Inspection {
+@@ -127,13 +127,22 @@
+             category: None,
+             modified_unix: 0,
+             fingerprint: None,
++            legacy_fingerprint: None,
+         }
+     }
+ }
+ 
+ pub fn inspect(policy: &GuardPolicy, path: &Path) -> Inspection {
++    let original = path;
++    if path.components().any(|c| matches!(c, Component::ParentDir | Component::CurDir)) {
++        return Inspection::deny(path, "parent_ref");
++    }
++    // Rust canonicalize produces a verbatim local-drive prefix on Windows.
++    // Only normalize that specific prefix; UNC and device namespaces remain denied.
++    let normalized = local_disk_path(path);
++    let path = normalized.as_path();
+     match check(policy, path) {
+-        Ok(ok) => ok,
++        Ok(mut ok) => { ok.path = original.to_string_lossy().into_owned(); ok },
+         Err(code) => {
+             let mut denied = Inspection::deny(path, code);
+             if let Ok(meta) = fs::symlink_metadata(path) {
+@@ -146,6 +155,16 @@
+     }
+ }
+ 
++fn local_disk_path(path: &Path) -> PathBuf {
++    #[cfg(windows)]
++    if let Some(Component::Prefix(p)) = path.components().next() {
++        if matches!(p.kind(), std::path::Prefix::VerbatimDisk(_)) {
++            if let Some(text) = path.to_str().and_then(|s| s.strip_prefix("\\\\?\\")) { return PathBuf::from(text); }
++        }
++    }
++    path.to_path_buf()
++}
++
+ fn check(policy: &GuardPolicy, path: &Path) -> Result<Inspection, &'static str> {
+     check_textual(path)?;
+     let meta = fs::symlink_metadata(path).map_err(|_| "not_found")?;
+@@ -195,6 +214,7 @@
+         category: Some(category),
+         modified_unix,
+         fingerprint: Some(fingerprint),
++        legacy_fingerprint: Some(legacy_fingerprint(path, size, policy.fingerprint_bytes).map_err(|_| "unreadable")?),
+     })
+ }
+ 
+@@ -252,13 +272,11 @@
+     fsops::is_within(path, dir) && fsops::path_key(path) != fsops::path_key(dir)
+ }
+ 
+-/// Local duplicate-reward fingerprint: SHA-256 of the size plus the first
+-/// `limit` bytes. This is NOT a full-file checksum: two different files that
+-/// share size and prefix are treated as the same file.
+-pub fn fingerprint(path: &Path, size: u64, limit: u64) -> std::io::Result<String> {
++/// SHA-256 of size plus all bytes; filenames/locations do not affect duplicates.
++pub fn fingerprint(path: &Path, size: u64, _limit: u64) -> std::io::Result<String> {
+     let mut hasher = Sha256::new();
+     hasher.update(size.to_le_bytes());
+-    let mut reader = File::open(path)?.take(limit);
++    let mut reader = File::open(path)?;
+     let mut buf = [0u8; 64 * 1024];
+     loop {
+         let n = reader.read(&mut buf)?;
+@@ -268,6 +286,15 @@
+         hasher.update(&buf[..n]);
+     }
+     let hex: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
++    Ok(format!("sha256:{hex}"))
++}
++
++/// Compatibility only: never add new prefix hashes to the paid ledger.
++pub fn legacy_fingerprint(path: &Path, size: u64, limit: u64) -> std::io::Result<String> {
++    let mut hasher = Sha256::new(); hasher.update(size.to_le_bytes());
++    let mut reader = File::open(path)?.take(limit); let mut buf = [0u8; 64*1024];
++    loop { let n = reader.read(&mut buf)?; if n == 0 { break; } hasher.update(&buf[..n]); }
++    let hex: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+     Ok(format!("p1m:{hex}"))
+ }
+ 
+@@ -322,18 +349,29 @@
+         assert!(r.ok, "{r:?}");
+         assert_eq!(r.category, Some(Category::Doc));
+         assert_eq!(r.size, 5);
+-        assert!(r.fingerprint.unwrap().starts_with("p1m:"));
++        assert!(r.fingerprint.unwrap().starts_with("sha256:"));
+     }
+ 
+     #[test]
+     fn refuses_unsafe_shapes() {
+         let s = Sandbox::new();
+         assert_eq!(s.code(Path::new("relative.txt")), "not_absolute");
+-        assert_eq!(s.code(&s.root.join("docs/../docs/x.txt")), "parent_ref");
++        assert_eq!(s.code(&local_disk_path(&s.root).join("docs/../docs/x.txt")), "parent_ref");
+         assert_eq!(s.code(&s.root.join("docs/missing.txt")), "not_found");
+         assert_eq!(s.code(&s.root.join("docs")), "directory");
+     }
+ 
++    #[cfg(windows)]
++    #[test]
++    fn canonical_drive_paths_work_but_network_device_and_ads_stay_denied() {
++        let s=Sandbox::new();let file=s.file("docs/canonical.txt","test");
++        assert!(inspect(&s.policy,&fs::canonicalize(&file).unwrap()).ok);
++        for path in [r"\\server\share\a.txt",r"\\?\UNC\server\share\a.txt",r"\\.\C:\docs\a.txt",r"\\?\GLOBALROOT\Device\HarddiskVolume1\a.txt"] {
++            assert_eq!(s.code(Path::new(path)),"device_path");
++        }
++        assert_eq!(s.code(&PathBuf::from(format!("{}:stream",local_disk_path(&file).display()))),"alternate_stream");
++    }
++
+     #[test]
+     fn refuses_protected_locations() {
+         let s = Sandbox::new();
+@@ -374,14 +412,15 @@
+     }
+ 
+     #[test]
+-    fn fingerprint_depends_on_prefix_and_size_only() {
++    fn fingerprint_reads_full_content_and_ignores_copy_name() {
+         let s = Sandbox::new();
+         let a = s.file("docs/a.txt", "0123456789abcdefTAIL-A");
+         let b = s.file("docs/b.txt", "0123456789abcdefTAIL-B");
+         let c = s.file("docs/c.txt", "0123456789abcdefTAIL-CC");
+-        let fp = |p: &Path| inspect(&s.policy, p).fingerprint.unwrap();
+-        // Same size + same 16-byte prefix → documented false duplicate.
+-        assert_eq!(fp(&a), fp(&b));
++        let fp = |p: &Path| fingerprint(p, fs::metadata(p).unwrap().len(), 16).unwrap();
++        assert_ne!(fp(&a), fp(&b));
+         assert_ne!(fp(&a), fp(&c));
++        let copy = s.file("docs/renamed.txt", "0123456789abcdefTAIL-A");
++        assert_eq!(fp(&a), fp(&copy));
+     }
+ }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/engine/hunt.rs new/src-tauri/src/engine/hunt.rs
+--- base/src-tauri/src/engine/hunt.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/engine/hunt.rs	2026-10-05 09:11:31.076893239 +0000
+@@ -4,6 +4,21 @@
+ 
+ pub const PIVOT: (f64, f64) = (0.5, 0.14);
+ const SWING_LIMIT: f64 = 65.0;
++pub const RARE_CHANCE: f64 = 0.08;
++pub const PEARL_CHANCE_IF_RARE: f64 = 0.35;
++
++#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
++#[serde(rename_all = "snake_case")]
++pub enum ShellKind { #[default] Great, Queen, Variegated }
++
++#[derive(Serialize, Deserialize, Clone, Debug)]
++pub struct CollectionEntry { pub count: u64, pub rare_count: u64, pub first_found: String }
++
++#[derive(Serialize, Deserialize, Clone, Debug)]
++pub struct CatchReceipt {
++    pub shell_id: String, pub kind: ShellKind, pub rare: bool,
++    pub pearl: bool, pub first_of_kind: bool,
++}
+ 
+ #[derive(Serialize, Deserialize, Clone, Debug)]
+ pub struct HuntBalance {
+@@ -38,18 +53,27 @@
+     pub y: f64,
+     pub size: u8,
+     pub collected: bool,
++    #[serde(default)] pub kind: ShellKind,
++    #[serde(default)] pub rare: bool,
++    #[serde(default)] pub pearl: bool,
+ }
+ #[derive(Serialize, Deserialize, Clone, Debug)]
+ pub struct Batch { pub id: String, pub shells: Vec<Shell> }
+ impl Batch {
+     pub fn generate(count: usize) -> Self {
+-        let shells = (0..count).map(|i| Shell {
++        let shells = (0..count).map(|i| {
++            let rare = random() < RARE_CHANCE;
++            Shell {
+             id: uuid::Uuid::new_v4().to_string(),
+             x: 0.13 + (i % 5) as f64 * 0.185 + (random() - 0.5) * 0.035,
+             y: 0.70 + (i / 5) as f64 * 0.14 + random() * 0.025,
+             size: (random() * 3.0) as u8,
+             collected: false,
+-        }).collect();
++            kind: match (random() * 3.0) as u8 { 0 => ShellKind::Great, 1 => ShellKind::Queen, _ => ShellKind::Variegated },
++            rare,
++            // Rolled once at spawn, not on catch/retry/restart.
++            pearl: rare && random() < PEARL_CHANCE_IF_RARE,
++        }}).collect();
+         Self { id: uuid::Uuid::new_v4().to_string(), shells }
+     }
+     pub fn remaining(&self) -> usize { self.shells.iter().filter(|s| !s.collected).count() }
+@@ -61,10 +85,12 @@
+     pub date: String,
+     pub earned: u64,
+     pub batch: Option<Batch>,
++    #[serde(default)] pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
++    #[serde(default)] pub last_catch: Option<CatchReceipt>,
+ }
+ impl Default for HuntState {
+     fn default() -> Self {
+-        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None }
++        Self { remaining_wait_ms: HuntBalance::default().next_wait(), tutorial_granted: false, date: String::new(), earned: 0, batch: None, collection: Default::default(), last_catch: None }
+     }
+ }
+ impl HuntState {
+@@ -74,11 +100,17 @@
+     pub fn validate(&self) -> Result<(), String> {
+         if self.remaining_wait_ms > 86_400_000 { return Err("invalid hunt countdown".into()); }
+         if !self.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.date, "%Y-%m-%d").is_err() { return Err("invalid hunt date".into()); }
++        for entry in self.collection.values() {
++            if entry.count == 0 || entry.rare_count > entry.count || chrono::NaiveDate::parse_from_str(&entry.first_found, "%Y-%m-%d").is_err() { return Err("invalid shell collection".into()); }
++        }
++        if let Some(receipt) = &self.last_catch {
++            if receipt.shell_id.is_empty() || (receipt.pearl && !receipt.rare) || !self.collection.contains_key(&receipt.kind) { return Err("invalid catch receipt".into()); }
++        }
+         if let Some(b) = &self.batch {
+             let mut ids = std::collections::BTreeSet::new();
+             if b.id.is_empty() || b.shells.is_empty() || b.shells.len() > 10 { return Err("invalid shell batch".into()); }
+             for s in &b.shells {
+-                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(0.10..=0.90).contains(&s.x) || !(0.65..=0.88).contains(&s.y) || s.size > 2 {
++                if s.id.is_empty() || !ids.insert(&s.id) || !s.x.is_finite() || !s.y.is_finite() || !(0.10..=0.90).contains(&s.x) || !(0.65..=0.88).contains(&s.y) || s.size > 2 || (s.pearl && !s.rare) {
+                     return Err("invalid shell".into());
+                 }
+             }
+@@ -154,6 +186,9 @@
+ 
+ #[derive(Serialize, Clone, Debug)]
+ pub struct HuntView {
++    pub pearls: u64,
++    pub collection: std::collections::BTreeMap<ShellKind, CollectionEntry>,
++    pub last_catch: Option<CatchReceipt>,
+     pub batch: Option<Batch>,
+     pub earned: u64,
+     pub daily_cap: u64,
+@@ -176,7 +211,7 @@
+         }
+     }
+     #[test] fn a_catch_requires_retraction_and_replayed_drop_is_ignored() {
+-        let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false }] };
++        let b = Batch { id: "batch".into(), shells: vec![Shell { id: "s".into(), x: 0.5, y: 0.75, size: 0, collected: false, kind: ShellKind::Great, rare: false, pearl: false }] };
+         let mut s = HuntSession::new(&b); s.angle = 0.0;
+         let id = s.id.clone(); s.action(&id, 1, "drop").unwrap();
+         s.step(1.15, &b); assert_eq!(s.caught_id.as_deref(), Some("s")); assert_eq!(s.phase, "retracting");
+@@ -191,4 +226,25 @@
+         state.roll_day("2026-10-02"); assert_eq!(state.earned, 60);
+         state.roll_day("2026-10-04"); assert_eq!(state.earned, 0);
+     }
++    #[test] fn spawn_metadata_roundtrips_without_reroll() {
++        for _ in 0..20 {
++            let batch = Batch::generate(10);
++            assert!(batch.shells.iter().all(|s| !s.pearl || s.rare));
++            let saved = serde_json::to_string(&batch).unwrap();
++            let loaded: Batch = serde_json::from_str(&saved).unwrap();
++            assert_eq!(batch.id, loaded.id);
++            for (before, after) in batch.shells.iter().zip(&loaded.shells) {
++                assert_eq!((&before.id, before.kind, before.rare, before.pearl, before.size, before.collected), (&after.id, after.kind, after.rare, after.pearl, after.size, after.collected));
++                assert!((before.x-after.x).abs() < 1e-12 && (before.y-after.y).abs() < 1e-12);
++            }
++        }
++    }
++    #[test] fn invalid_pearl_or_collection_is_rejected() {
++        let mut state = HuntState { batch: Some(Batch::generate(1)), ..HuntState::default() };
++        let shell = &mut state.batch.as_mut().unwrap().shells[0]; shell.rare = false; shell.pearl = true;
++        assert!(state.validate().is_err());
++        state.batch = None;
++        state.collection.insert(ShellKind::Great, CollectionEntry { count: 1, rare_count: 2, first_found: "2026-10-05".into() });
++        assert!(state.validate().is_err());
++    }
+ }
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/src-tauri/src/lib.rs new/src-tauri/src/lib.rs
+--- base/src-tauri/src/lib.rs	2026-10-03 05:06:01.000000000 +0000
++++ new/src-tauri/src/lib.rs	2026-10-05 09:11:31.076893239 +0000
+@@ -88,7 +88,9 @@
+ }
+ 
+ #[tauri::command]
+-async fn hunt_status(core: State<'_, Core>) -> engine::hunt::HuntView { with_core(&core, |c| c.game.hunt_view()).await }
++async fn hunt_status(core: State<'_, Core>) -> Result<engine::hunt::HuntView, Failure> {
++    Ok(with_core(&core, |c| c.game.hunt_view()).await)
++}
+ 
+ #[tauri::command]
+ async fn start_hunt(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>) -> Result<engine::hunt::HuntView, Failure> {
+@@ -171,7 +173,7 @@
+ 
+ #[tauri::command]
+ async fn get_state(core: State<'_, Core>) -> Result<StateView, Failure> {
+-    Ok(with_core(&core, |c| c.view()).await)
++    with_core(&core, |c| { c.game.digest(engine::now_unix())?; Ok(c.view()) }).await
+ }
+ 
+ #[tauri::command]
+@@ -213,6 +215,14 @@
+ }
+ 
+ #[tauri::command]
++async fn sell_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, fish_id: String) -> Result<u64, Failure> {
++    let _guard = busy.enter()?;
++    let result = with_core(&core, move |c| c.game.sell(&fish_id)).await;
++    notify(&app);
++    result
++}
++
++#[tauri::command]
+ async fn belly_restore(
+     app: AppHandle,
+     core: State<'_, Core>,
+@@ -405,6 +415,7 @@
+             preview_files,
+             feed,
+             buy,
++            sell_fish,
+             belly_list,
+             belly_restore,
+             belly_recover,
+diff -ruN '--exclude=*.png' '--exclude=docs' '--exclude=gen' base/vite.config.ts new/vite.config.ts
+--- base/vite.config.ts	2026-10-03 05:06:01.000000000 +0000
++++ new/vite.config.ts	2026-10-05 09:11:31.080893239 +0000
+@@ -4,7 +4,8 @@
+ // Two pages: the manager window and the desktop tank window.
+ export default defineConfig({
+   clearScreen: false,
+-  server: { port: 1420, strictPort: true },
++  // Rust build outputs are watched by Tauri, not Vite. Windows locks live EXEs/PDBs.
++  server: { port: 1420, strictPort: true, watch: { ignored: ["**/src-tauri/target/**"] } },
+   envPrefix: ["VITE_", "TAURI_"],
+   build: {
+     target: "es2021",

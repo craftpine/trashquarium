@@ -1,0 +1,57 @@
+diff --git a/src/tank.ts b/src/tank.ts
+index 4ef3ba1..bed3089 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -273,7 +273,7 @@ function step(dt: number) {
+ // vertical offset follows a travelling wave: calm at the head, wide at the tail.
+ // The shadow is baked once per size (shadowBlur every frame is slow on big screens).
+ const SLICES = 28;
+-const baked = new Map<string, { canvas: HTMLCanvasElement; pad: number; w: number; h: number }>();
++const baked = new Map<string, { canvas: HTMLCanvasElement; shadow: HTMLCanvasElement; pad: number; w: number; h: number }>();
+ 
+ // Sprites have uneven transparent margins, so size each fish by its visible body.
+ const bounds = new Map<string, { x: number; y: number; w: number; h: number }>();
+@@ -317,18 +317,29 @@ function bakeFish(id: string, img: HTMLImageElement, len: number) {
+   canvas.width = Math.ceil((w + pad * 2) * dpr);
+   canvas.height = Math.ceil((h + pad * 2) * dpr);
+   const g = canvas.getContext("2d")!;
+-  g.shadowColor = "rgba(0, 20, 25, 0.35)";
+-  g.shadowBlur = len * 0.08 * dpr;
+-  g.shadowOffsetY = len * 0.05 * dpr;
+   g.drawImage(img, b.x, b.y, b.w, b.h, pad * dpr, pad * dpr, w * dpr, h * dpr);
+-  hit = { canvas, pad, w, h };
++  // The shadow is a separate, already blurred silhouette drawn once behind the slices. Baking it
++  // into the sliced sprite made the overlapping slices stack its semi-transparent pixels, which
++  // showed up as thin dark stripes under the belly.
++  const shadow = document.createElement("canvas");
++  shadow.width = canvas.width;
++  shadow.height = canvas.height;
++  const sg = shadow.getContext("2d")!;
++  const far = canvas.width + 50; // draw the fish off-canvas so only its shadow lands inside
++  sg.shadowColor = "rgba(0, 20, 25, 0.35)";
++  sg.shadowBlur = len * 0.08 * dpr;
++  sg.shadowOffsetX = far;
++  sg.shadowOffsetY = len * 0.05 * dpr;
++  sg.drawImage(img, b.x, b.y, b.w, b.h, pad * dpr - far, pad * dpr, w * dpr, h * dpr);
++  hit = { canvas, shadow, pad, w, h };
+   baked.set(key, hit);
+   return hit;
+ }
+ 
+ function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
+-  const { canvas: src, pad, w, h } = bakeFish(s.fish.species_id, img, len);
++  const { canvas: src, shadow, pad, w, h } = bakeFish(s.fish.species_id, img, len);
+   const totalW = w + pad * 2, totalH = h + pad * 2;
++  ctx.drawImage(shadow, -totalW / 2, -totalH / 2, totalW, totalH);
+   const sliceW = src.width / SLICES, destW = totalW / SLICES;
+   if (reducedMotion.matches) { ctx.drawImage(src, -totalW / 2, -totalH / 2, totalW, totalH); return; }
+   const style = swimStyle(s.fish.species_id);
+@@ -348,7 +359,7 @@ function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
+     // Shear each slice so its edges meet the neighbours: a smooth bend, no stair steps.
+     ctx.save();
+     ctx.transform(1, (right - left) / destW, 0, 1, x0, left);
+-    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, 0, -sh / 2, destW + 0.8, sh);
++    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, 0, -sh / 2, destW + 0.6, sh);
+     ctx.restore();
+     left = right;
+   }

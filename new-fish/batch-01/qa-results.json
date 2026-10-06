@@ -1,0 +1,1107 @@
+{
+  "records": [
+    {
+      "id": "TQ1000-0001",
+      "file": "sprites/tq1000-0001-mandarinfish.png",
+      "sha256": "9AA4D8E9649D8BA2CBF003E0181C1FFAE547858EB81BC5AAE44DEE3ED0987148",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 831832,
+        "partiallyTransparentPixels": 741032,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 97,
+        "topMargin": 50,
+        "rightMargin": 48,
+        "bottomMargin": 101,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0002",
+      "file": "sprites/tq1000-0002-emperor-angelfish.png",
+      "sha256": "B08BAB970D461286C8520226B2AC3294238017112A7E5D0680829BBBD77187BD",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 754933,
+        "partiallyTransparentPixels": 817931,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 123,
+        "topMargin": 71,
+        "rightMargin": 59,
+        "bottomMargin": 72,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0003",
+      "file": "sprites/tq1000-0003-queen-angelfish.png",
+      "sha256": "081AC245659BCE995469916C67FC9D4277F1B8EA36798EAE47C04C0EF1256BFE",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 827617,
+        "partiallyTransparentPixels": 745247,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 177,
+        "topMargin": 83,
+        "rightMargin": 49,
+        "bottomMargin": 66,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0004",
+      "file": "sprites/tq1000-0004-copperband-butterflyfish.png",
+      "sha256": "FB169DBA376A73734F0AD5A1F57BE5A49144086E4A85200DC7038886F6313C6C",
+      "image": {
+        "width": 1374,
+        "height": 1145,
+        "transparentPixels": 924261,
+        "partiallyTransparentPixels": 648273,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 76,
+        "topMargin": 103,
+        "rightMargin": 28,
+        "bottomMargin": 92,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0005",
+      "file": "sprites/tq1000-0005-raccoon-butterflyfish.png",
+      "sha256": "05A1FE05D0AA5B341434A710A2DD19209E5877A4076A94B469D89991297566E3",
+      "image": {
+        "width": 1484,
+        "height": 1060,
+        "transparentPixels": 758683,
+        "partiallyTransparentPixels": 814139,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 66,
+        "topMargin": 21,
+        "rightMargin": 34,
+        "bottomMargin": 38,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0006",
+      "file": "sprites/tq1000-0006-threadfin-butterflyfish.png",
+      "sha256": "C1176BAC565259F39D2B1C0C2EB4743F8BD9DB72D01F472578F0C625AFB975B9",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 928950,
+        "partiallyTransparentPixels": 643914,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 113,
+        "topMargin": 39,
+        "rightMargin": 18,
+        "bottomMargin": 53,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0007",
+      "file": "sprites/tq1000-0007-regal-angelfish.png",
+      "sha256": "AEA2411EBB6F90AE737218E4341C4460D3C967CD6649C2C0CEB8ECA2D5CD69D2",
+      "image": {
+        "width": 1374,
+        "height": 1145,
+        "transparentPixels": 772438,
+        "partiallyTransparentPixels": 800388,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 65,
+        "topMargin": 96,
+        "rightMargin": 27,
+        "bottomMargin": 103,
+        "cornerAlpha": [
+          0,
+          0,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0008",
+      "file": "sprites/tq1000-0008-flame-angelfish.png",
+      "sha256": "FE2EB95F45BAAABAE23EB8671CEFBF8CB11AAB78438A2EA17E9234297CBC01CA",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 881893,
+        "partiallyTransparentPixels": 690971,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 165,
+        "topMargin": 57,
+        "rightMargin": 118,
+        "bottomMargin": 61,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0009",
+      "file": "sprites/tq1000-0009-royal-gramma.png",
+      "sha256": "D7A272AE062B769DD69FBFCC5B105038F4F82D3704EF23058501264C3CC84703",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1012167,
+        "partiallyTransparentPixels": 560697,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 83,
+        "topMargin": 148,
+        "rightMargin": 79,
+        "bottomMargin": 156,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0010",
+      "file": "sprites/tq1000-0010-firefish-goby.png",
+      "sha256": "F62E95A22147AAD13CD836BB39CC445D9CA03181B9FB073E685A56B821EE0435",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1169137,
+        "partiallyTransparentPixels": 403727,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 142,
+        "topMargin": 22,
+        "rightMargin": 115,
+        "bottomMargin": 32,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0011",
+      "file": "sprites/tq1000-0011-banggai-cardinalfish.png",
+      "sha256": "8429D32467740A75E43D48BCC310217A40291625AD0591F244C8131F858F6A8A",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1131242,
+        "partiallyTransparentPixels": 441622,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 176,
+        "topMargin": 27,
+        "rightMargin": 65,
+        "bottomMargin": 31,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0012",
+      "file": "sprites/tq1000-0012-pajama-cardinalfish.png",
+      "sha256": "8CDF6776E78D335054D1B44D8072204FBD5E34401FC24D3CD9F5BBD29B5B86AA",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1051945,
+        "partiallyTransparentPixels": 520919,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 190,
+        "topMargin": 66,
+        "rightMargin": 100,
+        "bottomMargin": 79,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0013",
+      "file": "sprites/tq1000-0013-sixline-wrasse.png",
+      "sha256": "5FD8A6C0411EAEFACB1D7202EAF8C635294E4DD865C89945813E9714764A9BC5",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1056524,
+        "partiallyTransparentPixels": 516340,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 80,
+        "topMargin": 212,
+        "rightMargin": 50,
+        "bottomMargin": 209,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0014",
+      "file": "sprites/tq1000-0014-humphead-wrasse.png",
+      "sha256": "68A257015EFB6A61FE4491DBB8200C053A974D292022FBC9DDE910CAE3485F58",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 763335,
+        "partiallyTransparentPixels": 809529,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 57,
+        "topMargin": 124,
+        "rightMargin": 35,
+        "bottomMargin": 101,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0015",
+      "file": "sprites/tq1000-0015-longhorn-cowfish.png",
+      "sha256": "175999256E4102915B0C25F8196AF765B18FF96235519AB31650E2101D50F837",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1072343,
+        "partiallyTransparentPixels": 500521,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 24,
+        "topMargin": 113,
+        "rightMargin": 14,
+        "bottomMargin": 165,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0016",
+      "file": "sprites/tq1000-0016-yellow-boxfish.png",
+      "sha256": "5B41BD3FBD7B894930033625B4BA5DBC1EE0FD5AE8721086A125BEF14F0D50B2",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1011587,
+        "partiallyTransparentPixels": 561277,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 165,
+        "topMargin": 167,
+        "rightMargin": 106,
+        "bottomMargin": 175,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0017",
+      "file": "sprites/tq1000-0017-clown-triggerfish.png",
+      "sha256": "9F5742C4E9C520C49F1D91DF30CB3FB52593A7F5C1C2CAEB643330ED06669970",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 803196,
+        "partiallyTransparentPixels": 769668,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 42,
+        "topMargin": 44,
+        "rightMargin": 29,
+        "bottomMargin": 49,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0018",
+      "file": "sprites/tq1000-0018-picasso-triggerfish.png",
+      "sha256": "730A8F588FF2B213D59FDAA9AF9FE427D1C729144B38C65558EE0061245F6EF3",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 965114,
+        "partiallyTransparentPixels": 607750,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 126,
+        "topMargin": 74,
+        "rightMargin": 80,
+        "bottomMargin": 135,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0019",
+      "file": "sprites/tq1000-0019-ribbon-eel.png",
+      "sha256": "865F11205DCDA96017EC16BDA475EF159E7483D90647ABD645728BC9C0528FDC",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1142408,
+        "partiallyTransparentPixels": 430456,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 64,
+        "topMargin": 44,
+        "rightMargin": 49,
+        "bottomMargin": 25,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0020",
+      "file": "sprites/tq1000-0020-leopard-moray.png",
+      "sha256": "284F9C9942D433354A3F248B097A4F9E98F8841468B30613EDB1F719F0F3E7FC",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1031810,
+        "partiallyTransparentPixels": 541054,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 61,
+        "topMargin": 158,
+        "rightMargin": 28,
+        "bottomMargin": 110,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0021",
+      "file": "sprites/tq1000-0021-mandarin-armored.png",
+      "sha256": "2034D54174D61569E02BE4EA5173ADCA23723EA0CD0A5A3F51BA77B032F2C178",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 907116,
+        "partiallyTransparentPixels": 665748,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 77,
+        "topMargin": 116,
+        "rightMargin": 31,
+        "bottomMargin": 136,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0022",
+      "file": "sprites/tq1000-0022-emperor-sawcrest.png",
+      "sha256": "70C0B2FFA18155C0C8998396EFAF2A8811A7CC879F0990F0F9A9D98E6FED2F3C",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 853483,
+        "partiallyTransparentPixels": 719381,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 98,
+        "topMargin": 46,
+        "rightMargin": 29,
+        "bottomMargin": 31,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0023",
+      "file": "sprites/tq1000-0023-queen-crownfin.png",
+      "sha256": "E5ECCC2786502E58697F7ED4B7F70BD3077D980A0F5E93972CD425AA9E989238",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 798924,
+        "partiallyTransparentPixels": 773940,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 140,
+        "topMargin": 35,
+        "rightMargin": 56,
+        "bottomMargin": 45,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0024",
+      "file": "sprites/tq1000-0024-copperband-spearjaw.png",
+      "sha256": "C452D94E2DCEE32AD4D369E7028359B43A7C8E08EAE0FDC8D73DE96BBBC720BA",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 931403,
+        "partiallyTransparentPixels": 641461,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 36,
+        "topMargin": 15,
+        "rightMargin": 30,
+        "bottomMargin": 18,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0025",
+      "file": "sprites/tq1000-0025-raccoon-moonbelly.png",
+      "sha256": "54F43DB76E695F7066A79DC43EDD74651E04F99972035735ED5D29A536DFCF61",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 818688,
+        "partiallyTransparentPixels": 754176,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 124,
+        "topMargin": 25,
+        "rightMargin": 53,
+        "bottomMargin": 25,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0026",
+      "file": "sprites/tq1000-0026-threadfin-wingray.png",
+      "sha256": "DEF722F712DE7684064661A1793C5D0DDAFE511F0F5E33149B346EE30294CAE2",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 942320,
+        "partiallyTransparentPixels": 630544,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 161,
+        "topMargin": 45,
+        "rightMargin": 80,
+        "bottomMargin": 52,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0027",
+      "file": "sprites/tq1000-0027-regal-crystal-scale.png",
+      "sha256": "6455BB8E8EB3732CF79E58156FEE06B365BF8576733B8E3FA97AB0A1596B00C8",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 785164,
+        "partiallyTransparentPixels": 787700,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 137,
+        "topMargin": 25,
+        "rightMargin": 99,
+        "bottomMargin": 14,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0028",
+      "file": "sprites/tq1000-0028-flame-emberjaw.png",
+      "sha256": "FF30096AC22387070EE2C56B49CF4990AD5CE4280039555BF20B60763BEA0606",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 752319,
+        "partiallyTransparentPixels": 820545,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 128,
+        "topMargin": 21,
+        "rightMargin": 28,
+        "bottomMargin": 20,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0029",
+      "file": "sprites/tq1000-0029-gramma-ancient-lobe.png",
+      "sha256": "D5C54D1A11C4693A5BAE9B056E5E1B5FB892C76E50A3E758AF49DEB6852F533D",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 907178,
+        "partiallyTransparentPixels": 665686,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 73,
+        "topMargin": 77,
+        "rightMargin": 56,
+        "bottomMargin": 144,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0030",
+      "file": "sprites/tq1000-0030-firefish-lantern-eye.png",
+      "sha256": "C968F43F579B76CC95AAAA4A1562920D3FE00C770AEB8A1FF7C34D07FB642975",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1104397,
+        "partiallyTransparentPixels": 468467,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 91,
+        "topMargin": 23,
+        "rightMargin": 25,
+        "bottomMargin": 31,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0031",
+      "file": "sprites/tq1000-0031-banggai-spinefan.png",
+      "sha256": "42C93C49887E47CD593AB30AF55729AFF4FB62E152A7A0A4877A9DD7D1B3D493",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 986875,
+        "partiallyTransparentPixels": 585989,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 89,
+        "topMargin": 29,
+        "rightMargin": 46,
+        "bottomMargin": 37,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0032",
+      "file": "sprites/tq1000-0032-pajama-fossilbelly-v2.png",
+      "sha256": "A2A4F71055D72AF6B6F91C13B387BB7EF795427C3ACAC7CFF6B322C9492408D9",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 839186,
+        "partiallyTransparentPixels": 733678,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 20,
+        "topMargin": 8,
+        "rightMargin": 13,
+        "bottomMargin": 29,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0033",
+      "file": "sprites/tq1000-0033-sixline-ridgeback.png",
+      "sha256": "0E6272EF0791B053E9F4A13A019B0FDB8B503F5042CDFE3529D6F061E7085CAF",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 944006,
+        "partiallyTransparentPixels": 628858,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 60,
+        "topMargin": 169,
+        "rightMargin": 49,
+        "bottomMargin": 170,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0034",
+      "file": "sprites/tq1000-0034-cowfish-antlerhorn.png",
+      "sha256": "1074F1572ED13B2E01D855682CB872B35FFF20DBF73649BD06CDF62AAA39A804",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 939227,
+        "partiallyTransparentPixels": 633637,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 68,
+        "topMargin": 70,
+        "rightMargin": 50,
+        "bottomMargin": 89,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0035",
+      "file": "sprites/tq1000-0035-ribbon-eel-dragoncrest.png",
+      "sha256": "B7E226A74CFEACE4BF651BF5C043458F6AEA89BF7C587635A3519C19BE162753",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1134214,
+        "partiallyTransparentPixels": 438650,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 37,
+        "topMargin": 152,
+        "rightMargin": 30,
+        "bottomMargin": 66,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0036",
+      "file": "sprites/tq1000-0036-haikouichthys-v2.png",
+      "sha256": "B93AC1705413655C4591A1C5A6F52EACB0C485D23A41F8C54EA08FE2509EB416",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1367148,
+        "partiallyTransparentPixels": 205716,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 111,
+        "topMargin": 393,
+        "rightMargin": 85,
+        "bottomMargin": 349,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0037",
+      "file": "sprites/tq1000-0037-cephalaspis.png",
+      "sha256": "EAEA1991481E127D447D54EC878DFA44E2B9C9945DD630AAFCFE6F50FBE27B24",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1078924,
+        "partiallyTransparentPixels": 493940,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 26,
+        "topMargin": 128,
+        "rightMargin": 14,
+        "bottomMargin": 122,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0038",
+      "file": "sprites/tq1000-0038-cheiracanthus.png",
+      "sha256": "5619844903A1013836A28DD194CB3F22CF902F54348A793BE14242990F29C0AF",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1165265,
+        "partiallyTransparentPixels": 407599,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 65,
+        "topMargin": 90,
+        "rightMargin": 44,
+        "bottomMargin": 140,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0039",
+      "file": "sprites/tq1000-0039-materpiscis.png",
+      "sha256": "EA25438DF1D4B35796D54ACE681DB05D00918248DC45F46932B230EA6AFFBFF7",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 971013,
+        "partiallyTransparentPixels": 601851,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 50,
+        "topMargin": 166,
+        "rightMargin": 31,
+        "bottomMargin": 155,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0040",
+      "file": "sprites/tq1000-0040-dunkleosteus.png",
+      "sha256": "4241B5DAB9157B3A855375E18AFAFDC0EA76519750B07428C47EC63D2002BEA2",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 913194,
+        "partiallyTransparentPixels": 659670,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 37,
+        "topMargin": 132,
+        "rightMargin": 22,
+        "bottomMargin": 136,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0041",
+      "file": "sprites/tq1000-0041-tiktaalik.png",
+      "sha256": "B23408A3A326840F9AD65530D5B74FFBE57E1A951CD188C9A7030F0CC7C109FC",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1100847,
+        "partiallyTransparentPixels": 472017,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 25,
+        "topMargin": 214,
+        "rightMargin": 28,
+        "bottomMargin": 196,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0042",
+      "file": "sprites/tq1000-0042-helicoprion.png",
+      "sha256": "670C5CAF2C1A849339C76A0B264D29670BED40860BEDEB556A1428FDCE9CB114",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1026021,
+        "partiallyTransparentPixels": 546843,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 32,
+        "topMargin": 98,
+        "rightMargin": 17,
+        "bottomMargin": 98,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0043",
+      "file": "sprites/tq1000-0043-leedsichthys.png",
+      "sha256": "AAAABC48516BF4AA6828A8C5FCD3E91372DD2CAA6C80E388FAF1F762BAF0BCFE",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 895474,
+        "partiallyTransparentPixels": 677390,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 24,
+        "topMargin": 103,
+        "rightMargin": 6,
+        "bottomMargin": 106,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0044",
+      "file": "sprites/tq1000-0044-macropoma.png",
+      "sha256": "A371A8BAD5F255D586DE32AFC043C42C48735AD3081B36F828C0FCB56593FA8C",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 937693,
+        "partiallyTransparentPixels": 635171,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 22,
+        "topMargin": 99,
+        "rightMargin": 19,
+        "bottomMargin": 130,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0045",
+      "file": "sprites/tq1000-0045-megalodon.png",
+      "sha256": "856BBC1FDDCA2801BF7F8A8876ADFBFD73483DE09418324A7DC0BBFCC96D20B1",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 1039091,
+        "partiallyTransparentPixels": 533773,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 32,
+        "topMargin": 103,
+        "rightMargin": 11,
+        "bottomMargin": 151,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0046",
+      "file": "sprites/tq1000-0046-wenyao-winged-carp.png",
+      "sha256": "52FEA7111F2E6FD87470017016B33D42C38C5442B5752C41ADDF448D8DCD4980",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 939206,
+        "partiallyTransparentPixels": 633658,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 74,
+        "topMargin": 19,
+        "rightMargin": 58,
+        "bottomMargin": 56,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0047",
+      "file": "sprites/tq1000-0047-hippocamp.png",
+      "sha256": "1946451037243634A64DC444A62AC1EBDAB6C850F5341E8795A79D26B0304BA5",
+      "image": {
+        "width": 1374,
+        "height": 1145,
+        "transparentPixels": 845575,
+        "partiallyTransparentPixels": 727018,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 55,
+        "topMargin": 84,
+        "rightMargin": 40,
+        "bottomMargin": 56,
+        "cornerAlpha": [
+          1,
+          0,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0048",
+      "file": "sprites/tq1000-0048-makara.png",
+      "sha256": "7B0D34AC122AA984D0E58B54D3A75AB29E89FC9BF3CE1153A1C5F6E92A2BEFC8",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 833164,
+        "partiallyTransparentPixels": 739700,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 32,
+        "topMargin": 64,
+        "rightMargin": 15,
+        "bottomMargin": 61,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0049",
+      "file": "sprites/tq1000-0049-namazu.png",
+      "sha256": "1E903F048C426AE287CBE0B101EB814DF2A913858B82F29811DAEEC295CD2BDA",
+      "image": {
+        "width": 1536,
+        "height": 1024,
+        "transparentPixels": 942670,
+        "partiallyTransparentPixels": 630194,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 44,
+        "topMargin": 82,
+        "rightMargin": 26,
+        "bottomMargin": 79,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "TQ1000-0050",
+      "file": "sprites/tq1000-0050-shachi.png",
+      "sha256": "1168EBB65AE5DAF0F0DBB0F51F2B07775863AB58CD4D66E24C169370BB77A080",
+      "image": {
+        "width": 1374,
+        "height": 1145,
+        "transparentPixels": 867192,
+        "partiallyTransparentPixels": 705662,
+        "opaqueEdgePixels": 0,
+        "leftMargin": 19,
+        "topMargin": 17,
+        "rightMargin": 11,
+        "bottomMargin": 24,
+        "cornerAlpha": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "scientific_review": "pending",
+  "animation": "not_created",
+  "batch_complete_designs": 50
+}

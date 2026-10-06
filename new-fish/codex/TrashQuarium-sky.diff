@@ -1,0 +1,159 @@
+diff --git a/docs/hunt-features.md b/docs/hunt-features.md
+index 09ff651..627e417 100644
+--- a/docs/hunt-features.md
++++ b/docs/hunt-features.md
+@@ -6,6 +6,7 @@
+ 
+ ## Đã triển khai
+ 
++- Khi gọi thuyền, phần trên bể desktop thành mặt biển: bầu trời có mặt trời và mây trôi, đường mặt nước gợn sóng; thuyền nổi trên mặt nước (nửa thân dưới chìm) và nhấp nhô theo sóng (`src/hunt-sky.ts`). Rời thuyền thì bầu trời mờ dần. Chế độ giảm chuyển động giữ mây và sóng đứng yên.
+ - Sò rải ngẫu nhiên khắp vùng móc với tới được (góc ±60°, tầm 0,42–0,84 tính từ trục móc), không xếp hàng; hai sò luôn cách nhau đủ xa để một lần gắp không chạm hai sò.
+ 
+ - Móc đóng khi thu dây/nhận thưởng, mở lại khi thả; hỗ trợ reduced motion và giữ trạng thái khi pause. Animation dùng PNG hiện có, không sửa ảnh gốc.
+diff --git a/src/hunt-sky.ts b/src/hunt-sky.ts
+new file mode 100644
+index 0000000..02c0e9a
+--- /dev/null
++++ b/src/hunt-sky.ts
+@@ -0,0 +1,77 @@
++// While the boat is out, the top of the desktop ocean becomes the surface: open sky with a
++// sun and drifting clouds, and a moving waterline the boat floats on.
++
++/** Height of the waterline at x (the boat bobs on the same wave). */
++export function waveY(x: number, waterY: number, clock: number, amp: number): number {
++  return waterY + Math.sin(x * 0.012 + clock * 1.4) * amp + Math.sin(x * 0.031 - clock * 2.1) * amp * 0.4;
++}
++
++export const waveAmp = (waterY: number) => Math.max(2, waterY * 0.03);
++
++export function drawSky(ctx: CanvasRenderingContext2D, width: number, waterY: number, clock: number, alpha: number, still: boolean) {
++  if (alpha <= 0 || waterY <= 0) return;
++  const t = still ? 0 : clock;
++  const amp = waveAmp(waterY);
++  ctx.save();
++  ctx.globalAlpha = alpha;
++
++  // Sky, clipped to the wavy waterline.
++  ctx.beginPath();
++  ctx.moveTo(0, 0);
++  ctx.lineTo(width, 0);
++  for (let x = width; x >= 0; x -= 12) ctx.lineTo(x, waveY(x, waterY, t, amp));
++  ctx.closePath();
++  ctx.save();
++  ctx.clip();
++  const sky = ctx.createLinearGradient(0, 0, 0, waterY + amp);
++  sky.addColorStop(0, "#3f9be0");
++  sky.addColorStop(0.65, "#8fd0f4");
++  sky.addColorStop(1, "#d9f3ff");
++  ctx.fillStyle = sky;
++  ctx.fillRect(0, 0, width, waterY + amp * 2);
++  // Sun with a soft glow.
++  const sx = width * 0.82, sy = waterY * 0.38, sr = Math.max(14, waterY * 0.16);
++  const glow = ctx.createRadialGradient(sx, sy, sr * 0.5, sx, sy, sr * 3.2);
++  glow.addColorStop(0, "rgba(255, 246, 200, 0.9)");
++  glow.addColorStop(1, "rgba(255, 246, 200, 0)");
++  ctx.fillStyle = glow;
++  ctx.fillRect(sx - sr * 3.2, sy - sr * 3.2, sr * 6.4, sr * 6.4);
++  ctx.fillStyle = "#fff3b8";
++  ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
++  // Clouds drift slowly to the right and wrap around.
++  const cloud = (base: number, y: number, s: number, speed: number) => {
++    const span = width + s * 6;
++    const x = ((base * width + t * speed) % span + span) % span - s * 3;
++    ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
++    ctx.beginPath();
++    ctx.ellipse(x, y, s * 1.6, s * 0.55, 0, 0, Math.PI * 2);
++    ctx.ellipse(x - s * 0.8, y + s * 0.1, s * 0.75, s * 0.45, 0, 0, Math.PI * 2);
++    ctx.ellipse(x + s * 0.2, y - s * 0.35, s * 0.85, s * 0.6, 0, 0, Math.PI * 2);
++    ctx.ellipse(x + s * 1.0, y - s * 0.05, s * 0.7, s * 0.45, 0, 0, Math.PI * 2);
++    ctx.fill();
++  };
++  const cs = Math.max(12, waterY * 0.12);
++  cloud(0.08, waterY * 0.3, cs, 9);
++  cloud(0.42, waterY * 0.22, cs * 0.8, 6);
++  cloud(0.63, waterY * 0.5, cs * 1.1, 12);
++  // Far sea horizon just above the waves.
++  ctx.fillStyle = "rgba(40, 120, 150, 0.55)";
++  ctx.fillRect(0, waterY - amp * 2.2, width, amp * 4);
++  ctx.restore();
++
++  // Foam along the surface, and light just below it.
++  ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
++  ctx.lineWidth = Math.max(2, amp * 0.6);
++  ctx.beginPath();
++  for (let x = 0; x <= width; x += 12) {
++    const y = waveY(x, waterY, t, amp);
++    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
++  }
++  ctx.stroke();
++  const under = ctx.createLinearGradient(0, waterY, 0, waterY + waterY * 0.5);
++  under.addColorStop(0, "rgba(180, 240, 255, 0.35)");
++  under.addColorStop(1, "rgba(180, 240, 255, 0)");
++  ctx.fillStyle = under;
++  ctx.fillRect(0, waterY, width, waterY * 0.5);
++  ctx.restore();
++}
+diff --git a/src/tank.ts b/src/tank.ts
+index 1454e50..36acf9d 100644
+--- a/src/tank.ts
++++ b/src/tank.ts
+@@ -7,6 +7,7 @@ import { reason, t } from "./i18n";
+ import { closureStep, drawClaw } from "./hunt-motion";
+ import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
+ import { drawDen } from "./egg-den";
++import { drawSky, waveAmp, waveY } from "./hunt-sky";
+ import { COIN_SRC } from "./coin";
+ 
+ const VISIBLE_FPS = 60;
+@@ -67,6 +68,7 @@ let coinArt: HTMLImageElement | null = null;
+ const HUNT_KEY = navigator.userAgent.includes("Windows") ? "Space" : "Ctrl+Alt+Space"; // global hotkey shown to the player
+ const HUNT_PIVOT = { x: 0.5, y: 0.14 }; // keep in sync with PIVOT in engine/hunt.rs
+ const BOAT_HATCH = { x: 0.5, y: 299 / 360 }; // where the rope leaves the boat sprite
++const BOAT_WATERLINE = 0.72; // fraction of the boat sprite height that sits at the water surface
+ const CLAW_GRAB = 125 / 176; // grab centre of the claw sprite, measured from its top
+ const SHELL_SPRITE = { great: 0, queen: 1, variegated: 2 } as const; // white 1, red 10, purple 100 CBCoin
+ const SHELL_COINS = { great: 1, queen: 10, variegated: 100 } as const;
+@@ -335,9 +337,15 @@ function drawHunt(e: number) {
+   const { side, ox, oy } = huntFrame();
+   const at = (x: number, y: number): [number, number] => [ox + x * side, oy + y * side];
+   const [px, py0] = at(HUNT_PIVOT.x, HUNT_PIVOT.y);
+-  const bob = Math.sin(clock * 1.6) * side * 0.003;
++  // The boat floats on the surface: sky above the waterline, the hull dips into the water.
++  const bw = side * 0.27;
++  const bh = bw * 0.75;
++  const waterY0 = py0 - bh * (BOAT_HATCH.y - BOAT_WATERLINE);
++  // Ride the same wave the sky's waterline draws.
++  const bob = reducedMotion.matches ? 0 : waveY(px, 0, clock, waveAmp(waterY0));
+   const dive = (1 - e) * side * 0.3; // the boat sails in from above
+   const py = py0 + bob - dive;
++  drawSky(ctx, width, waterY0, clock, e, reducedMotion.matches);
+   ctx.save();
+   ctx.globalAlpha = e;
+ 
+@@ -365,7 +373,7 @@ function drawHunt(e: number) {
+ 
+   // Water-entry ripple when the claw dives below the surface.
+   if (!s.paused && !reducedMotion.matches) {
+-    if (prevLength < 0.12 && s.length >= 0.12 && s.phase === "extending") ripples.push({ x: tx, y: py0 + side * 0.12, age: 0 });
++    if (prevLength === 0 && s.length > 0 && s.phase === "extending") ripples.push({ x: px, y: waterY0, age: 0 });
+     for (const r of ripples) {
+       r.age += 1 / 30;
+       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - r.age / 0.6) * 0.8;
+@@ -378,8 +386,6 @@ function drawHunt(e: number) {
+ 
+   // Boat on top.
+   const boat = huntArt.boat;
+-  const bw = side * 0.27;
+-  const bh = bw * 0.75;
+   ctx.save();
+   ctx.translate(px, py); ctx.rotate(Math.sin(clock * 1.1) * 0.02);
+   ctx.shadowColor = "rgba(0, 20, 25, 0.35)"; ctx.shadowBlur = bw * 0.05;
+@@ -458,7 +464,7 @@ function draw() {
+   if (state) {
+     const eggs = state.eggs ?? [];
+     const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
+-    drawDen(ctx, width * 0.16, height * 0.93, Math.min(width, height) * 0.34, eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
++    drawDen(ctx, width * 0.16, height * 0.93, Math.min(320, Math.min(width, height) * 0.27), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
+   }
+   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
+   for (const b of bubbles) {
