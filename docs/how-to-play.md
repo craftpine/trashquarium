@@ -6,7 +6,7 @@ In the game, click the **?** button in the top right to open this guide any time
 
 ## 🎁 Getting started
 
-You get **1 guppy at Lv.0** and **40 CBCoin** as a welcome gift. Your fish doesn't beg for food yet, but it loves… files you no longer need.
+You get **1 guppy at Lv.0** and **300 CBCoin** as a welcome gift. Your fish doesn't beg for food yet, but it loves… files you no longer need.
 
 Turn on **Settings → Desktop aquarium** so your fish swim right under your desktop icons. In a meeting? Turn on **Meeting mode** for slower fish, no chat bubbles and the boat on hold.
 
@@ -41,7 +41,7 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
 
 ## ⛵ Sell or 🥚 breed? (at Lv.100)
 
-**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
+**Sell by catching:** a Lv.100 fish shows **"So fat, catch me nowww! 🎣"** above its head on the desktop. Call the boat: grown fish swim back and forth, so time your drop. When the claw brings one up you choose **"Too skinny, let it grow a bit moreee"** (it swims off) or **"Yayyy dinner's sorted tonighttt"** — then the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000) and you see "+2,000 CBCoin · Guppy is on board!". Bigger fish are easier to hit but slower to haul up. Catching fish doesn't count toward the 60-shell daily limit. Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
 
 **Breed:** press **Breed**, pick a partner of the **same species** that is also Lv.100, and choose how many eggs.
 

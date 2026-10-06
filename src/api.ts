@@ -152,9 +152,13 @@ export type ShellKind = "great" | "queen" | "variegated";
 export interface HuntShell { id: string; x: number; y: number; size: number; collected: boolean; kind: ShellKind; rare: boolean; pearl: boolean }
 export interface ShellEntry { count: number; rare_count: number; first_found: string }
 export interface CatchReceipt { shell_id: string; kind: ShellKind; rare: boolean; pearl: boolean; first_of_kind: boolean }
+export interface FishTarget { id: string; species_id: string; x: number; y: number; dir: number; radius: number }
+export interface FishSale { fish_id: string; species_id: string; coins: number }
 export interface HuntSession {
   id: string; batch_id: string; phase: string; angle: number; length: number;
   caught_id: string | null; paused: boolean; error: string | null;
+  /** Adult fish swimming in the hunt frame; `caught_fish` is on the claw or on deck ("deciding"). */
+  fish: FishTarget[]; caught_fish: string | null;
 }
 export interface HuntView {
   pearls: number;
@@ -162,6 +166,7 @@ export interface HuntView {
   last_catch: CatchReceipt | null;
   batch: { id: string; shells: HuntShell[] } | null;
   earned: number; daily_cap: number; session: HuntSession | null; waiting: boolean;
+  last_sale: FishSale | null;
 }
 
 export const api = {
@@ -184,7 +189,7 @@ export const api = {
   quit: () => invoke<void>("quit_app"),
   huntStatus: () => invoke<HuntView>("hunt_status"),
   startHunt: () => invoke<HuntView>("start_hunt"),
-  huntAction: (sessionId: string, seq: number, action: "drop" | "pause" | "resume" | "leave") => invoke<HuntView>("hunt_action", { sessionId, seq, action }),
+  huntAction: (sessionId: string, seq: number, action: "drop" | "pause" | "resume" | "leave" | "keep" | "sell") => invoke<HuntView>("hunt_action", { sessionId, seq, action }),
   openTab: (tab: string) => invoke<void>("open_manager_tab", { tab }),
   takeRoute: () => invoke<string | null>("take_manager_route"),
   setDock: (enabled: boolean) => invoke<StateView>("set_quick_dock", { enabled }),

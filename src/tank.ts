@@ -3,7 +3,7 @@
 // the window is hidden.
 import { listen } from "@tauri-apps/api/event";
 import { api, type Fish, type HuntShell, type HuntView, type StateView } from "./api";
-import { reason, t } from "./i18n";
+import { locale, reason, speciesName, t } from "./i18n";
 import { closureStep, drawClaw } from "./hunt-motion";
 import { bodyWave, finStretch, nextBurst, swimStyle } from "./fish-motion";
 import { drawDen } from "./egg-den";
@@ -39,6 +39,7 @@ interface Swimmer {
   burst: number; // 0 = gliding, 1 = fast tail beats
   gulp: number; // 1 right after snapping at food, fades to 0
   chasing: boolean; // heading for a food pellet
+  hanging: boolean; // on the claw or on deck during a fish catch
   speed: number;
 }
 
@@ -93,6 +94,7 @@ let prevLength = 0;
 let ripples: { x: number; y: number; age: number }[] = [];
 let notice = { text: "", until: 0 };
 let seenReceipt: string | null | undefined;
+let seenSale: string | null | undefined;
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
@@ -160,6 +162,7 @@ function syncSwimmers(fish: Fish[]) {
       burst: 0,
       gulp: 0,
       chasing: false,
+      hanging: false,
       speed: 0.9 + Math.random() * 0.3,
     };
     pickTarget(s);
@@ -212,7 +215,28 @@ function step(dt: number) {
   pellets = pellets.filter((p) => p.bottomFor < 20);
   huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
   const calm = state?.settings.meeting_mode ? 0.4 : 1;
+  // While the boat is out, adult fish swim the lanes the engine moves them along (so a catch is
+  // decided there), and the caught one hangs from the claw.
+  const session = huntActive() ? hunt?.session : null;
+  const lanes = new Map((session?.fish ?? []).map((f) => [f.id, f]));
+  const frame = huntFrame();
   for (const s of swimmers) {
+    const lane = lanes.get(s.fish.id);
+    s.hanging = !!lane && session?.caught_fish === s.fish.id;
+    if (lane) {
+      const len = fishLength(s.fish);
+      const tx = frame.ox + lane.x * frame.side;
+      const ty = frame.oy + lane.y * frame.side + (s.hanging ? len * 0.42 : 0);
+      const k = Math.min(1, dt * (s.hanging ? 25 : 4));
+      const nx = s.x + (tx - s.x) * k, ny = s.y + (ty - s.y) * k;
+      s.vx = (nx - s.x) / Math.max(dt, 1e-3); s.vy = (ny - s.y) / Math.max(dt, 1e-3);
+      s.x = nx; s.y = ny;
+      if (!s.hanging) s.facing += ((lane.dir >= 0 ? 1 : -1) - s.facing) * Math.min(1, dt * 11);
+      s.tail += dt * (s.hanging ? 16 : 6); // a hooked fish thrashes
+      s.fin += dt * 9;
+      s.chasing = false;
+      continue;
+    }
     const len = fishLength(s.fish);
     const cruise = (len * 0.35 + 18) * s.speed * calm * (0.75 + 0.7 * s.burst);
     // Hungry fish go after the nearest pellet; full (resting) fish ignore food.
@@ -398,7 +422,13 @@ function huntMessage(): string {
   if (s.error) return reason(s.error);
   if (s.paused) return t("Đã tạm dừng — nhấn {key} để tiếp tục", { key: HUNT_KEY });
   const left = hunt.batch?.shells.filter((sh) => !sh.collected).length ?? 0;
-  if (s.phase === "swinging") return t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
+  if (s.phase === "deciding") return t("🎣 Cá lên thuyền! Chọn ở nút nhanh góc phải dưới");
+  if (s.phase === "swinging") {
+    const fish = s.fish.length;
+    return fish
+      ? t("{left} sò · {fish} cá béo · {key} để thả móc", { left, fish, key: HUNT_KEY })
+      : t("{left} sò đang chờ · {key} để thả móc", { left, key: HUNT_KEY });
+  }
   return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
 }
 
@@ -474,6 +504,21 @@ function drawHunt(e: number) {
   ctx.beginPath(); ctx.roundRect(x, 18, w, 34, 17); ctx.fill();
   ctx.fillStyle = "#f4ead2"; ctx.textBaseline = "middle"; ctx.textAlign = "center";
   ctx.fillText(text, width / 2, 36);
+  const onDeck = s.phase === "deciding" ? state?.fish.find((f) => f.id === s.caught_fish) : undefined;
+  if (onDeck) {
+    const sp = state?.species.find((x) => x.id === onDeck.species_id);
+    const name = sp ? speciesName(sp) : onDeck.name;
+    const price = onDeck.purchase_price * Math.max(1, 100 - (onDeck.eggs_used ?? 0));
+    const lines = [t("{name} đã lên thuyền · bán được {price} CBCoin", { name, price }), t("Chọn ở nút nhanh: nuôi thêm hay bán luôn?")];
+    ctx.font = "600 15px system-ui, sans-serif";
+    const pw = Math.max(...lines.map((l) => richWidth(l))) + 40;
+    ctx.fillStyle = "rgba(255, 244, 220, 0.95)";
+    // Below the boat and the fish hanging from it.
+    const top = huntFrame().oy + huntFrame().side * 0.34;
+    ctx.beginPath(); ctx.roundRect(width / 2 - pw / 2, top, pw, 60, 16); ctx.fill();
+    ctx.fillStyle = "#4a3a1a"; drawRich(lines[0], width / 2, top + 20);
+    ctx.font = "500 13px system-ui, sans-serif"; ctx.fillStyle = "#6b5a3a"; drawRich(lines[1], width / 2, top + 44);
+  }
   if (performance.now() < notice.until) {
     const nw = richWidth(notice.text) + 36;
     ctx.fillStyle = "rgba(22, 70, 76, 0.9)";
@@ -509,6 +554,13 @@ function huntTick(dt: number) {
   const s = hunt?.session;
   closure = closureStep(closure, s?.phase, dt, !!s?.paused, reducedMotion.matches);
   const receipt = hunt?.last_catch ?? null;
+  const sale = hunt?.last_sale ?? null;
+  if (seenSale === undefined) { if (hunt) seenSale = sale?.fish_id ?? null; }
+  else if (sale && sale.fish_id !== seenSale) {
+    seenSale = sale.fish_id;
+    const sp = state?.species.find((x) => x.id === sale.species_id);
+    notice = { text: t("+{coins} CBCoin · {name} lên thuyền!", { coins: sale.coins.toLocaleString(locale()), name: sp ? speciesName(sp) : sale.species_id }), until: performance.now() + 7000 };
+  }
   if (seenReceipt === undefined) { if (hunt) seenReceipt = receipt?.shell_id ?? null; return; }
   if (receipt && receipt.shell_id !== seenReceipt) {
     seenReceipt = receipt.shell_id;
@@ -559,8 +611,9 @@ function draw() {
     const img = sprites.get(s.fish.species_id);
     const bob = Math.sin(s.phase * 0.7) * len * 0.02;
     ctx.save();
-    ctx.translate(s.x, s.y + bob);
-    ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
+    ctx.translate(s.x, s.y + (s.hanging ? 0 : bob));
+    if (s.hanging) ctx.rotate(-Math.PI / 2 * Math.sign(s.facing || 1) + Math.sin(clock * 13) * 0.18); // head up, wriggling
+    else ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
     // Mid-turn the body is seen end-on: narrower but never paper thin, and a little taller.
     const turn = Math.abs(s.facing);
     ctx.scale((Math.sign(s.facing) || 1) * Math.max(0.22, turn), 1 + 0.08 * (1 - turn));
@@ -570,7 +623,17 @@ function draw() {
       drawFallbackFish(len);
     }
     ctx.restore();
-    if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
+    const adult = s.fish.exp >= (state?.stage_exp.adult ?? 1000);
+    if (adult && !hunt?.session && !state?.settings.meeting_mode) {
+      // A grown fish advertises itself for the boat.
+      const text = t("Cá béo lắm rồi, bắt điii! 🎣");
+      ctx.save(); ctx.font = "600 13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+      const bubbleWidth = ctx.measureText(text).width + 20;
+      const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
+      const by = Math.max(4, s.y - len * 0.55 - 28);
+      ctx.fillStyle = "rgba(255, 233, 170, 0.95)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
+      ctx.fillStyle = "#6b4100"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
+    } else if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
       // Fed to the next 5-level mark: the fish naps and says so.
       const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
       const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length]; // a new joke every 5 levels

@@ -574,7 +574,7 @@ impl GameStore {
 
     pub fn hunt_view(&self) -> super::hunt::HuntView {
         let h = &self.state.shell_hunt;
-        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none() }
+        super::hunt::HuntView { pearls: self.state.wallet.pearls, collection: h.collection.clone(), last_catch: h.last_catch.clone(), batch: h.batch.clone(), earned: h.earned, daily_cap: self.catalog.balance.shell_hunt.daily_cap, session: self.hunt_session.clone(), waiting: h.batch.is_none(), last_sale: h.last_sale.clone() }
     }
 
     pub fn start_hunt(&mut self, today: &str) -> Result<super::hunt::HuntView, Failure> {
@@ -583,20 +583,59 @@ impl GameStore {
         let mut next = self.state.clone();
         next.shell_hunt.roll_day(today);
         let room = self.catalog.balance.shell_hunt.daily_cap.saturating_sub(next.shell_hunt.earned);
-        if room == 0 { return Err(Failure::new("hunt_cap", "daily shell hunt limit")); }
-        if !next.shell_hunt.tutorial_granted {
+        let fish = self.catchable_fish();
+        // Adult fish can always be caught; shells need a batch and room under the daily limit.
+        if room == 0 && fish.is_empty() { return Err(Failure::new("hunt_cap", "daily shell hunt limit")); }
+        if room > 0 && !next.shell_hunt.tutorial_granted {
             next.shell_hunt.tutorial_granted = true;
             if next.shell_hunt.batch.is_none() { next.shell_hunt.batch = Some(super::hunt::Batch::generate(room.min(3) as usize)); }
         }
-        if next.shell_hunt.batch.is_none() { return Err(Failure::new("hunt_waiting", "no shells yet")); }
+        if next.shell_hunt.batch.is_none() && fish.is_empty() { return Err(Failure::new("hunt_waiting", "no shells yet")); }
         self.commit(next)?;
         if self.hunt_session.is_none() {
-            self.hunt_session = Some(super::hunt::HuntSession::new(self.state.shell_hunt.batch.as_ref().unwrap()));
+            let batch_id = self.state.shell_hunt.batch.as_ref().map(|b| b.id.clone()).unwrap_or_default();
+            self.hunt_session = Some(super::hunt::HuntSession::start(batch_id, fish));
         }
         Ok(self.hunt_view())
     }
 
+    /// Every adult (Lv.100) fish in the tank, ready to be caught from the boat.
+    fn catchable_fish(&self) -> Vec<super::hunt::FishTarget> {
+        self.state.fish.iter().filter(|f| f.exp >= MAX_EXP).enumerate()
+            .map(|(lane, f)| super::hunt::FishTarget::new(&f.id, &f.species_id, self.slots_for(&f.species_id), lane))
+            .collect()
+    }
+
+    /// "Yay, dinner's sorted": sells the fish waiting on deck at its normal sale value.
+    fn sell_caught_fish(&mut self, session_id: &str, seq: u64) -> Result<(), Failure> {
+        let s = self.hunt_session.as_ref().ok_or_else(|| Failure::new("hunt_stale", "no session"))?;
+        if s.id != session_id { return Err(Failure::new("hunt_stale", "session changed")); }
+        if seq <= s.last_command { return Ok(()); }
+        if s.phase != "deciding" { return Err(Failure::new("hunt_busy", "nothing on deck")); }
+        let fish_id = s.caught_fish.clone().ok_or_else(|| Failure::new("hunt_busy", "nothing on deck"))?;
+        // Coins, the fish leaving the tank and the sale notice are one atomic save.
+        let mut next = self.state.clone();
+        let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", &fish_id))?;
+        let coins = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+        next.wallet.cbcoins = next.wallet.cbcoins.checked_add(coins).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
+        let sold = next.fish.remove(i);
+        next.shell_hunt.last_sale = Some(super::hunt::FishSale { fish_id: fish_id.clone(), species_id: sold.species_id, coins });
+        self.commit(next)?;
+        if let Some(s) = &mut self.hunt_session {
+            s.fish.retain(|f| f.id != fish_id);
+            s.caught_fish = None;
+            s.phase = "swinging".into();
+            s.last_command = seq;
+        }
+        Ok(())
+    }
+
     pub fn hunt_action(&mut self, session_id: &str, seq: u64, action: &str) -> Result<super::hunt::HuntView, Failure> {
+        if action == "sell" {
+            if self.state.settings.meeting_mode { return Err(Failure::new("hunt_meeting", "meeting mode")); }
+            self.sell_caught_fish(session_id, seq)?;
+            return Ok(self.hunt_view());
+        }
         if action == "leave" {
             if self.hunt_session.as_ref().is_some_and(|s| s.id == session_id) { self.hunt_session = None; }
             return Ok(self.hunt_view());
@@ -627,9 +666,13 @@ impl GameStore {
             }
         }
         if let Some(s) = &mut self.hunt_session {
-            if let Some(b) = &next.shell_hunt.batch {
-                if s.batch_id == b.id && room > 0 {
-                    s.step(elapsed_ms as f64 / 1000.0, b);
+            // A fish-only trip picks up a batch that turns up while the boat is out.
+            if s.batch_id.is_empty() { if let Some(b) = &next.shell_hunt.batch { s.batch_id = b.id.clone(); } }
+            // Fish can be caught any time; shells only from the session's batch, under the daily limit.
+            let batch = next.shell_hunt.batch.as_ref().filter(|b| s.batch_id == b.id && room > 0);
+            s.step_with(elapsed_ms as f64 / 1000.0, batch.map(|b| b.shells.as_slice()).unwrap_or(&[]));
+            if let Some(b) = batch {
+                {
                     if s.phase == "settling" {
                         if let Some(shell) = b.shells.iter().find(|sh| Some(&sh.id) == s.caught_id.as_ref() && !sh.collected) {
                             let id = shell.id.clone();
@@ -651,6 +694,10 @@ impl GameStore {
         }
         let finished = next.shell_hunt.batch.as_ref().is_some_and(|b| b.remaining() == 0);
         if finished { next.shell_hunt.batch = None; next.shell_hunt.remaining_wait_ms = cfg.next_wait(); changed = true; }
+        // The trip ends when nothing is left to catch: no shells and no fish (none on deck either).
+        let fish_left = self.hunt_session.as_ref().is_some_and(|s| !s.fish.is_empty());
+        let shells_left = next.shell_hunt.batch.as_ref().is_some_and(|b| self.hunt_session.as_ref().is_some_and(|s| s.batch_id == b.id) && room > 0);
+        let trip_over = self.hunt_session.is_some() && !fish_left && !shells_left;
         self.hunt_checkpoint_ms += elapsed_ms;
         if changed || self.hunt_checkpoint_ms >= 60_000 {
             if let Err(e) = self.commit(next) {
@@ -658,14 +705,16 @@ impl GameStore {
                 return Err(e);
             }
             self.hunt_checkpoint_ms = 0;
-            if finished { self.hunt_session = None; }
+            if trip_over { self.hunt_session = None; }
             else if let Some(s) = &mut self.hunt_session {
+                if finished { s.batch_id.clear(); }
                 if s.phase == "settling" && changed { s.phase = "swinging".into(); s.caught_id = None; s.error = None; }
             }
         } else {
             // Countdown is in memory until checkpoint; wallet/collected change only via commit.
             self.state.shell_hunt.remaining_wait_ms = next.shell_hunt.remaining_wait_ms;
         }
+        if trip_over && self.hunt_session.is_some() { self.hunt_session = None; changed = true; }
         Ok(changed)
     }
 
@@ -783,10 +832,10 @@ mod tests {
         assert_eq!(s.can_feed(&id,NOW+14400).unwrap_err().code,"fish_adult");
         let paid = s.state.fish[0].purchase_price;
         let good = s.path.clone(); s.path = dir.path().join("missing/game.json");
-        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,40);
-        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,40+paid*100);
+        assert!(s.sell(&id).is_err()); assert_eq!(s.state.fish.len(),1); assert_eq!(s.state.wallet.cbcoins,300);
+        s.path = good; assert_eq!(s.sell(&id).unwrap(),paid*100); assert_eq!(s.state.wallet.cbcoins,300+paid*100);
         assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_found");
-        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,40+paid*100);
+        let loaded = store(dir.path()); assert!(loaded.state.fish.is_empty()); assert_eq!(loaded.state.wallet.cbcoins,300+paid*100);
     }
 
     #[test]
@@ -796,9 +845,9 @@ mod tests {
             let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path()); s.start_hunt("2026-10-05").unwrap();
             let shell = &mut s.state.shell_hunt.batch.as_mut().unwrap().shells[0]; shell.kind=kind; shell.pearl=false; let id=shell.id.clone();
             let session=s.hunt_session.as_mut().unwrap(); session.phase="settling".into();session.caught_id=Some(id.clone());
-            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,40+value);
+            s.tick_hunt(100,"2026-10-05").unwrap(); assert_eq!(s.state.wallet.cbcoins,300+value);
             let session=s.hunt_session.as_mut().unwrap();session.phase="settling".into();session.caught_id=Some(id);
-            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,40+value);
+            s.tick_hunt(100,"2026-10-05").unwrap();assert_eq!(s.state.wallet.cbcoins,300+value);
         }
     }
 
@@ -1032,6 +1081,60 @@ mod tests {
         assert_eq!(s.sell(&starter).unwrap(), 10); // a Lv.99 guppy is still "young"
     }
 
+    fn adult_starter(s: &mut GameStore) -> String {
+        let mut next = s.state.clone();
+        next.fish[0].exp = MAX_EXP; next.fish[0].stage = Stage::Adult;
+        s.commit(next).unwrap();
+        s.state.fish[0].id.clone()
+    }
+
+    #[test]
+    fn adult_fish_can_be_caught_without_shells_and_sold_from_the_boat() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let id = adult_starter(&mut s);
+        s.state.shell_hunt.tutorial_granted = true; s.state.shell_hunt.batch = None;
+        s.state.shell_hunt.earned = s.catalog.balance.shell_hunt.daily_cap; // shell limit reached
+        let view = s.start_hunt("2026-10-06").unwrap();
+        let session = view.session.unwrap();
+        assert_eq!((session.fish.len(), session.fish[0].id.clone(), session.batch_id.as_str()), (1, id.clone(), ""));
+        // Put the fish on deck as if the claw had brought it up.
+        { let s2 = s.hunt_session.as_mut().unwrap(); s2.phase = "deciding".into(); s2.caught_fish = Some(id.clone()); }
+        let before = s.state.wallet.cbcoins;
+        let sid = s.hunt_session.as_ref().unwrap().id.clone();
+        let view = s.hunt_action(&sid, 5, "sell").unwrap();
+        assert_eq!(s.state.wallet.cbcoins, before + 2000); // guppy: 20 x 100
+        assert!(s.state.fish.is_empty());
+        assert_eq!(view.last_sale.unwrap().coins, 2000);
+        assert_eq!(s.hunt_action(&sid, 5, "sell").unwrap().last_sale.unwrap().fish_id, id, "a replayed sell is ignored");
+        assert_eq!(store(dir.path()).state.shell_hunt.last_sale.unwrap().species_id, "poecilia_reticulata");
+        // Nothing left to catch: the trip ends on the next tick.
+        s.tick_hunt(100, "2026-10-06").unwrap();
+        assert!(s.hunt_session.is_none());
+    }
+
+    #[test]
+    fn keeping_a_caught_fish_lets_it_go_and_sells_nothing() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let id = adult_starter(&mut s);
+        s.start_hunt("2026-10-06").unwrap();
+        let sid = s.hunt_session.as_ref().unwrap().id.clone();
+        { let s2 = s.hunt_session.as_mut().unwrap(); s2.phase = "deciding".into(); s2.caught_fish = Some(id.clone()); }
+        assert_eq!(s.hunt_action(&sid, 1, "drop").unwrap_err().code, "hunt_busy");
+        let before = s.state.wallet.cbcoins;
+        s.hunt_action(&sid, 2, "keep").unwrap();
+        assert_eq!((s.state.wallet.cbcoins, s.state.fish.len()), (before, 1));
+        let session = s.hunt_session.as_ref().unwrap();
+        assert_eq!((session.phase.as_str(), session.fish.len()), ("swinging", 0));
+        assert_eq!(s.hunt_action(&sid, 3, "sell").unwrap_err().code, "hunt_busy");
+    }
+
+    #[test]
+    fn young_fish_are_not_offered_to_the_claw() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        s.start_hunt("2026-10-06").unwrap(); // tutorial shells, starter guppy is Lv.0
+        assert!(s.hunt_session.as_ref().unwrap().fish.is_empty());
+    }
+
     fn store(dir: &Path) -> GameStore {
         GameStore::open(&dir.join("game.json"), Catalog::bundled().unwrap(), NOW)
     }
@@ -1060,13 +1163,13 @@ mod tests {
     fn new_profile_gets_starter_and_welcome_once() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = store(dir.path());
-        assert_eq!(s.state.wallet.cbcoins, 40);
+        assert_eq!(s.state.wallet.cbcoins, 300);
         assert_eq!(s.state.fish.len(), 1);
         assert_eq!(s.state.fish[0].origin, Origin::Starter);
         assert!(s.state.fish[0].parent_ids.is_empty());
         s.purchase("danio_rerio", 20, NOW).unwrap();
         let s = store(dir.path());
-        assert_eq!(s.state.wallet.cbcoins, 20, "welcome credit must not be granted again");
+        assert_eq!(s.state.wallet.cbcoins, 280, "welcome credit must not be granted again");
         assert_eq!(s.state.fish.len(), 2);
     }
 
@@ -1076,12 +1179,12 @@ mod tests {
         let mut s = store(dir.path());
         assert_eq!(s.purchase("nope", 1, NOW).unwrap_err().code, "unknown_species");
         assert_eq!(s.purchase("danio_rerio", 19, NOW).unwrap_err().code, "price_changed");
-        assert_eq!(s.purchase("symphysodon_aequifasciatus", 80, NOW).unwrap_err().code, "not_enough_shells");
+        s.state.wallet.cbcoins = 10; assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "not_enough_shells"); s.state.wallet.cbcoins = 300;
         let f = s.purchase("danio_rerio", 20, NOW).unwrap();
         assert_eq!(f.origin, Origin::Shop);
         assert_eq!(f.name, "Cá ngựa vằn");
         assert_eq!(f.stage, Stage::Fry);
-        assert_eq!(s.state.wallet.cbcoins, 20);
+        assert_eq!(s.state.wallet.cbcoins, 280);
         assert!(s.state.dex["danio_rerio"].owned);
     }
 
@@ -1105,7 +1208,7 @@ mod tests {
         let mut s = store(dir.path());
         s.path = dir.path().join("missing-dir/game.json");
         assert_eq!(s.purchase("danio_rerio", 20, NOW).unwrap_err().code, "save_failed");
-        assert_eq!(s.state.wallet.cbcoins, 40);
+        assert_eq!(s.state.wallet.cbcoins, 300);
         assert_eq!(s.state.fish.len(), 1);
     }
 
@@ -1120,7 +1223,7 @@ mod tests {
         assert!(first.exp > 0);
         let replay = s.apply_receipts(&entries, "2026-09-29", NOW).unwrap();
         assert_eq!(replay, RewardSummary::default());
-        assert_eq!(s.state.wallet.cbcoins, 40);
+        assert_eq!(s.state.wallet.cbcoins, 300);
     }
 
     #[test]
@@ -1162,7 +1265,7 @@ mod tests {
         let good = s.path.clone();
         s.path = dir.path().join("missing-dir/game.json");
         assert!(s.apply_receipts(&entries, "2026-09-29", NOW).is_err());
-        assert_eq!(s.state.wallet.cbcoins, 40);
+        assert_eq!(s.state.wallet.cbcoins, 300);
         s.path = good;
         assert_eq!(s.apply_receipts(&entries, "2026-09-29", NOW).unwrap().exp, 20);
     }
@@ -1210,7 +1313,7 @@ mod tests {
         drop(s);
         let s = store(dir.path());
         assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, SCHEMA_VERSION);
-        assert_eq!(s.state.wallet.cbcoins, 20); assert_eq!(s.state.fish.len(), 2);
+        assert_eq!(s.state.wallet.cbcoins, 280); assert_eq!(s.state.fish.len(), 2);
         assert_eq!(s.state.fish[0].id, id); assert!(s.state.ledger.receipts.contains("paid"));
         assert!(s.state.settings.quick_dock_enabled);
     }
@@ -1225,13 +1328,13 @@ mod tests {
         session.phase = "settling".into(); session.caught_id = Some(id.clone());
         let good = s.path.clone(); s.path = dir.path().join("missing/save.json");
         assert!(s.tick_hunt(100, "2026-10-03").is_err());
-        assert_eq!(s.state.wallet.cbcoins, 40); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
+        assert_eq!(s.state.wallet.cbcoins, 300); assert!(!s.state.shell_hunt.batch.as_ref().unwrap().shells[0].collected);
         s.path = good;
         assert!(s.tick_hunt(100, "2026-10-03").unwrap());
-        assert_eq!(s.state.wallet.cbcoins, 41); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
+        assert_eq!(s.state.wallet.cbcoins, 301); assert_eq!(s.state.shell_hunt.earned, 1); assert_eq!(s.state.daily.shells, 0);
         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
-        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 41);
-        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 41);
+        s.tick_hunt(100, "2026-10-03").unwrap(); assert_eq!(s.state.wallet.cbcoins, 301);
+        let loaded = store(dir.path()); assert_eq!(loaded.state.wallet.cbcoins, 301);
         assert_eq!(loaded.state.shell_hunt.batch.as_ref().unwrap().remaining(), 2);
         assert!(loaded.hunt_session.is_none());
     }
@@ -1264,7 +1367,7 @@ mod tests {
         assert!(s.tick_hunt(100, "2026-10-05").is_err());
         assert_eq!(s.state.wallet.pearls, 0); assert!(s.state.shell_hunt.collection.is_empty()); assert!(s.state.shell_hunt.last_catch.is_none());
         s.path = good; s.tick_hunt(100, "2026-10-05").unwrap();
-        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 50);
+        assert_eq!(s.state.wallet.pearls, 1); assert_eq!(s.state.wallet.cbcoins, 310);
         let entry = &s.state.shell_hunt.collection[&ShellKind::Queen]; assert_eq!((entry.count, entry.rare_count), (1,1));
         assert!(s.state.shell_hunt.last_catch.as_ref().unwrap().first_of_kind);
         let session = s.hunt_session.as_mut().unwrap(); session.phase = "settling".into(); session.caught_id = Some(id);
@@ -1297,7 +1400,7 @@ mod tests {
             assert!(!shell.rare && !shell.pearl);
             assert_eq!(shell.kind, match shell.size {1=>ShellKind::Queen,2=>ShellKind::Variegated,_=>ShellKind::Great});
         }
-        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 40); assert!(loaded.state.shell_hunt.collection.is_empty());
+        assert_eq!(loaded.state.wallet.pearls, 0); assert_eq!(loaded.state.wallet.cbcoins, 300); assert!(loaded.state.shell_hunt.collection.is_empty());
     }
 
     #[test]
@@ -1326,6 +1429,6 @@ mod tests {
         assert!(s.state.shell_hunt.batch.is_none()); assert!(s.hunt_session.is_none());
         assert_eq!(s.hunt_view().collection[&ShellKind::Great].count, 3);
         drop(s); let loaded = store(dir.path()); assert_eq!(loaded.hunt_view().collection[&ShellKind::Great].count, 3);
-        assert_eq!(loaded.state.wallet.cbcoins, 43); assert_eq!(loaded.state.wallet.pearls, 0);
+        assert_eq!(loaded.state.wallet.cbcoins, 303); assert_eq!(loaded.state.wallet.pearls, 0);
     }
 }

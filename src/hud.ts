@@ -21,7 +21,7 @@ function button(label: string, run: () => Promise<unknown>) {
 }
 async function toggle() { await api.resizeDock(!expanded); expanded = !expanded; more = false; }
 const nextSeq = () => (seq = Math.max(seq + 1, Date.now()));
-const huntAction = (action: "drop" | "pause" | "resume" | "leave") => () => {
+const huntAction = (action: "drop" | "pause" | "resume" | "leave" | "keep" | "sell") => () => {
   const id = hunt?.session?.id;
   return id ? api.huntAction(id, nextSeq(), action).then((v) => { hunt = v; }) : Promise.resolve();
 };
@@ -30,6 +30,7 @@ function huntStatus(v: HuntView): string {
   const left = v.batch?.shells.filter((x) => !x.collected).length ?? 0;
   if (s.error) return reason(s.error);
   if (s.paused) return t("Đã tạm dừng");
+  if (s.phase === "deciding") return t("🎣 Cá lên thuyền rồi! Nuôi thêm hay bán?");
   if (s.phase === "swinging") return t("{left} sò đang chờ · Hôm nay {earned}/{cap}", { left, earned: v.earned, cap: v.daily_cap });
   return s.phase === "extending" ? t("Móc đang xuống…") : t("Đang kéo về thuyền…");
 }
@@ -41,7 +42,14 @@ function renderHunt(v: HuntView) {
   sound.setAttribute("aria-label", sound.title); sound.setAttribute("aria-pressed", String(soundEnabled()));
   header.append(sound); dock.append(header);
   const status = document.createElement("p"); status.textContent = huntStatus(v); status.setAttribute("role", "status"); dock.append(status);
-  const canDrop = s.phase === "swinging" && !s.paused && v.earned < v.daily_cap;
+  if (s.phase === "deciding" && !s.paused) {
+    const keep = button(t("🐟 Cá gầy quá nuôi thêm chút vậyyyy"), huntAction("keep"));
+    const sell = button(t("💰 Yehh nay có cơm ăn rồiiii"), huntAction("sell"));
+    sell.className = "primary";
+    dock.append(sell, keep, button(t("Rời thuyền"), huntAction("leave")));
+    return;
+  }
+  const canDrop = s.phase === "swinging" && !s.paused && (v.earned < v.daily_cap || s.fish.length > 0);
   const main = s.paused ? button(t("▶  Tiếp tục"), huntAction("resume")) : button(t("⚓  Thả móc"), huntAction("drop"));
   main.className = "primary"; if (!s.paused) main.disabled = working || !canDrop; dock.append(main);
   if (!s.paused) dock.append(button(t("⏸  Tạm dừng"), huntAction("pause")));

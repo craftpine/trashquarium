@@ -780,3 +780,86 @@ dialog::backdrop {
 .egg-timer.due {
   background: #b5661b;
 }
+
+/* Intro slides */
+dialog:has(.intro) {
+  width: min(640px, calc(100% - 32px));
+}
+.intro-stage {
+  position: relative;
+  height: 230px;
+  overflow: hidden;
+  border-radius: 18px 18px 0 0;
+  background: url("/art/ocean.jpg") center 70% / cover;
+}
+.intro-stage img {
+  position: absolute;
+  filter: drop-shadow(0 6px 8px rgba(0, 20, 25, 0.35));
+}
+.intro-stage .swim { animation: intro-swim 7s ease-in-out infinite alternate; }
+.intro-stage .swim.a { width: 90px; left: 12%; top: 38%; }
+.intro-stage .swim.b { width: 90px; left: 55%; top: 22%; animation-duration: 9s; }
+.intro-stage .swim.c { width: 120px; left: 30%; top: 55%; animation-duration: 8s; }
+.intro-stage .swim.big { width: 230px; left: 40%; top: 18%; animation-duration: 11s; }
+@keyframes intro-swim {
+  from { transform: translate(-20px, 0) rotate(-2deg); }
+  to { transform: translate(40px, -8px) rotate(2deg); }
+}
+.intro-file { position: absolute; font-size: 34px; animation: intro-drop 2.4s ease-in infinite; }
+.intro-file.f1 { left: 18%; animation-delay: 0s; }
+.intro-file.f2 { left: 30%; animation-delay: 0.8s; }
+.intro-file.f3 { left: 42%; animation-delay: 1.6s; }
+@keyframes intro-drop {
+  from { top: -40px; opacity: 1; }
+  80% { opacity: 1; }
+  to { top: 60%; opacity: 0; transform: translateX(80px) scale(0.4); }
+}
+.intro-stage .eat { width: 160px; left: 52%; top: 40%; animation: intro-gulp 0.8s ease-in-out infinite; }
+@keyframes intro-gulp { 50% { transform: scale(1.05, 0.95); } }
+.intro-stage .g1 { width: 60px; left: 10%; top: 55%; }
+.intro-stage .g2 { width: 95px; left: 36%; top: 48%; }
+.intro-stage .g3 { width: 140px; left: 66%; top: 40%; }
+.intro-lv {
+  position: absolute; top: 18%; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255, 244, 220, 0.92); color: #4a3a1a; font-weight: 700; font-size: 13px;
+}
+.intro-lv.l1 { left: 11%; } .intro-lv.l2 { left: 39%; } .intro-lv.l3 { left: 72%; }
+.intro-stage .boat { width: 150px; left: calc(50% - 75px); top: -18px; }
+.intro-stage .rope {
+  position: absolute; left: 50%; top: 92px; width: 2px; height: 70px; background: #ecdfb8;
+  transform-origin: top center; animation: intro-swing 2.6s ease-in-out infinite alternate;
+}
+.intro-stage .claw {
+  width: 44px; left: calc(50% - 22px); top: 150px; transform-origin: 22px -58px;
+  animation: intro-swing 2.6s ease-in-out infinite alternate;
+}
+@keyframes intro-swing { from { transform: rotate(-28deg); } to { transform: rotate(28deg); } }
+.intro-stage .sh { width: 44px; top: 76%; }
+.intro-stage .s0 { left: 20%; } .intro-stage .s1 { left: 47%; top: 82%; } .intro-stage .s2 { left: 72%; }
+.intro-stage .rope.long { height: 40px; animation: none; }
+.intro-stage .shark { width: 220px; left: calc(50% - 110px); top: 42%; animation: intro-hook 1.4s ease-in-out infinite; }
+@keyframes intro-hook { 50% { transform: translateY(-14px) rotate(-6deg); } }
+.intro-bubble {
+  position: absolute; padding: 4px 12px; border-radius: 10px; font-weight: 700; font-size: 13px;
+  background: rgba(255, 233, 170, 0.96); color: #6b4100; white-space: nowrap;
+}
+.intro-bubble.fat { left: calc(50% + 40px); top: 30%; }
+.intro-stage .p1 { width: 120px; left: 12%; top: 18%; }
+.intro-stage .p2 { width: 120px; right: 12%; top: 22%; transform: scaleX(-1); }
+.intro-egg {
+  position: absolute; bottom: 14%; width: 30px; height: 40px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 35% 25%, #fffdf6, #ead1a2 70%);
+  animation: egg-wobble 0.9s ease-in-out infinite;
+}
+.intro-egg.e1 { left: 40%; } .intro-egg.e2 { left: 48%; animation-delay: 0.3s; } .intro-egg.e3 { left: 56%; animation-delay: 0.6s; }
+.intro-bubble.timer { left: calc(48% - 18px); bottom: 38%; background: #17434b; color: #fff4dc; }
+.intro-dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+.intro-dots button {
+  width: 9px; height: 9px; padding: 0; border-radius: 50%; border: 0;
+  background: var(--line); cursor: pointer;
+}
+.intro-dots button.on { background: var(--accent, #e07a5f); width: 22px; border-radius: 5px; }
+@media (prefers-reduced-motion: reduce) {
+  .intro-stage * { animation: none !important; }
+}

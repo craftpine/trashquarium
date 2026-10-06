@@ -9,7 +9,7 @@
   "stage_exp": { "juvenile": 500, "adult": 1000 },
   "breeding": { "hatch_max": 0.20, "hatch_min": 0.05, "price_low": 20, "price_high": 300, "incubate_min_s": 7200, "incubate_max_s": 10800, "den_capacity": 100 },
   "economy": {
-    "welcome_shells": 40,
+    "welcome_shells": 300,
     "base_shells": 2,
     "base_exp": 10,
     "daily_shell_cap": 100,
