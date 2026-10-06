@@ -571,6 +571,24 @@ function huntTick(dt: number) {
   }
 }
 
+// Speech bubbles ("so fat, catch me!", nap jokes) pop up for 3 seconds about once a minute,
+// each fish at its own moment so they don't all talk at once.
+const BUBBLE_EVERY = 60;
+const BUBBLE_FOR = 3;
+const bubbleOffsets = new Map<string, number>();
+function bubbleAlpha(id: string): number {
+  let offset = bubbleOffsets.get(id);
+  if (offset === undefined) {
+    let n = 0;
+    for (const c of id) n = (n * 31 + c.charCodeAt(0)) >>> 0;
+    offset = (n % 997) / 997 * BUBBLE_EVERY;
+    bubbleOffsets.set(id, offset);
+  }
+  const at = (clock + offset) % BUBBLE_EVERY;
+  if (at >= BUBBLE_FOR) return 0;
+  return Math.min(1, at / 0.3, (BUBBLE_FOR - at) / 0.3); // quick fade in and out
+}
+
 function draw() {
   ctx.drawImage(background, 0, 0, width, height);
   // Persistent batch, not a new random field on every render/restart.
@@ -624,6 +642,9 @@ function draw() {
     }
     ctx.restore();
     const adult = s.fish.exp >= (state?.stage_exp.adult ?? 1000);
+    const say = bubbleAlpha(s.fish.id);
+    if (say <= 0) continue;
+    ctx.globalAlpha = say;
     if (adult && !hunt?.session && !state?.settings.meeting_mode) {
       // A grown fish advertises itself for the boat.
       const text = t("Cá béo lắm rồi, bắt điii! 🎣");
@@ -644,6 +665,7 @@ function draw() {
       ctx.fillStyle = "rgba(255,255,255,.94)"; ctx.beginPath(); ctx.roundRect(bx, by, bubbleWidth, 25, 10); ctx.fill();
       ctx.fillStyle = "#17434b"; ctx.fillText(text, bx + 10, by + 17); ctx.restore();
     }
+    ctx.globalAlpha = 1;
   }
   drawHunt(e);
 }
