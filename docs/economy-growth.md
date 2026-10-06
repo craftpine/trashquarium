@@ -14,6 +14,7 @@ Tài liệu này thay thế luật tiền/EXP/tăng trưởng trong các ghi ch�
 - Thời hạn nghỉ được lưu để sống qua restart; manager/tank kiểm tra lại khoảng 15 giây khi app mở. Đồng hồ hệ thống được dùng cho thời hạn; chưa có cơ chế chống người dùng chỉnh đồng hồ.
 - Bể hiện bong bóng vui khi nghỉ, ví dụ “No căng vảy! Cho em ngủ tí”, “Bụng em thành bóng rồi!”. Chế độ họp không hiện bong bóng.
 - Lv.100 có nút gọi thuyền bán cá, xác nhận và hoạt cảnh thuyền đến đón. Giá bán = giá mua đã lưu ×100 CBCoin; backend kiểm tra tuổi, tràn số, chống bán lặp và ghi tiền/xóa cá trong cùng save atomic.
+- **Bán lại cá chưa trưởng thành:** cá dưới Lv.100 (mua nhầm, bể đầy) bán lại được 1/2 giá mua, làm tròn xuống (`sale_value`). Cá con nở từ trứng cũng vậy; vì mỗi trứng đã trừ 2 lần giá mua vào giá bán của bố mẹ mà chỉ nở 5–20%, nên không thể đẻ trứng rồi bán cá con để kiếm lời.
 - Cá starter cũng có thể bán khi trưởng thành; giá gốc là giá shop của loài đó. Bán cá không đụng tới file trong Bụng cá, các file vẫn khôi phục được.
 - **Sức chứa bể tính theo chỗ:** bể có 20 chỗ (`tank_capacity`). Cá giá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2 chỗ, từ 200 trở lên chiếm 3 chỗ (`balance.json` mục `slots`, tính theo giá catalog của loài). Mua cá và cá con nở ra đều phải vừa chỗ; save cũ lỡ vượt 20 chỗ vẫn giữ cá nhưng không thêm được cho tới khi trống chỗ.
 - Giữ quà khởi đầu 40 CBCoin, giá shop hiện có và hạn mức đào 60 sò/ngày. Hạn mức tính số sò, không tính CBCoin.
@@ -28,7 +29,7 @@ Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặ
 - **Hang trứng và thời gian ấp:** mọi trứng vừa đẻ đều vào Hang trứng (`GameState.eggs`), mỗi trứng có giờ nở riêng ngẫu nhiên 2–3 tiếng (`incubate_min_s`/`incubate_max_s`). Hang chứa tối đa 100 trứng (`den_capacity`); đẻ quá chỗ trống bị từ chối. Đồng hồ chạy theo giờ hệ thống nên game tắt vẫn tính; khi mở lại, trứng quá giờ được xử lý ngay.
 - **Nở:** đồng hồ native kiểm tra mỗi giây. Trứng đến giờ mới tung tỷ lệ nở: nở thì thành cá con trong bể, không nở thì mất. Kết quả 30 lần gần nhất lưu ở `hatch_log` để giao diện báo.
 - **Bể đầy:** sinh sản không cần chỗ trong bể (trứng nằm trong hang). Trứng đến giờ mà bể không đủ chỗ cho loài đó thì nằm chờ trong hang, chưa tung tỷ lệ, cho tới khi bể có chỗ.
-- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang đá với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
+- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang trứng thành một vũng nước nhỏ viền sỏi và rong ở giữa đáy cát (tránh cột biểu tượng desktop bên trái), với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
 
 ## Code quà tặng (Cài đặt → Nhập code)
 

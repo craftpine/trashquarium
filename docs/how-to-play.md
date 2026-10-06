@@ -41,13 +41,13 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
 
 ## ⛵ Sell or 🥚 breed? (at Lv.100)
 
-**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe.
+**Sell:** press **⛵ Sell** and the boat pays **purchase price × 100 CBCoin** (a 20 CBCoin guppy sells for 2000). Files in the Belly stay safe. Bought the wrong fish or the tank is full? Younger fish have a **Sell back** button for **half the purchase price**.
 
 **Breed:** press **Breed**, pick a partner of the **same species** that is also Lv.100, and choose how many eggs.
 
 - Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
 - Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
-- Every egg goes into the **Egg den** (its own tab, and a little rock cave on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
+- Every egg goes into the **Egg den** (its own tab, and a little pebble-ringed pool in the middle of the seabed on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
 - Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
 
 ## 😌 Relax

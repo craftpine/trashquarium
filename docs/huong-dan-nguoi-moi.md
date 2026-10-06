@@ -41,13 +41,13 @@ Cá giá từ **20** đến **300 CBCoin**. Cá rẻ thì bé xíu, cá đắt t
 
 ## ⛵ Bán hay 🥚 cho đẻ? (khi cá Lv.100)
 
-**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn.
+**Bán:** bấm **Gọi thuyền bán**, nhận **giá mua × 100 CBCoin** (cá bảy màu 20 → 2000). File trong Bụng cá vẫn an toàn. Lỡ mua nhầm hoặc bể đầy? Cá chưa lớn có nút **Bán lại** với giá **1/2 giá mua**.
 
 **Sinh sản:** bấm **Sinh sản**, chọn một bạn đời **cùng loài** cũng Lv.100 và số trứng.
 
 - Mỗi trứng trừ giá bán của **cả hai** bố mẹ một lần giá mua gốc. Đẻ càng nhiều bán càng rẻ, nhưng không bao giờ rẻ hơn giá mua gốc.
 - Mỗi trứng nở với tỷ lệ **5–20%**: cá rẻ dễ nở (20%), cá đắt khó nở (5%). Trứng không nở vẫn bị tính.
-- Mọi trứng vào **Hang trứng** (có tab riêng, và một hang đá nhỏ trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
+- Mọi trứng vào **Hang trứng** (có tab riêng, và một vũng nước nhỏ viền sỏi ở giữa đáy bể trên desktop), ấp **2–3 tiếng** mới nở, mỗi quả có đồng hồ đếm ngược. Game tắt vẫn tính giờ.
 - Cá con ra đời là Lv.0, ghi rõ đời thứ mấy, và lại bắt đầu từ đầu. Trứng đến giờ mà bể đầy thì nằm chờ trong hang đến khi có chỗ.
 
 ## 😌 Yên tâm

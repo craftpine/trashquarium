@@ -37,8 +37,22 @@ interface Swimmer {
   tail: number; // tail-beat phase, faster when the fish swims faster
   fin: number; // pectoral/dorsal fin flutter phase
   burst: number; // 0 = gliding, 1 = fast tail beats
+  gulp: number; // 1 right after snapping at food, fades to 0
+  chasing: boolean; // heading for a food pellet
   speed: number;
 }
+
+/** Food pellets that sink slowly; nearby fish that aren't full dart over and snap them up. */
+interface Pellet {
+  x: number;
+  y: number;
+  vy: number;
+  wobble: number;
+  bottomFor: number; // seconds spent resting on the sand
+}
+let pellets: Pellet[] = [];
+let nextAmbientFood = 25 + Math.random() * 40;
+const lastExp = new Map<string, number>();
 
 interface Bubble {
   x: number;
@@ -144,6 +158,8 @@ function syncSwimmers(fish: Fish[]) {
       tail: Math.random() * Math.PI * 2,
       fin: Math.random() * Math.PI * 2,
       burst: 0,
+      gulp: 0,
+      chasing: false,
       speed: 0.9 + Math.random() * 0.3,
     };
     pickTarget(s);
@@ -171,20 +187,59 @@ async function pollHunt() {
   try { hunt = await api.huntStatus(); } catch { /* keep the last view */ }
 }
 
+function dropFood(x: number, count: number) {
+  for (let i = 0; i < count && pellets.length < 40; i++) {
+    pellets.push({ x: Math.min(width * 0.97, Math.max(width * 0.03, x + (Math.random() - 0.5) * 120)), y: height * (0.03 + Math.random() * 0.05), vy: 16 + Math.random() * 14, wobble: Math.random() * 6, bottomFor: 0 });
+  }
+}
+
+const restingNow = (s: Swimmer) => s.fish.resting_until > Date.now() / 1000;
+const mouthX = (s: Swimmer, len: number) => s.x + (Math.sign(s.facing) || 1) * len * 0.45;
+
 function step(dt: number) {
   clock += dt;
+  const quietTank = !!state?.settings.meeting_mode;
+  // Food now and then, as if someone sprinkled flakes on the surface.
+  if (!quietTank && !huntActive() && clock > nextAmbientFood) {
+    nextAmbientFood = clock + 45 + Math.random() * 60;
+    dropFood(width * (0.25 + Math.random() * 0.65), 3 + Math.floor(Math.random() * 4));
+  }
+  const floor = height * 0.9;
+  for (const p of pellets) {
+    if (p.y < floor) { p.y = Math.min(floor, p.y + p.vy * dt); p.x += Math.sin(clock * 2 + p.wobble) * 8 * dt; }
+    else p.bottomFor += dt;
+  }
+  pellets = pellets.filter((p) => p.bottomFor < 20);
   huntBlend = Math.min(1, Math.max(0, huntBlend + (huntActive() ? dt : -dt) / 0.6));
   const calm = state?.settings.meeting_mode ? 0.4 : 1;
   for (const s of swimmers) {
     const len = fishLength(s.fish);
     const cruise = (len * 0.35 + 18) * s.speed * calm * (0.75 + 0.7 * s.burst);
+    // Hungry fish go after the nearest pellet; full (resting) fish ignore food.
+    let food: Pellet | null = null;
+    if (!quietTank && !restingNow(s) && pellets.length) {
+      let best = width * 0.4;
+      for (const p of pellets) { const d = Math.hypot(p.x - s.x, p.y - s.y); if (d < best) { best = d; food = p; } }
+    }
+    if (food) {
+      const dir = food.x >= s.x ? 1 : -1;
+      s.tx = food.x - dir * len * 0.42; s.ty = food.y; s.chasing = true;
+      s.burst = Math.max(s.burst, 0.45);
+      if (Math.hypot(food.x - mouthX(s, len), food.y - s.y) < len * 0.16 + 8) {
+        const eaten = food;
+        pellets = pellets.filter((p) => p !== eaten); // snap!
+        s.gulp = 1;
+        if (bubbles.length < 24) bubbles.push({ x: mouthX(s, len), y: s.y - len * 0.05, r: 2 + Math.random() * 2, v: 30 + Math.random() * 20 });
+      }
+    } else if (s.chasing) { s.chasing = false; pickTarget(s); }
     const dx = s.tx - s.x;
     const dy = s.ty - s.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < len * 0.4) pickTarget(s);
-    // Steer gently toward the target; fish mostly swim horizontally.
-    s.vx += ((dx / (dist || 1)) * cruise - s.vx) * Math.min(1, dt * 0.8);
-    s.vy += ((dy / (dist || 1)) * cruise * 0.45 - s.vy) * Math.min(1, dt * 0.8);
+    if (!s.chasing && dist < len * 0.4) pickTarget(s);
+    // Steer toward the target (harder while chasing food); fish mostly swim horizontally.
+    const steer = Math.min(1, dt * (s.chasing ? 2 : 0.8));
+    s.vx += ((dx / (dist || 1)) * cruise - s.vx) * steer;
+    s.vy += ((dy / (dist || 1)) * cruise * (s.chasing ? 0.9 : 0.45) - s.vy) * steer;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.phase += dt * (2 + Math.abs(s.vx) / 40);
@@ -192,9 +247,12 @@ function step(dt: number) {
     s.tail += dt * (3 + Math.hypot(s.vx, s.vy) / 26 + 5 * s.burst) * calm;
     s.fin += dt * (7 + 3 * s.burst) * calm;
     // Dead zone: a fish that is nearly still keeps its heading instead of flip-flopping.
-    const want = s.vx > 4 ? 1 : s.vx < -4 ? -1 : Math.sign(s.facing) || 1;
+    const want = s.vx > 8 ? 1 : s.vx < -8 ? -1 : Math.sign(s.facing) || 1;
     const turned = want !== (Math.sign(s.facing) || 1);
-    s.facing += (want - s.facing) * Math.min(1, dt * 4);
+    // A quick turn (about a fifth of a second) so the fish never looks like a flat card for long.
+    s.facing += (want - s.facing) * Math.min(1, dt * 11);
+    s.gulp = Math.max(0, s.gulp - dt * 2.8);
+    if (!quietTank && s.gulp === 0 && Math.random() < dt * 0.02) s.gulp = 0.7; // idle mouthing
     s.burst = calm < 1 ? 0 : nextBurst(s.burst, dt, Math.random(), turned);
   }
   if (!state?.settings.meeting_mode) {
@@ -215,7 +273,7 @@ function step(dt: number) {
 // vertical offset follows a travelling wave: calm at the head, wide at the tail.
 // The shadow is baked once per size (shadowBlur every frame is slow on big screens).
 const SLICES = 28;
-const baked = new Map<string, { canvas: HTMLCanvasElement; pad: number; w: number; h: number }>();
+const baked = new Map<string, { canvas: HTMLCanvasElement; shadow: HTMLCanvasElement; pad: number; w: number; h: number }>();
 
 // Sprites have uneven transparent margins, so size each fish by its visible body.
 const bounds = new Map<string, { x: number; y: number; w: number; h: number }>();
@@ -259,18 +317,29 @@ function bakeFish(id: string, img: HTMLImageElement, len: number) {
   canvas.width = Math.ceil((w + pad * 2) * dpr);
   canvas.height = Math.ceil((h + pad * 2) * dpr);
   const g = canvas.getContext("2d")!;
-  g.shadowColor = "rgba(0, 20, 25, 0.35)";
-  g.shadowBlur = len * 0.08 * dpr;
-  g.shadowOffsetY = len * 0.05 * dpr;
   g.drawImage(img, b.x, b.y, b.w, b.h, pad * dpr, pad * dpr, w * dpr, h * dpr);
-  hit = { canvas, pad, w, h };
+  // The shadow is a separate, already blurred silhouette drawn once behind the slices. Baking it
+  // into the sliced sprite made the overlapping slices stack its semi-transparent pixels, which
+  // showed up as thin dark stripes under the belly.
+  const shadow = document.createElement("canvas");
+  shadow.width = canvas.width;
+  shadow.height = canvas.height;
+  const sg = shadow.getContext("2d")!;
+  const far = canvas.width + 50; // draw the fish off-canvas so only its shadow lands inside
+  sg.shadowColor = "rgba(0, 20, 25, 0.35)";
+  sg.shadowBlur = len * 0.08 * dpr;
+  sg.shadowOffsetX = far;
+  sg.shadowOffsetY = len * 0.05 * dpr;
+  sg.drawImage(img, b.x, b.y, b.w, b.h, pad * dpr - far, pad * dpr, w * dpr, h * dpr);
+  hit = { canvas, shadow, pad, w, h };
   baked.set(key, hit);
   return hit;
 }
 
 function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
-  const { canvas: src, pad, w, h } = bakeFish(s.fish.species_id, img, len);
+  const { canvas: src, shadow, pad, w, h } = bakeFish(s.fish.species_id, img, len);
   const totalW = w + pad * 2, totalH = h + pad * 2;
+  ctx.drawImage(shadow, -totalW / 2, -totalH / 2, totalW, totalH);
   const sliceW = src.width / SLICES, destW = totalW / SLICES;
   if (reducedMotion.matches) { ctx.drawImage(src, -totalW / 2, -totalH / 2, totalW, totalH); return; }
   const style = swimStyle(s.fish.species_id);
@@ -283,11 +352,14 @@ function drawUndulating(s: Swimmer, img: HTMLImageElement, len: number) {
   for (let i = 0; i < SLICES; i++) {
     const x0 = -totalW / 2 + i * destW;
     const right = waveAt(x0 + destW);
-    const sh = totalH * finStretch(style, uAt(x0 + destW / 2), s.tail, s.fin);
+    const u = uAt(x0 + destW / 2);
+    // Snapping at food: the head end opens and closes once.
+    const head = u > 0.78 ? (u - 0.78) / 0.22 : 0;
+    const sh = totalH * finStretch(style, u, s.tail, s.fin) * (1 + 0.16 * Math.sin(s.gulp * Math.PI) * head);
     // Shear each slice so its edges meet the neighbours: a smooth bend, no stair steps.
     ctx.save();
     ctx.transform(1, (right - left) / destW, 0, 1, x0, left);
-    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, 0, -sh / 2, destW + 0.8, sh);
+    ctx.drawImage(src, i * sliceW, 0, sliceW, src.height, 0, -sh / 2, destW + 0.6, sh);
     ctx.restore();
     left = right;
   }
@@ -460,17 +532,26 @@ function draw() {
     const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
     drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
   }
-  // The egg den sits on the seabed, in front of the shells, behind the fish.
+  // The egg den: a pebble-ringed spring pool on open sand in the middle of the seabed
+  // (the left side is where desktop icons usually sit).
   if (state) {
     const eggs = state.eggs ?? [];
     const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
-    drawDen(ctx, width * 0.16, height * 0.93, Math.min(320, Math.min(width, height) * 0.27), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
+    drawDen(ctx, width * 0.5, height * 0.915, Math.min(340, Math.min(width, height) * 0.3), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
   }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // Food pellets.
+  for (const p of pellets) {
+    const fade = p.bottomFor > 15 ? 1 - (p.bottomFor - 15) / 5 : 1;
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.fillStyle = "#c9782f"; ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255, 220, 160, 0.9)"; ctx.beginPath(); ctx.arc(p.x - 1, p.y - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
   }
   // Farther (smaller y) fish first.
   for (const s of [...swimmers].sort((a, b) => a.y - b.y)) {
@@ -480,7 +561,9 @@ function draw() {
     ctx.save();
     ctx.translate(s.x, s.y + bob);
     ctx.rotate(Math.atan2(s.vy, Math.abs(s.vx) + 1) * 0.35 * Math.sign(s.facing || 1));
-    ctx.scale(s.facing, 1);
+    // Mid-turn the body is seen end-on: narrower but never paper thin, and a little taller.
+    const turn = Math.abs(s.facing);
+    ctx.scale((Math.sign(s.facing) || 1) * Math.max(0.22, turn), 1 + 0.08 * (1 - turn));
     if (img) {
       drawUndulating(s, img, len);
     } else {
@@ -490,7 +573,7 @@ function draw() {
     if (s.fish.resting_until > Date.now() / 1000 && !state?.settings.meeting_mode) {
       // Fed to the next 5-level mark: the fish naps and says so.
       const jokes = [t("No căng vảy! Cho em ngủ tí"), t("Bụng em thành bóng rồi!"), t("Đừng thêm buffet… em xin thua!"), t("Đang tiêu hóa, đừng gọi em đi gym!")];
-      const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length] // a new joke every 5 levels;
+      const text = jokes[Math.floor((s.fish.exp * 20) / (state?.stage_exp.adult ?? 1000)) % jokes.length]; // a new joke every 5 levels
       ctx.save(); ctx.font = "13px system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
       const bubbleWidth = ctx.measureText(text).width + 20;
       const bx = Math.max(4, Math.min(width - bubbleWidth - 4, s.x - bubbleWidth / 2));
@@ -532,6 +615,16 @@ async function refresh() {
   );
   for (const sp of state.species) prices.set(sp.id, sp.price);
   syncSwimmers(state.fish);
+  // A fish that just ate files gets real food on the desktop too.
+  for (const f of state.fish) {
+    const total = f.exp + f.pending_exp;
+    const before = lastExp.get(f.id);
+    if (before !== undefined && total > before && !state.settings.meeting_mode) {
+      const s = swimmers.find((w) => w.fish.id === f.id);
+      if (s) dropFood(s.x, 4 + Math.floor(Math.random() * 3));
+    }
+    lastExp.set(f.id, total);
+  }
 }
 
 async function pollIdle() {

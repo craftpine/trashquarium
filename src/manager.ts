@@ -168,7 +168,7 @@ function showGuide() {
       item("🆙", t("Lớn nhanh như thổi"), t("10 EXP = 1 level, một file nhỏ đã đủ 2 level. Cứ 5 level cá no căng bụng và ngủ trưa 2 tiếng. Lv.100 là trưởng thành: hết lớn, bắt đầu nghĩ đến chuyện đời.")),
       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
-      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100. Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+      item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 gọi thuyền bán được giá mua ×100 (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
     ),
     [{ label: t("Đã hiểu!"), kind: "primary" }],
@@ -354,7 +354,9 @@ const freeSlots = () => Math.max(0, state.capacity - state.used_slots);
 
 const levelOf = (f: Fish) => Math.floor((f.exp * 100) / state.stage_exp.adult);
 
-const saleValue = (f: Fish) => f.purchase_price * Math.max(1, 100 - f.eggs_used);
+/** Same rule as the engine: adults sell for price ×100 minus eggs laid, younger fish for half the price. */
+const isAdult = (f: Fish) => f.exp >= state.stage_exp.adult;
+const saleValue = (f: Fish) => (isAdult(f) ? f.purchase_price * Math.max(1, 100 - f.eggs_used) : Math.floor(f.purchase_price / 2));
 
 // ---------- breeding ----------
 
@@ -419,7 +421,9 @@ function confirmBreed(fish: Fish) {
 function confirmSell(fish: Fish) {
   modal(h("div", {},
     h("h2", {}, t("Gọi thuyền bán {name}?", { name: fishLabel(fish) })),
-    h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ")."),
+    isAdult(fish)
+      ? h("p", {}, t("Level 100 · Giá bán: {price} CBCoin (giá mua ×100", { price: saleValue(fish) }) + (fish.eggs_used ? t(", trừ {n} trứng đã đẻ", { n: fish.eggs_used }) : "") + ").")
+      : h("p", {}, t("Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.", { lv: levelOf(fish), price: saleValue(fish) })),
     h("p", { class: "fine" }, t("Thuyền chỉ mang cá trong game đi. Các file trong Bụng cá vẫn được giữ để khôi phục."))
   ), [{ label: t("Để sau"), kind: "ghost" }, { label: t("Gọi thuyền"), kind: "primary", run: async () => {
     if (working) return;
@@ -591,7 +595,9 @@ function renderTank(): Node {
         f.stage === "adult" ? h("div", { class: "tags" },
           h("button", { class: "primary small", disabled: working || !!state.read_only, onclick: () => confirmSell(f) }, t("⛵ Gọi thuyền bán · {price} CBCoin", { price: saleValue(f) })),
           h("button", { class: "small", disabled: working || !!state.read_only, onclick: () => confirmBreed(f) }, t("🥚 Sinh sản")),
-        ) : null,
+        ) : h("div", { class: "tags" },
+          h("button", { class: "ghost small", disabled: working || !!state.read_only, title: t("Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua."), onclick: () => confirmSell(f) }, t("Bán lại · {price} CBCoin", { price: saleValue(f) })),
+        ),
         f.eggs_used ? h("span", { class: "fine" }, t("Đã đẻ {n} trứng", { n: f.eggs_used })) : null,
       ),
     );

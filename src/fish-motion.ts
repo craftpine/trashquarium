@@ -31,7 +31,7 @@ export function bodyWave(style: SwimStyle, u: number, beat: number): number {
     case "ray": // the body stays level; the wings do the work (finStretch)
       return 0.012 * Math.sin(beat * 0.5 - back * 2);
     default: // most fish: wave grows toward the tail, the head yaws a little the other way
-      return 0.045 * (0.06 + 0.94 * back * back) * Math.sin(beat - back * 3.6) - 0.01 * Math.pow(u, 3) * Math.sin(beat);
+      return 0.055 * (0.06 + 0.94 * back * back) * Math.sin(beat - back * 3.6) - 0.012 * Math.pow(u, 3) * Math.sin(beat);
   }
 }
 
@@ -39,10 +39,10 @@ export function bodyWave(style: SwimStyle, u: number, beat: number): number {
  * middle of the body and the tail fin fans open and closed with each beat. Rays flap. */
 export function finStretch(style: SwimStyle, u: number, beat: number, fin: number): number {
   if (style === "ray") return 1 + 0.2 * Math.sin(beat * 0.5 - u * 1.4); // wings up and down
-  const middle = Math.exp(-(((u - 0.55) / 0.16) ** 2));
-  const tail = u < 0.2 ? 1 - u / 0.2 : 0;
-  const flutter = style === "eel" ? 0.02 : 0.06;
-  return 1 + flutter * middle * Math.sin(fin + u * 4) + 0.1 * tail * Math.sin(beat + 0.6);
+  const middle = Math.exp(-(((u - 0.58) / 0.17) ** 2));
+  const tail = u < 0.22 ? 1 - u / 0.22 : 0;
+  const flutter = style === "eel" ? 0.025 : 0.09;
+  return 1 + flutter * middle * Math.sin(fin + u * 4) + 0.14 * tail * Math.sin(beat + 0.6);
 }
 
 /** Burst-and-glide: returns the new burst level (0..1). Bursts start at random or on a turn. */

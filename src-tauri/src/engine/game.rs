@@ -70,8 +70,10 @@ pub struct Fish {
 }
 
 impl Fish {
-    /// What the sale boat pays: purchase price x100, minus one purchase price per egg laid.
+    /// What the sale boat pays. Adults (Lv.100): purchase price x100, minus one purchase price
+    /// per egg laid. Younger fish (a wrong buy, a full tank): half the purchase price.
     pub fn sale_value(&self) -> Option<u64> {
+        if self.exp < MAX_EXP { return Some(self.purchase_price / 2); }
         self.purchase_price.checked_mul(100u64.saturating_sub(self.eggs_used as u64))
     }
 }
@@ -406,7 +408,6 @@ impl GameStore {
     pub fn sell(&mut self, fish_id: &str) -> Result<u64, Failure> {
         let mut next = self.state.clone();
         let i = next.fish.iter().position(|f| f.id == fish_id).ok_or_else(|| Failure::new("fish_not_found", fish_id))?;
-        if next.fish[i].exp < MAX_EXP { return Err(Failure::new("fish_not_adult", "level 100 required")); }
         let price = next.fish[i].sale_value().ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
         next.wallet.cbcoins = next.wallet.cbcoins.checked_add(price).ok_or_else(|| Failure::new("wallet_overflow", "sale"))?;
         next.fish.remove(i);
@@ -774,7 +775,7 @@ mod tests {
         s.digest(NOW+7199).unwrap(); assert_eq!(s.state.fish[0].exp,50);
         s.digest(NOW+7200).unwrap(); assert_eq!((s.state.fish[0].exp,s.state.fish[0].pending_exp),(60,0));
         assert!(s.can_feed(&id,NOW+7200).is_ok());
-        assert_eq!(s.sell(&id).unwrap_err().code,"fish_not_adult");
+        assert_eq!(s.state.fish[0].sale_value(), Some(s.state.fish[0].purchase_price / 2)); // young: half price
         s.state.fish[0].exp = 490; s.state.fish[0].pending_exp = 20; s.state.fish[0].resting_until = 0;
         s.digest(NOW+7200).unwrap(); assert_eq!(s.state.fish[0].stage,Stage::Juvenile); assert_eq!(s.state.fish[0].exp,500);
         s.state.fish[0].exp = 990; s.state.fish[0].pending_exp = 10; s.state.fish[0].resting_until = 0;
@@ -1015,6 +1016,20 @@ mod tests {
         assert_eq!(s.breed_with(&a, &b, 10, NOW, &mut || 1.0).unwrap().laid, 10);
         s.hatch_due_with(NOW + 10800, &mut || 0.0).unwrap();
         assert_eq!((s.used_slots(), s.state.eggs.len()), (18, 6)); // 2 free < 3: the rest wait
+    }
+
+    #[test]
+    fn young_fish_sell_back_for_half_the_purchase_price() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        s.state.wallet.cbcoins = 1000;
+        let tuna = s.purchase("thunnus_albacares", 120, NOW).unwrap();
+        assert_eq!(s.state.wallet.cbcoins, 880);
+        assert_eq!(s.sell(&tuna.id).unwrap(), 60);
+        assert_eq!(s.state.wallet.cbcoins, 940);
+        assert!(s.state.fish.iter().all(|f| f.id != tuna.id));
+        let starter = s.state.fish[0].id.clone();
+        s.state.fish[0].exp = MAX_EXP - 1;
+        assert_eq!(s.sell(&starter).unwrap(), 10); // a Lv.99 guppy is still "young"
     }
 
     fn store(dir: &Path) -> GameStore {
