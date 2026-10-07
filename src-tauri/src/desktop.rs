@@ -17,7 +17,11 @@ pub fn ensure_hud(app: &AppHandle) -> Result<(), String> {
         .title("TrashQuarium Quick Dock").decorations(false).resizable(false)
         .skip_taskbar(true).focused(false).visible(false).shadow(false)
         .position(pos.x + size.width - 80.0, pos.y + size.height - 120.0)
-        .inner_size(56.0, 56.0).build().map_err(|e| e.to_string())?;
+        .inner_size(56.0, 56.0);
+    // Transparent so the collapsed button is just the round-cornered logo (Windows/Linux).
+    #[cfg(not(target_os = "macos"))]
+    let w = w.transparent(true);
+    let w = w.build().map_err(|e| e.to_string())?;
     #[cfg(windows)]
     unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::*;

@@ -8,7 +8,7 @@ import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangCha
 import { collectionPanel } from "./shell-collection";
 import { coinText } from "./coin";
 import { formatCountdown } from "./egg-den";
-import { BANKER, CRAB_SVG, progress, savingsInterest, splitCountdown, termPercent } from "./savings";
+import { BANKER, SHARK_SVG, progress, savingsInterest, splitCountdown, termPercent } from "./savings";
 
 type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "savings" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
@@ -171,7 +171,7 @@ function showGuide() {
       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
       item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
-      item("🦀", t("Gửi tiết kiệm"), t("Dư CBCoin thì gửi Chị Cua: lãi 9% mỗi ngày, cộng dồn theo kỳ hạn 1–30 ngày (7 ngày +63%). Đáo hạn mới có lãi, rút sớm chỉ nhận lại gốc.")),
+      item("🦈", t("Gửi tiết kiệm"), t("Dư CBCoin thì gửi Cá Mập: lãi 9% mỗi ngày, cộng dồn theo kỳ hạn 1–30 ngày (7 ngày +63%). Đáo hạn mới có lãi, rút sớm chỉ nhận lại gốc.")),
       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
     ),
     [{ label: t("Đã hiểu!"), kind: "primary" }],
@@ -678,7 +678,7 @@ function announceHatches() {
   else if (fresh.length) toast(t("💨 {n} trứng đã đến giờ nhưng không nở.", { n: fresh.length }));
 }
 
-// ---------- savings (Chị Cua's counter) ----------
+// ---------- savings (Cá Mập's counter) ----------
 
 let saveAmount = "";
 let saveTerm = 7;
@@ -706,14 +706,13 @@ function renderSavings(): Node {
   const full = books.length >= rules.max_books;
 
   const art = h("div", { class: "banker-art" });
-  art.innerHTML = CRAB_SVG;
+  art.innerHTML = SHARK_SVG;
   const banker = h("div", { class: "banker" },
     art,
     h("div", { class: "banker-info" },
       h("div", { class: "bubble" }, bankerLine(books, due)),
-      h("h3", {}, t("Chị Cua Tiết Kiệm")),
+      h("h3", {}, t("Cá Mập Tiết Kiệm")),
       h("p", { class: "banker-title" }, BANKER.title),
-      h("p", {}, BANKER.branch),
       h("p", {}, "Contact for work: ", h("b", {}, BANKER.phone)),
       h("p", {}, "TikTok ID: ", h("b", {}, BANKER.tiktok)),
     ),
@@ -762,7 +761,7 @@ function renderSavings(): Node {
     try {
       const book = await api.openSavings(amount, saveTerm);
       saveAmount = "";
-      toast(t("🦀 Chị Cua: Cảm ơn nha! Sổ {d} ngày đã mở, {date} quay lại nhận {total} CBCoin nha.", {
+      toast(t("🦈 Cá Mập: Cảm ơn nha! Sổ {d} ngày đã mở, {date} quay lại nhận {total} CBCoin nha.", {
         d: book.term_days, date: formatDate(book.matures_at), total: money(book.principal + book.interest) }));
     } catch (e) { fail(e); }
     await refresh();
@@ -798,7 +797,7 @@ function renderSavings(): Node {
       h("h2", {}, t("Gửi tiết kiệm")),
       h("span", { class: "fine" }, t("{n}/{max} sổ · đang gửi {locked} CBCoin", { n: books.length, max: rules.max_books, locked: money(locked) })),
     ),
-    h("p", { class: "lead" }, t("Gửi CBCoin cho Chị Cua theo kỳ hạn: lãi {rate}% mỗi ngày, cộng dồn theo số ngày. Đáo hạn bấm Tất toán để nhận cả gốc lẫn lãi; rút trước hạn chỉ nhận lại gốc. Game tắt vẫn tính ngày.", { rate: termPercent(rules, 1) })),
+    h("p", { class: "lead" }, t("Gửi CBCoin cho Cá Mập theo kỳ hạn: lãi {rate}% mỗi ngày, cộng dồn theo số ngày. Đáo hạn bấm Tất toán để nhận cả gốc lẫn lãi; rút trước hạn chỉ nhận lại gốc. Game tắt vẫn tính ngày.", { rate: termPercent(rules, 1) })),
     h("div", { class: "savings-top" }, banker, form),
     books.length ? h("div", { class: "book-grid" }, ...books.map(bookCard)) : h("div", { class: "empty" }, t("Chưa có sổ nào. Gửi thử một ít CBCoin xem lãi chạy nha!")),
     h("p", { class: "fine" }, t("Tối đa {books} sổ, lãi tối đa {cap} CBCoin mỗi sổ. Lãi suất ở đây là luật chơi, chỉ tính bằng CBCoin trong game — không phải lãi suất hay sản phẩm của ngân hàng thật.", { books: rules.max_books, cap: money(rules.max_interest) })),

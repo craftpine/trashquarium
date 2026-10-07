@@ -119,7 +119,7 @@ const reasons: Record<string, string> = {
   breed_species_mismatch: "Chỉ ghép cặp được hai cá cùng loài.",
   breed_exhausted: "Giá trị cá đã về mức giá mua gốc, không sinh sản thêm được.",
   den_full: "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.",
-  savings_term_invalid: "Kỳ hạn này không có ở quầy Chị Cua.",
+  savings_term_invalid: "Kỳ hạn này không có ở quầy Cá Mập.",
   savings_too_small: "Số CBCoin gửi chưa đủ mức tối thiểu.",
   savings_full: "Đã đủ số sổ tiết kiệm tối đa. Tất toán bớt một sổ rồi gửi tiếp.",
   savings_not_found: "Không tìm thấy sổ tiết kiệm này nữa.",

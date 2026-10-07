@@ -110,8 +110,8 @@ button.small {
   gap: 12px;
 }
 .brand img {
-  width: 64px;
-  height: 43px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
@@ -864,7 +864,7 @@ dialog:has(.intro) {
   .intro-stage * { animation: none !important; }
 }
 
-/* ---------- savings: Chị Cua's counter ---------- */
+/* ---------- savings: Cá Mập's counter ---------- */
 .savings-top {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
@@ -881,8 +881,8 @@ dialog:has(.intro) {
   padding: 14px;
 }
 .banker-art {
-  flex: 0 0 132px;
-  margin-top: 30px;
+  flex: 0 0 150px;
+  margin-top: 4px;
 }
 .banker-art svg { width: 100%; height: auto; display: block; }
 .banker-info { min-width: 0; }
