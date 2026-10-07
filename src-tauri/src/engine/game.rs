@@ -12,7 +12,8 @@ use super::catalog::{Catalog, Species};
 use super::save::{self, Loaded};
 use super::Failure;
 
-pub const SCHEMA_VERSION: u64 = 5;
+pub const SCHEMA_VERSION: u64 = 6;
+/// Schema 6 adds savings books; older apps must not open (and drop) them.
 /// Growth (schema 5): 10 EXP = 1 level, Lv.50 juvenile, Lv.100 adult, a 2-hour rest every 5 levels.
 pub const EXP_PER_LEVEL: u64 = 10;
 pub const MAX_EXP: u64 = 100 * EXP_PER_LEVEL;
@@ -109,6 +110,25 @@ pub struct HatchResult {
 }
 const HATCH_LOG: usize = 30;
 
+/// A savings book: `principal` CBCoin locked until `matures_at`, then paid back with `interest`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct SavingsBook {
+    pub id: String,
+    pub principal: u64,
+    pub term_days: u32,
+    pub interest: u64,
+    pub opened_at: i64,
+    pub matures_at: i64,
+}
+
+/// What a withdrawal paid. `early` books pay back the deposit only.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct SavingsPayout {
+    pub principal: u64,
+    pub interest: u64,
+    pub early: bool,
+}
+
 /// Result of one breeding: all eggs go into the egg den.
 #[derive(Serialize, Clone, Debug)]
 pub struct BreedOutcome {
@@ -171,6 +191,7 @@ pub struct GameState {
     /// The egg den: eggs waiting to hatch.
     #[serde(default)] pub eggs: Vec<Egg>,
     #[serde(default)] pub hatch_log: VecDeque<HatchResult>,
+    #[serde(default)] pub savings: Vec<SavingsBook>,
 }
 
 impl GameState {
@@ -189,6 +210,7 @@ impl GameState {
             settings: Settings { tank_enabled: false, meeting_mode: false, onboarding_done: false, quick_dock_enabled: true },
             eggs: Vec::new(),
             hatch_log: VecDeque::new(),
+            savings: Vec::new(),
         }
     }
 
@@ -213,6 +235,12 @@ impl GameState {
         for e in &self.eggs {
             if e.id.is_empty() || !egg_ids.insert(e.id.as_str()) || e.species_id.is_empty() || e.hatch_at < e.laid_at {
                 return Err(format!("invalid egg {:?}", e.id));
+            }
+        }
+        let mut book_ids = BTreeSet::new();
+        for b in &self.savings {
+            if b.id.is_empty() || !book_ids.insert(b.id.as_str()) || b.principal == 0 || b.matures_at < b.opened_at {
+                return Err(format!("invalid savings book {:?}", b.id));
             }
         }
         if !self.daily.date.is_empty() && chrono::NaiveDate::parse_from_str(&self.daily.date, "%Y-%m-%d").is_err() {
@@ -295,6 +323,9 @@ impl GameStore {
                     }
                 }
                 v["schema_version"] = serde_json::json!(SCHEMA_VERSION);
+            }
+            if version < 6 {
+                v["schema_version"] = serde_json::json!(SCHEMA_VERSION); // savings start empty
             }
             let s: GameState = serde_json::from_value(v).map_err(|e| e.to_string())?;
             s.validate()?;
@@ -496,6 +527,43 @@ impl GameStore {
 
     pub fn hatch_due(&mut self, now: i64) -> Result<bool, Failure> {
         self.hatch_due_with(now, &mut random01)
+    }
+
+    /// Opens a savings book: `amount` CBCoin leave the wallet for `term_days` days. The
+    /// interest is fixed now, so later balance changes never touch an open book.
+    pub fn open_savings(&mut self, amount: u64, term_days: u32, now: i64) -> Result<SavingsBook, Failure> {
+        let cfg = self.catalog.balance.savings.clone();
+        if !cfg.terms_days.contains(&term_days) { return Err(Failure::new("savings_term_invalid", term_days)); }
+        if amount < cfg.min_deposit { return Err(Failure::new("savings_too_small", cfg.min_deposit)); }
+        if self.state.savings.len() >= cfg.max_books { return Err(Failure::new("savings_full", cfg.max_books)); }
+        if self.state.wallet.cbcoins < amount { return Err(Failure::new("not_enough_shells", amount - self.state.wallet.cbcoins)); }
+        let book = SavingsBook {
+            id: uuid::Uuid::new_v4().to_string(),
+            principal: amount,
+            term_days,
+            interest: cfg.interest(amount, term_days),
+            opened_at: now,
+            matures_at: now + term_days as i64 * 86_400,
+        };
+        let mut next = self.state.clone();
+        next.wallet.cbcoins -= amount;
+        next.savings.push(book.clone());
+        self.commit(next)?;
+        Ok(book)
+    }
+
+    /// Closes a savings book. On or after the maturity date it pays deposit + interest;
+    /// before that only the deposit comes back.
+    pub fn withdraw_savings(&mut self, book_id: &str, now: i64) -> Result<SavingsPayout, Failure> {
+        let mut next = self.state.clone();
+        let i = next.savings.iter().position(|b| b.id == book_id).ok_or_else(|| Failure::new("savings_not_found", book_id))?;
+        let book = next.savings.remove(i);
+        let early = now < book.matures_at;
+        let interest = if early { 0 } else { book.interest };
+        let total = book.principal.checked_add(interest).ok_or_else(|| Failure::new("wallet_overflow", "savings"))?;
+        next.wallet.cbcoins = next.wallet.cbcoins.checked_add(total).ok_or_else(|| Failure::new("wallet_overflow", "savings"))?;
+        self.commit(next)?;
+        Ok(SavingsPayout { principal: book.principal, interest, early })
     }
 
     /// Redeems a gift code. The two admin test codes can be used again and again.
@@ -1430,5 +1498,54 @@ mod tests {
         assert_eq!(s.hunt_view().collection[&ShellKind::Great].count, 3);
         drop(s); let loaded = store(dir.path()); assert_eq!(loaded.hunt_view().collection[&ShellKind::Great].count, 3);
         assert_eq!(loaded.state.wallet.cbcoins, 303); assert_eq!(loaded.state.wallet.pearls, 0);
+    }
+
+    #[test]
+    fn savings_pay_nine_percent_a_day_at_maturity() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        assert_eq!(s.state.wallet.cbcoins, 300);
+        let book = s.open_savings(200, 7, NOW).unwrap();
+        assert_eq!((book.interest, book.matures_at), (126, NOW + 7 * 86_400)); // 200 x 9% x 7 days
+        assert_eq!(s.state.wallet.cbcoins, 100);
+        drop(s); let mut s = store(dir.path()); // survives a restart
+        assert_eq!(s.state.savings, vec![book.clone()]);
+        let paid = s.withdraw_savings(&book.id, book.matures_at).unwrap();
+        assert_eq!(paid, SavingsPayout { principal: 200, interest: 126, early: false });
+        assert_eq!(s.state.wallet.cbcoins, 426); assert!(s.state.savings.is_empty());
+        assert_eq!(s.withdraw_savings(&book.id, NOW).unwrap_err().code, "savings_not_found");
+    }
+
+    #[test]
+    fn early_withdrawal_returns_only_the_deposit() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        let book = s.open_savings(100, 1, NOW).unwrap();
+        assert_eq!(book.interest, 9);
+        let paid = s.withdraw_savings(&book.id, book.matures_at - 1).unwrap();
+        assert_eq!(paid, SavingsPayout { principal: 100, interest: 0, early: true });
+        assert_eq!(s.state.wallet.cbcoins, 300);
+    }
+
+    #[test]
+    fn savings_rules_are_enforced() {
+        let dir = tempfile::tempdir().unwrap(); let mut s = store(dir.path());
+        assert_eq!(s.open_savings(100, 2, NOW).unwrap_err().code, "savings_term_invalid");
+        assert_eq!(s.open_savings(9, 1, NOW).unwrap_err().code, "savings_too_small");
+        assert_eq!(s.open_savings(301, 1, NOW).unwrap_err().code, "not_enough_shells");
+        for _ in 0..10 { s.open_savings(10, 1, NOW).unwrap(); }
+        assert_eq!(s.open_savings(10, 1, NOW).unwrap_err().code, "savings_full");
+        assert_eq!(s.state.wallet.cbcoins, 200);
+        // Interest is capped per book so the admin code can't break the economy.
+        s.state.wallet.cbcoins = 1_000_000_000; s.state.savings.clear();
+        assert_eq!(s.open_savings(1_000_000_000, 30, NOW).unwrap().interest, 50_000);
+    }
+
+    #[test]
+    fn schema_5_saves_open_with_no_savings() {
+        let dir = tempfile::tempdir().unwrap(); let s = store(dir.path());
+        let mut v = serde_json::to_value(&s.state).unwrap(); drop(s);
+        v["schema_version"] = serde_json::json!(5); v.as_object_mut().unwrap().remove("savings");
+        fs::write(dir.path().join("game.json"), serde_json::to_string(&v).unwrap()).unwrap();
+        let s = store(dir.path());
+        assert!(s.read_only.is_none()); assert_eq!(s.state.schema_version, 6); assert!(s.state.savings.is_empty());
     }
 }

@@ -40,15 +40,24 @@ Code không phân biệt hoa thường, bỏ khoảng trắng hai đầu; game c
 
 Đây là code thử nghiệm: ai biết code đều dùng được, nên cần xóa hoặc đổi trước khi phát hành chính thức.
 
+## Gửi tiết kiệm (tab Gửi tiết kiệm, quầy Chị Cua)
+
+- Kỳ hạn 1, 3, 7, 14, 30 ngày; lãi 9% mỗi ngày cộng dồn theo số ngày (lãi đơn): 1 ngày +9%, 3 ngày +27%, 7 ngày +63%, 14 ngày +126%, 30 ngày +270%.
+- Lãi = làm tròn xuống (gốc × 9% × số ngày), tối đa 50.000 CBCoin mỗi sổ; chốt lúc mở sổ, đổi cấu hình sau đó không ảnh hưởng sổ đang mở.
+- Gửi tối thiểu 10 CBCoin, tối đa 10 sổ cùng lúc. Game tắt vẫn tính ngày.
+- Đáo hạn: bấm **Tất toán** nhận gốc + lãi (lãi không tự cộng vào ví). Rút trước hạn: chỉ nhận lại gốc.
+- Số liệu nằm ở `savings` trong `src-tauri/config/balance.json` (`daily_rate`, `terms_days`, `min_deposit`, `max_interest`, `max_books`).
+- Thẻ liên hệ ở quầy (chức danh, chi nhánh, số điện thoại, TikTok) là nội dung quảng cáo, nằm trong `BANKER` ở `src/savings.ts`.
+
 ## Tương thích dữ liệu
 
-Schema save mới là 5: EXP và EXP đang tiêu hóa của save 4 được chia 10 nên level giữ nguyên. Từ schema 4: wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
+Schema save mới là 6: thêm danh sách sổ tiết kiệm (save 5 mở lên với danh sách trống). Schema 5: EXP và EXP đang tiêu hóa của save 4 được chia 10 nên level giữ nguyên. Từ schema 4: wallet đổi sang `cbcoins` và đọc được trường `shells` cũ, giữ số dư 1:1. Không đổi dữ liệu thật trong lúc test.
 
 Save 1–3 giữ ID cá, ledger, collection và số dư. Cá trưởng thành cũ chuyển Lv.100; cá thành niên cũ giữ giai đoạn tương ứng Lv.50 trở lên; cá non cũ quy đổi tiến độ từ ngưỡng cũ 20/60 EXP. Không tạo lại quà khởi đầu. Save cũ không lưu giá mua thực tế nên dùng giá catalog của loài tại lúc migration; cá mua mới lưu giá giao dịch.
 
 Lịch sử cũ chỉ có hash phần đầu: tiếp tục dùng nó để chặn thưởng lặp với dữ liệu đã ghi. Vì không thể phục hồi toàn bộ nội dung từ hash cũ, hai file khác nhau cùng kích thước/phần đầu có thể bị từ chối nếu khớp lịch sử cũ. File được thưởng từ luật mới dùng hash toàn bộ, không thêm hash phần đầu vào ledger nữa.
 
-Không mở save schema 5 bằng EXE cũ. Save phiên bản tương lai hoặc hỏng vẫn fail-closed/read-only, không ghi đè.
+Không mở save schema 6 bằng EXE cũ (EXE cũ sẽ báo save phiên bản mới và không ghi đè). Save phiên bản tương lai hoặc hỏng vẫn fail-closed/read-only, không ghi đè.
 
 ## Kiểm thử và cách chạy
 

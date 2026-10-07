@@ -31,6 +31,6 @@ export function collectionPanel(view: HuntView): HTMLElement {
     } else article.append(node("p", t("Kéo sò về thuyền để mở thẻ kiến thức.")));
     grid.append(article);
   }
-  panel.append(grid, node("p", t("Ba thẻ tìm hiểu loài sò biển có thật. Ảnh AI là minh họa game, không dùng để định danh. Nhãn hiếm, tỉ lệ 8% và cơ hội có ngọc 35% trong sò hiếm là luật game, không phải số liệu sinh học. Ngọc hiện được lưu để sưu tầm, chưa có shop tiêu ngọc."), "shell-note"));
+  panel.append(grid);
   return panel;
 }

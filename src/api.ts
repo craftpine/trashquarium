@@ -80,6 +80,29 @@ export interface BreedOutcome {
   eggs: Egg[];
 }
 
+export interface SavingsBook {
+  id: string;
+  principal: number;
+  term_days: number;
+  interest: number;
+  opened_at: number;
+  matures_at: number;
+}
+
+export interface SavingsRules {
+  daily_rate: number;
+  terms_days: number[];
+  min_deposit: number;
+  max_interest: number;
+  max_books: number;
+}
+
+export interface SavingsPayout {
+  principal: number;
+  interest: number;
+  early: boolean;
+}
+
 export interface Settings {
   quick_dock_enabled: boolean;
   tank_enabled: boolean;
@@ -112,6 +135,8 @@ export interface StateView {
   used_slots: number;
   eggs: Egg[];
   hatch_log: HatchResult[];
+  savings: SavingsBook[];
+  savings_rules: SavingsRules;
   max_preview_files: number;
   read_only: Failure | null;
   recovered_from_backup: boolean;
@@ -177,6 +202,8 @@ export const api = {
   redeem: (code: string) => invoke<RedeemOutcome>("redeem_code", { code }),
   sell: (fishId: string) => invoke<number>("sell_fish", { fishId }),
   breed: (firstId: string, secondId: string, eggs: number) => invoke<BreedOutcome>("breed_fish", { firstId, secondId, eggs }),
+  openSavings: (amount: number, termDays: number) => invoke<SavingsBook>("open_savings", { amount, termDays }),
+  withdrawSavings: (bookId: string) => invoke<SavingsPayout>("withdraw_savings", { bookId }),
   bellyList: () => invoke<BellyEntry[]>("belly_list"),
   restore: (entryId: string) => invoke<{ path: string; renamed: boolean }>("belly_restore", { entryId }),
   recover: () => invoke<StateView>("belly_recover"),

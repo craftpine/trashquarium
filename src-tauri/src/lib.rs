@@ -106,7 +106,7 @@ fn take_manager_route(route: State<'_, PendingRoute>) -> Option<String> {
 
 #[tauri::command]
 fn open_manager_tab(app: AppHandle, tab: String) -> Result<(), Failure> {
-    if !["shop", "feed", "belly", "tank", "settings", "hunt"].contains(&tab.as_str()) { return Err(Failure::new("bad_tab", "")); }
+    if !["shop", "feed", "belly", "tank", "settings", "hunt", "savings"].contains(&tab.as_str()) { return Err(Failure::new("bad_tab", "")); }
     *app.state::<PendingRoute>().0.lock().unwrap_or_else(|p| p.into_inner()) = Some(tab);
     show_manager(&app);
     let _ = app.emit("manager-route", ());
@@ -339,6 +339,22 @@ async fn breed_fish(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>
 }
 
 #[tauri::command]
+async fn open_savings(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, amount: u64, term_days: u32) -> Result<engine::game::SavingsBook, Failure> {
+    let _guard = busy.enter()?;
+    let result = with_core(&core, move |c| c.game.open_savings(amount, term_days, engine::now_unix())).await;
+    notify(&app);
+    result
+}
+
+#[tauri::command]
+async fn withdraw_savings(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, book_id: String) -> Result<engine::game::SavingsPayout, Failure> {
+    let _guard = busy.enter()?;
+    let result = with_core(&core, move |c| c.game.withdraw_savings(&book_id, engine::now_unix())).await;
+    notify(&app);
+    result
+}
+
+#[tauri::command]
 async fn redeem_code(app: AppHandle, core: State<'_, Core>, busy: State<'_, Busy>, code: String) -> Result<engine::game::RedeemOutcome, Failure> {
     let _guard = busy.enter()?;
     let result = with_core(&core, move |c| c.game.redeem(&code)).await;
@@ -545,6 +561,7 @@ pub fn run() {
             sell_fish,
             breed_fish,
             redeem_code,
+            open_savings, withdraw_savings,
             belly_list,
             belly_restore,
             belly_recover,

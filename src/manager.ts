@@ -3,13 +3,14 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
-import { api, asFailure, type BellyEntry, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
+import { api, asFailure, type BellyEntry, type SavingsBook, type FeedReport, type Fish, type Inspection, type Species, type StateView } from "./api";
 import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangChange, LANGS, locale, reason, setLang, speciesFact, speciesName, stageName, t, type Lang } from "./i18n";
 import { collectionPanel } from "./shell-collection";
 import { coinText } from "./coin";
 import { formatCountdown } from "./egg-den";
+import { BANKER, CRAB_SVG, progress, savingsInterest, splitCountdown, termPercent } from "./savings";
 
-type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "settings" | "hunt";
+type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "savings" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
 
 let state: StateView;
@@ -151,6 +152,7 @@ function render() {
     belly: renderBelly,
     tank: renderTank,
     den: renderDen,
+    savings: renderSavings,
     settings: renderSettings,
     hunt: renderHunt,
   };
@@ -169,6 +171,7 @@ function showGuide() {
       item("🐚", t("Gọi thuyền, gắp sò, ra tiền"), t("Gọi thuyền, canh cái móc đung đưa rồi bấm Space. Sò trắng 1 CBCoin, đỏ 10, tím 100 — sò tím là trúng số.")),
       item("🛒", t("Shopping cho bể"), t("Cá rẻ thì bé xíu, cá đắt thì to bự: cá mập voi (300 CBCoin) to gần gấp 4 lần cá bảy màu (20 CBCoin). Bể có 20 chỗ: cá dưới 100 CBCoin chiếm 1 chỗ, 100–199 chiếm 2, từ 200 trở lên chiếm 3 — cá mập to thì phải nhường chỗ chứ!")),
       item("⛵", t("Bán hay cho đẻ?"), t("Cá Lv.100 béo múp hiện chữ “bắt điii!” — gọi thuyền gắp lên rồi chọn bán luôn (giá mua ×100) hay nuôi thêm (lỡ mua nhầm thì cá chưa lớn bán lại được 1/2 giá mua). Hoặc ghép hai cá cùng loài cho sinh sản: mỗi trứng trừ giá bán của cả hai rồi vào Hang trứng ấp 2–3 tiếng, tỷ lệ nở 5–20% (cá càng đắt càng khó nở). Cá con ra đời là Lv.0 và lại bắt đầu từ đầu.")),
+      item("🦀", t("Gửi tiết kiệm"), t("Dư CBCoin thì gửi Chị Cua: lãi 9% mỗi ngày, cộng dồn theo kỳ hạn 1–30 ngày (7 ngày +63%). Đáo hạn mới có lãi, rút sớm chỉ nhận lại gốc.")),
       item("😌", t("Yên tâm"), t("Không tiền thật, không tài khoản, không mạng. Cá không bao giờ chết, chỉ đôi khi hơi lười.")),
     ),
     [{ label: t("Đã hiểu!"), kind: "primary" }],
@@ -233,6 +236,7 @@ function renderTabs() {
     ["belly", t("Bụng cá"), state.held_count],
     ["tank", t("Bể của tôi")],
     ["den", t("Hang trứng"), state.eggs.length],
+    ["savings", t("Gửi tiết kiệm"), state.savings.filter((b) => b.matures_at <= Date.now() / 1000).length],
     ["hunt", t("Trục vớt Vỏ sò")],
     ["settings", t("Cài đặt")],
   ];
@@ -274,7 +278,6 @@ function renderShop(): Node {
         h("h3", {}, speciesName(s)),
         h("span", { class: "sci" }, s.scientific_name),
         h("div", { class: "tags" },
-          h("span", { class: "tag" }, t("Có thật")),
           h("span", { class: "tag" }, s.reproduction === "live_birth" ? t("Đẻ con") : t("Đẻ trứng")),
           h("span", { class: `tag${need > 1 ? " big" : ""}` }, t("Chiếm {n} chỗ", { n: need })),
           state.dex[s.id]?.owned ? h("span", { class: "tag" }, t("Đã có")) : null,
@@ -290,8 +293,7 @@ function renderShop(): Node {
     );
   });
   return h("section", {},
-    h("div", { class: "section-head" }, h("h2", {}, t("Cửa hàng · {n} loài cá thật", { n: state.species.length }))),
-    h("p", { class: "lead" }, t("Đào sò → CBCoin → mua cá non. Dọn file an toàn để cá nhận EXP. CBCoin là điểm trong game, không mua bằng tiền thật. Bể chung chỉ là không gian game, không phải hướng dẫn nuôi chung các loài ngoài đời.")),
+    h("div", { class: "section-head" }, h("h2", {}, t("Cửa hàng"))),
     h("div", { class: "grid" }, ...cards),
     h("p", { class: "fine", style: "margin-top:16px" }, t(state.disclaimer)),
   );
@@ -303,10 +305,8 @@ function showSpecies(s: Species) {
       h("div", { class: "modal-art" }, h("img", { src: `/${s.sprite}`, alt: speciesName(s) })),
       h("h2", { style: "margin-top:12px" }, speciesName(s)),
       h("p", { class: "sci" }, s.scientific_name),
-      s.editorial_status !== "released" ? h("p", { class: "tag draft", style: "display:inline-block;margin:6px 0" }, t("Nội dung nháp — chưa được biên tập khoa học duyệt")) : null,
       h("p", { style: "margin:8px 0" }, speciesFact(s)),
       h("dl", { class: "kv" },
-        h("dt", {}, t("Nhãn")), h("dd", {}, t("Có thật")),
         h("dt", {}, t("Sinh sản")), h("dd", {}, s.reproduction === "live_birth" ? t("Đẻ con (không có trứng ngoài bụng)") : t("Đẻ trứng")),
         h("dt", {}, t("Khi mua")), h("dd", {}, stageName("fry")),
         h("dt", {}, t("Ghép cặp")), h("dd", {}, t("Chỉ cùng loài, cả hai đã trưởng thành (Lv.100) — dùng nút Sinh sản trên thẻ cá")),
@@ -678,6 +678,164 @@ function announceHatches() {
   else if (fresh.length) toast(t("💨 {n} trứng đã đến giờ nhưng không nở.", { n: fresh.length }));
 }
 
+// ---------- savings (Chị Cua's counter) ----------
+
+let saveAmount = "";
+let saveTerm = 7;
+const money = (n: number) => n.toLocaleString(locale());
+
+function bankerLine(books: SavingsBook[], due: number): string {
+  if (due > 0) return t("Sổ tới hạn rồi kìa! Bấm Tất toán nhận lãi liền nha.");
+  const rules = state.savings_rules;
+  const days = rules.terms_days.includes(7) ? 7 : rules.terms_days[rules.terms_days.length - 1];
+  const lines = [
+    t("Kỳ hạn {days} ngày lãi {pct}% luôn á, gửi liền đi anh ơi!", { days, pct: termPercent(rules, days) }),
+    t("CBCoin nằm im trong ví thì cá cũng không lớn thêm đâu nha."),
+    t("Đáo hạn nhớ ghé chị tất toán nha, lãi không tự chạy vào ví đâu."),
+  ];
+  if (books.length === 0) return t("“Chờ vài hôm nữa anh qua em gửi tiết kiệm nha”… câu này chị nghe hoài rồi đó!");
+  return lines[Math.floor(Date.now() / 60_000) % lines.length];
+}
+
+function renderSavings(): Node {
+  const rules = state.savings_rules;
+  if (!rules.terms_days.includes(saveTerm)) saveTerm = rules.terms_days[Math.min(2, rules.terms_days.length - 1)];
+  const now = Date.now() / 1000;
+  const books = [...state.savings].sort((a, b) => a.matures_at - b.matures_at);
+  const due = books.filter((b) => b.matures_at <= now).length;
+  const full = books.length >= rules.max_books;
+
+  const art = h("div", { class: "banker-art" });
+  art.innerHTML = CRAB_SVG;
+  const banker = h("div", { class: "banker" },
+    art,
+    h("div", { class: "banker-info" },
+      h("div", { class: "bubble" }, bankerLine(books, due)),
+      h("h3", {}, t("Chị Cua Tiết Kiệm")),
+      h("p", { class: "banker-title" }, BANKER.title),
+      h("p", {}, BANKER.branch),
+      h("p", {}, "Contact for work: ", h("b", {}, BANKER.phone)),
+      h("p", {}, "TikTok ID: ", h("b", {}, BANKER.tiktok)),
+    ),
+  );
+
+  const chips = h("div", { class: "term-chips", role: "radiogroup", "aria-label": t("Kỳ hạn") },
+    ...rules.terms_days.map((d) =>
+      h("button", { class: `term${d === saveTerm ? " on" : ""}`, role: "radio", "aria-checked": String(d === saveTerm), onclick: () => { saveTerm = d; render(); } },
+        h("span", {}, t("{d} ngày", { d })), h("b", {}, `+${termPercent(rules, d)}%`))));
+
+  const summary = h("p", { class: "save-summary" });
+  const submit = h("button", { class: "primary", onclick: () => deposit() }, t("Gửi tiết kiệm"));
+  const input = h("input", {
+    type: "number", min: String(rules.min_deposit), max: String(state.cbcoins), step: "1", value: saveAmount,
+    placeholder: t("Số CBCoin"), "aria-label": t("Số CBCoin muốn gửi"),
+    oninput: (e: Event) => { saveAmount = (e.currentTarget as HTMLInputElement).value; paintSummary(); },
+    onkeydown: (e: KeyboardEvent) => { if (e.key === "Enter") deposit(); },
+  });
+  const quick = (label: string, part: number) => h("button", { class: "small ghost", onclick: () => {
+    saveAmount = String(Math.floor(state.cbcoins * part)); input.value = saveAmount; paintSummary();
+  } }, label);
+
+  const amountNow = () => Math.floor(Number(saveAmount) || 0);
+  function paintSummary() {
+    const amount = amountNow();
+    const interest = savingsInterest(rules, amount, saveTerm);
+    let text: string;
+    let ok = false;
+    if (full) text = t("Đã đủ {n} sổ. Tất toán bớt một sổ rồi gửi tiếp nha.", { n: rules.max_books });
+    else if (amount < rules.min_deposit) text = t("Gửi tối thiểu {n} CBCoin.", { n: rules.min_deposit });
+    else if (amount > state.cbcoins) text = t("Ví chỉ có {n} CBCoin.", { n: money(state.cbcoins) });
+    else {
+      ok = true;
+      text = t("Đáo hạn {date}: nhận {total} CBCoin (lãi {interest}).", {
+        date: formatDate(now + saveTerm * 86_400), total: money(amount + interest), interest: money(interest) })
+        + (interest >= rules.max_interest ? t(" Đã chạm lãi tối đa {n} CBCoin mỗi sổ.", { n: money(rules.max_interest) }) : "");
+    }
+    summary.replaceChildren(...coinText(text));
+    summary.classList.toggle("bad", !ok && amount > 0);
+    submit.disabled = !ok || working || !!state.read_only;
+  }
+  async function deposit() {
+    const amount = amountNow();
+    if (submit.disabled) return;
+    submit.disabled = true;
+    try {
+      const book = await api.openSavings(amount, saveTerm);
+      saveAmount = "";
+      toast(t("🦀 Chị Cua: Cảm ơn nha! Sổ {d} ngày đã mở, {date} quay lại nhận {total} CBCoin nha.", {
+        d: book.term_days, date: formatDate(book.matures_at), total: money(book.principal + book.interest) }));
+    } catch (e) { fail(e); }
+    await refresh();
+  }
+  paintSummary();
+
+  const form = h("div", { class: "save-form" },
+    h("h3", {}, t("Mở sổ tiết kiệm")),
+    chips,
+    h("div", { class: "save-amount" }, input, quick("50%", 0.5), quick(t("Tất cả"), 1)),
+    summary,
+    submit,
+  );
+
+  const bookCard = (b: SavingsBook) => {
+    const done = b.matures_at <= now;
+    const timer = h("span", { class: "book-timer", "data-due": String(b.matures_at) });
+    paintBookTimer(timer);
+    const action = done
+      ? h("button", { class: "small primary", onclick: () => withdraw(b) }, t("Tất toán +{n}", { n: money(b.principal + b.interest) }))
+      : h("button", { class: "small ghost", onclick: () => confirmEarly(b) }, t("Rút trước hạn"));
+    return h("article", { class: `book${done ? " due" : ""}` },
+      h("div", { class: "book-head" }, h("strong", {}, t("Sổ {d} ngày", { d: b.term_days })), h("span", { class: "fine" }, t("Mở lúc {time}", { time: formatDate(b.opened_at) }))),
+      h("div", { class: "book-money" }, `${money(b.principal)} CBCoin`, h("span", { class: "gain" }, `+${money(b.interest)}`)),
+      h("div", { class: "book-bar" }, h("i", { style: `width:${(progress(b.opened_at, b.matures_at, now) * 100).toFixed(1)}%` })),
+      h("div", { class: "book-foot" }, timer, action),
+    );
+  };
+
+  const locked = books.reduce((sum, b) => sum + b.principal, 0);
+  return h("section", { class: "savings" },
+    h("div", { class: "section-head" },
+      h("h2", {}, t("Gửi tiết kiệm")),
+      h("span", { class: "fine" }, t("{n}/{max} sổ · đang gửi {locked} CBCoin", { n: books.length, max: rules.max_books, locked: money(locked) })),
+    ),
+    h("p", { class: "lead" }, t("Gửi CBCoin cho Chị Cua theo kỳ hạn: lãi {rate}% mỗi ngày, cộng dồn theo số ngày. Đáo hạn bấm Tất toán để nhận cả gốc lẫn lãi; rút trước hạn chỉ nhận lại gốc. Game tắt vẫn tính ngày.", { rate: termPercent(rules, 1) })),
+    h("div", { class: "savings-top" }, banker, form),
+    books.length ? h("div", { class: "book-grid" }, ...books.map(bookCard)) : h("div", { class: "empty" }, t("Chưa có sổ nào. Gửi thử một ít CBCoin xem lãi chạy nha!")),
+    h("p", { class: "fine" }, t("Tối đa {books} sổ, lãi tối đa {cap} CBCoin mỗi sổ. Lãi suất ở đây là luật chơi, chỉ tính bằng CBCoin trong game — không phải lãi suất hay sản phẩm của ngân hàng thật.", { books: rules.max_books, cap: money(rules.max_interest) })),
+  );
+}
+
+function paintBookTimer(el: HTMLElement) {
+  const left = Number(el.dataset.due) - Date.now() / 1000;
+  if (left <= 0) { el.textContent = t("Đã đáo hạn!"); el.classList.add("done"); return; }
+  const [days, clock] = splitCountdown(left);
+  el.textContent = days > 0 ? t("Còn {d} ngày {time}", { d: days, time: clock }) : t("Còn {time}", { time: clock });
+}
+setInterval(() => document.querySelectorAll<HTMLElement>(".book-timer").forEach(paintBookTimer), 1000);
+
+async function withdraw(b: SavingsBook) {
+  try {
+    const p = await api.withdrawSavings(b.id);
+    toast(p.early
+      ? t("Đã rút {n} CBCoin trước hạn — không có lãi.", { n: money(p.principal) })
+      : t("💰 +{total} CBCoin · lãi {interest} từ sổ {d} ngày!", { total: money(p.principal + p.interest), interest: money(p.interest), d: b.term_days }));
+  } catch (e) { fail(e); }
+  await refresh();
+}
+
+function confirmEarly(b: SavingsBook) {
+  const [days, clock] = splitCountdown(b.matures_at - Date.now() / 1000);
+  const left = days > 0 ? t("{d} ngày {time}", { d: days, time: clock }) : clock;
+  modal(
+    h("div", {},
+      h("h2", {}, t("Rút trước hạn?")),
+      h("p", {}, t("Rút bây giờ chỉ nhận lại {principal} CBCoin, mất {interest} CBCoin tiền lãi. Ráng chờ thêm {left} nữa thôi mà!", {
+        principal: money(b.principal), interest: money(b.interest), left })),
+    ),
+    [{ label: t("Thôi, chờ tiếp"), kind: "primary" }, { label: t("Vẫn rút"), kind: "ghost", run: () => withdraw(b) }],
+  );
+}
+
 function renderHunt(): Node {
   const remaining = state.hunt.batch?.shells.filter((s) => !s.collected).length ?? 0;
   const fat = state.fish.filter(isAdult).length;
@@ -849,7 +1007,7 @@ function showIntro(firstRun = false) {
       t("Cá bơi qua lại, phải canh đúng lúc mới trúng."),
     ] },
     { art: "breed", title: t("Mua cá và cho sinh sản"), text: [
-      t("Cửa hàng có 114 loài cá thật. Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
+      t("Bể có 20 chỗ, cá to chiếm nhiều chỗ hơn."),
       t("Ghép hai cá Lv.100 cùng loài để đẻ trứng; trứng ấp 2–3 tiếng trong Hang trứng rồi mới nở."),
     ] },
     { art: "ready", title: t("Sẵn sàng rồi!"), text: [
@@ -908,7 +1066,6 @@ function askClose() {
 }
 
 function applyStatic() {
-  $("tagline").textContent = t("Bể cá của bạn · file của bạn vẫn thuộc về bạn");
   $("drop-hint").textContent = t("Thả file vào đây để xem trước — chưa có file nào bị chuyển");
 }
 
@@ -923,7 +1080,7 @@ async function main() {
   setInterval(() => { if (!working && preview.length === 0) void refresh(); }, 15000);
   const route = async () => {
     const next = await api.takeRoute();
-    if (next && ["shop", "feed", "belly", "tank", "den", "settings", "hunt"].includes(next)) {
+    if (next && ["shop", "feed", "belly", "tank", "den", "savings", "settings", "hunt"].includes(next)) {
       if (working || preview.length > 0) { toast(t("Hoàn thành hoặc bỏ lượt xem trước trước khi chuyển màn.")); return; }
       switchTab(next as Tab);
     }
