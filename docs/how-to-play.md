@@ -50,9 +50,9 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
 - Every egg goes into the **Egg den** (its own tab, and a little pebble-ringed pool in the middle of the seabed on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
 - Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
 
-## 🦀 Savings at Ms. Crab's counter
+## 🦈 Savings at Ms. Shark's counter
 
-Spare CBCoin? Open the **Savings** tab, pick a term and an amount. Interest is **9% a day**, adding up over the term: 1 day +9%, 3 days +27%, 7 days +63%, 14 days +126%, 30 days +270% (at most 50,000 CBCoin interest per deposit, up to 10 deposits). At maturity press **Close & collect** for your deposit plus interest. Withdraw early and you only get the deposit back — and Ms. Crab gets a little sad.
+Spare CBCoin? Open the **Savings** tab, pick a term and an amount. Interest is **9% a day**, adding up over the term: 1 day +9%, 3 days +27%, 7 days +63%, 14 days +126%, 30 days +270% (at most 50,000 CBCoin interest per deposit, up to 10 deposits). At maturity press **Close & collect** for your deposit plus interest. Withdraw early and you only get the deposit back — and Ms. Shark gets a little sad.
 
 ## 😌 Relax
 

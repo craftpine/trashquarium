@@ -881,10 +881,10 @@ dialog:has(.intro) {
   padding: 14px;
 }
 .banker-art {
-  flex: 0 0 150px;
-  margin-top: 4px;
+  flex: 0 0 170px;
+  margin-top: 0;
 }
-.banker-art svg { width: 100%; height: auto; display: block; }
+.banker-art img { width: 100%; height: auto; display: block; filter: drop-shadow(0 4px 6px rgba(10, 45, 50, 0.2)); }
 .banker-info { min-width: 0; }
 .banker-info h3 { font-size: 18px; margin-top: 6px; }
 .banker-info p { margin: 2px 0; font-size: 13px; color: var(--ink-soft); }

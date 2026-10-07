@@ -40,14 +40,14 @@ Code không phân biệt hoa thường, bỏ khoảng trắng hai đầu; game c
 
 Đây là code thử nghiệm: ai biết code đều dùng được, nên cần xóa hoặc đổi trước khi phát hành chính thức.
 
-## Gửi tiết kiệm (tab Gửi tiết kiệm, quầy Chị Cua)
+## Gửi tiết kiệm (tab Gửi tiết kiệm, quầy Cá Mập)
 
 - Kỳ hạn 1, 3, 7, 14, 30 ngày; lãi 9% mỗi ngày cộng dồn theo số ngày (lãi đơn): 1 ngày +9%, 3 ngày +27%, 7 ngày +63%, 14 ngày +126%, 30 ngày +270%.
 - Lãi = làm tròn xuống (gốc × 9% × số ngày), tối đa 50.000 CBCoin mỗi sổ; chốt lúc mở sổ, đổi cấu hình sau đó không ảnh hưởng sổ đang mở.
 - Gửi tối thiểu 10 CBCoin, tối đa 10 sổ cùng lúc. Game tắt vẫn tính ngày.
 - Đáo hạn: bấm **Tất toán** nhận gốc + lãi (lãi không tự cộng vào ví). Rút trước hạn: chỉ nhận lại gốc.
 - Số liệu nằm ở `savings` trong `src-tauri/config/balance.json` (`daily_rate`, `terms_days`, `min_deposit`, `max_interest`, `max_books`).
-- Thẻ liên hệ ở quầy (chức danh, chi nhánh, số điện thoại, TikTok) là nội dung quảng cáo, nằm trong `BANKER` ở `src/savings.ts`.
+- Thẻ liên hệ ở quầy (chức danh, số điện thoại, TikTok) là nội dung quảng cáo, nằm trong `BANKER` ở `src/savings.ts`.
 
 ## Tương thích dữ liệu
 

@@ -8,7 +8,7 @@ import { attentionNote, categoryName, formatDate, formatSize, getLang, onLangCha
 import { collectionPanel } from "./shell-collection";
 import { coinText } from "./coin";
 import { formatCountdown } from "./egg-den";
-import { BANKER, SHARK_SVG, progress, savingsInterest, splitCountdown, termPercent } from "./savings";
+import { BANKER, SHARK_IMG, progress, savingsInterest, splitCountdown, termPercent } from "./savings";
 
 type Tab = "shop" | "feed" | "belly" | "tank" | "den" | "savings" | "settings" | "hunt";
 type Child = Node | string | null | undefined | false;
@@ -705,8 +705,7 @@ function renderSavings(): Node {
   const due = books.filter((b) => b.matures_at <= now).length;
   const full = books.length >= rules.max_books;
 
-  const art = h("div", { class: "banker-art" });
-  art.innerHTML = SHARK_SVG;
+  const art = h("div", { class: "banker-art" }, h("img", { src: SHARK_IMG, alt: "" }));
   const banker = h("div", { class: "banker" },
     art,
     h("div", { class: "banker-info" },
