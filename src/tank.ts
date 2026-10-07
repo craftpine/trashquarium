@@ -602,12 +602,11 @@ function draw() {
     const live = { x: f.ox + shell.x * f.side, y: f.oy + shell.y * f.side, size: f.side * (0.06 + shell.size * 0.006) };
     drawShell(shell, lerp(idle.x, live.x, e), lerp(idle.y, live.y, e), lerp(idle.size, live.size, e));
   }
-  // The egg den: a pebble-ringed spring pool on open sand in the middle of the seabed
+  // The egg clutch lies on open sand in the middle of the seabed
   // (the left side is where desktop icons usually sit).
   if (state) {
     const eggs = state.eggs ?? [];
-    const label = eggs.length ? t("Hang trứng · {n} trứng", { n: eggs.length }) : t("Hang trứng");
-    drawDen(ctx, width * 0.5, height * 0.915, Math.min(340, Math.min(width, height) * 0.3), eggs, Date.now() / 1000, clock, label, state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
+    drawDen(ctx, width * 0.5, height * 0.93, Math.min(340, Math.min(width, height) * 0.3), eggs, Date.now() / 1000, clock, (n) => t("+{n} trứng", { n }), state.used_slots >= state.capacity ? t("chờ chỗ") : t("sắp nở!"), reducedMotion.matches || !!state.settings.meeting_mode);
   }
   ctx.fillStyle = "rgba(220, 245, 255, 0.35)";
   for (const b of bubbles) {

@@ -47,7 +47,7 @@ Fish cost **20** to **300 CBCoin**. Cheap fish are tiny, pricey fish are huge: a
 
 - Each egg takes one original purchase price off the sale value of **both** parents. The more they breed, the less they sell for, but never less than what you paid.
 - Each egg hatches with a **5–20%** chance: cheap fish hatch easily (20%), pricey fish rarely (5%). Eggs that don't hatch still count.
-- Every egg goes into the **Egg den** (its own tab, and a little pebble-ringed pool in the middle of the seabed on the desktop) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
+- Every egg goes into the **Egg den** (its own tab; on the desktop the eggs lie on the sand in the middle of the seabed) and incubates for **2–3 hours**, with a countdown on each egg. The clock keeps running while the game is closed.
 - Fry are born at Lv.0, show which generation they are, and start all over. If the tank is full when an egg is due, it waits in the den until there's room.
 
 ## 🦈 Savings at Ms. Shark's counter
