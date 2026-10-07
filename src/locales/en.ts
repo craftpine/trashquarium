@@ -313,7 +313,6 @@ export const EN: Record<string, string> = {
   "sắp nở!": "hatching!",
   "🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.": "🐣 {n} eggs just hatched! Go to My tank to meet the fry.",
   "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} eggs reached their time but didn't hatch.",
-  "Hang trứng · {n} trứng": "Egg den · {n} eggs",
   "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "The Egg den is full. Wait for some eggs to hatch before breeding again.",
   "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "This fish isn't grown yet (Lv.{lv}), so it sells back for half its purchase price: {price} CBCoin. Raise it to Lv.100 to sell for purchase price ×100.",
   "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "Bought by mistake or tank full? Sell it back for half the purchase price.",
@@ -401,4 +400,5 @@ export const EN: Record<string, string> = {
   "Số CBCoin gửi chưa đủ mức tối thiểu.": "That's below the minimum deposit.",
   "Đã đủ số sổ tiết kiệm tối đa. Tất toán bớt một sổ rồi gửi tiếp.": "You have the most deposits allowed. Close one, then deposit again.",
   "Không tìm thấy sổ tiết kiệm này nữa.": "That deposit can't be found any more.",
+  "+{n} trứng": "+{n} eggs",
 };

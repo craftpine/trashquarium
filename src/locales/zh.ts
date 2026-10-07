@@ -313,7 +313,6 @@ export const ZH: Record<string, string> = {
   "sắp nở!": "快孵了！",
   "🐣 {n} trứng vừa nở! Ra Bể của tôi xem cá con nhé.": "🐣 刚孵出 {n} 条鱼苗！去“我的鱼缸”看看吧。",
   "💨 {n} trứng đã đến giờ nhưng không nở.": "💨 {n} 颗卵到时间了，但没有孵出来。",
-  "Hang trứng · {n} trứng": "鱼卵洞 · {n} 颗卵",
   "Hang trứng đã đầy. Chờ trứng nở bớt rồi cho sinh sản tiếp.": "鱼卵洞已满。等一些卵孵化后再繁殖吧。",
   "Cá chưa trưởng thành (Lv.{lv}) chỉ bán lại được 1/2 giá mua: {price} CBCoin. Nuôi tới Lv.100 thì bán được giá mua ×100.": "这条鱼还没成年（Lv.{lv}），只能按购买价的一半卖回：{price} CBCoin。养到 Lv.100 就能卖购买价 ×100。",
   "Mua nhầm hoặc bể đầy? Bán lại bằng 1/2 giá mua.": "买错了或鱼缸满了？按购买价的一半卖回。",
@@ -401,4 +400,5 @@ export const ZH: Record<string, string> = {
   "Số CBCoin gửi chưa đủ mức tối thiểu.": "存款金额低于最低要求。",
   "Đã đủ số sổ tiết kiệm tối đa. Tất toán bớt một sổ rồi gửi tiếp.": "存单数量已达上限。先结清一张再存。",
   "Không tìm thấy sổ tiết kiệm này nữa.": "找不到这张存单了。",
+  "+{n} trứng": "+{n} 个蛋",
 };

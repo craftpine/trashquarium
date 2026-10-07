@@ -29,7 +29,7 @@ Hai cá **cùng loài**, cả hai trưởng thành (Lv.100), được ghép cặ
 - **Hang trứng và thời gian ấp:** mọi trứng vừa đẻ đều vào Hang trứng (`GameState.eggs`), mỗi trứng có giờ nở riêng ngẫu nhiên 2–3 tiếng (`incubate_min_s`/`incubate_max_s`). Hang chứa tối đa 100 trứng (`den_capacity`); đẻ quá chỗ trống bị từ chối. Đồng hồ chạy theo giờ hệ thống nên game tắt vẫn tính; khi mở lại, trứng quá giờ được xử lý ngay.
 - **Nở:** đồng hồ native kiểm tra mỗi giây. Trứng đến giờ mới tung tỷ lệ nở: nở thì thành cá con trong bể, không nở thì mất. Kết quả 30 lần gần nhất lưu ở `hatch_log` để giao diện báo.
 - **Bể đầy:** sinh sản không cần chỗ trong bể (trứng nằm trong hang). Trứng đến giờ mà bể không đủ chỗ cho loài đó thì nằm chờ trong hang, chưa tung tỷ lệ, cho tới khi bể có chỗ.
-- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop vẽ hang trứng thành một vũng nước nhỏ viền sỏi và rong ở giữa đáy cát (tránh cột biểu tượng desktop bên trái), với trứng và đồng hồ của 5 trứng sắp nở nhất. Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
+- Giao diện: tab **Hang trứng** có đồng hồ đếm ngược trên từng quả trứng; bể desktop đặt trứng thẳng trên cát ở giữa đáy bể (tránh cột biểu tượng desktop bên trái), hiện 5 trứng sắp nở nhất kèm đồng hồ, số trứng còn lại ghi "+N trứng". Chưa có tính trạng hay biến thể màu. Save cũ không có `eggs`/`eggs_used` đọc ra rỗng/0, không cần đổi schema.
 
 ## Code quà tặng (Cài đặt → Nhập code)
 
