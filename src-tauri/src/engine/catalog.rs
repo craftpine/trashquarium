@@ -73,6 +73,35 @@ pub struct Balance {
     pub breeding: Breeding,
     #[serde(default)]
     pub slots: Slots,
+    #[serde(default)]
+    pub savings: Savings,
+}
+
+/// Savings books (Chị Cua's bank). In-game CBCoin only. A book earns `daily_rate` per day
+/// of its term (simple interest, fixed when the book is opened, at most `max_interest`).
+/// Withdrawing before the term ends returns only the deposit.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct Savings {
+    pub daily_rate: f64,
+    pub terms_days: Vec<u32>,
+    pub min_deposit: u64,
+    pub max_interest: u64,
+    pub max_books: usize,
+}
+
+impl Default for Savings {
+    fn default() -> Self {
+        Savings { daily_rate: 0.09, terms_days: vec![1, 3, 7, 14, 30], min_deposit: 10, max_interest: 50_000, max_books: 10 }
+    }
+}
+
+impl Savings {
+    /// Interest a book of `principal` CBCoin earns over `days`, rounded down and capped.
+    pub fn interest(&self, principal: u64, days: u32) -> u64 {
+        let raw = (principal as f64 * self.daily_rate * days as f64).floor();
+        if raw >= self.max_interest as f64 { self.max_interest } else { raw.max(0.0) as u64 }
+    }
 }
 
 /// Tank space: `tank_capacity` counts slots, not fish. Bigger (pricier) fish take more:
@@ -150,6 +179,10 @@ impl Catalog {
     }
 
     pub fn validate(&self) -> Result<(), String> {
+        let sv = &self.balance.savings;
+        if !sv.daily_rate.is_finite() || sv.daily_rate < 0.0 || sv.terms_days.is_empty() || sv.terms_days.iter().any(|d| *d == 0) || sv.max_books == 0 {
+            return Err("balance.json: invalid savings".into());
+        }
         let mut ids = HashSet::new();
         for s in &self.species {
             if s.id.is_empty() || !ids.insert(&s.id) {

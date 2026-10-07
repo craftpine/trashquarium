@@ -58,9 +58,13 @@ function renderHunt(v: HuntView) {
 }
 function render() {
   dock.replaceChildren();
+  document.documentElement.classList.toggle("collapsed", !expanded);
   if (hunt?.session && expanded) { renderHunt(hunt); return; }
   if (!expanded) {
-    const b = button(remaining ? `⛵ ${remaining}` : "⛵", toggle); b.title = t("Mở nút nhanh TrashQuarium"); b.setAttribute("aria-label", b.title); b.className = "anchor"; dock.append(b); return;
+    const b = button("", toggle); b.title = t("Mở nút nhanh TrashQuarium"); b.setAttribute("aria-label", b.title); b.className = "anchor";
+    const logo = document.createElement("img"); logo.src = "/logo.png"; logo.alt = ""; b.append(logo);
+    if (remaining) { const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = String(remaining); b.append(badge); }
+    dock.append(b); return;
   }
   const header = document.createElement("header"); header.textContent = "TRASHQUARIUM";
   header.append(button("−", toggle)); dock.append(header);
